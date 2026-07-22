@@ -49,8 +49,9 @@ deploy as a test, not as something guaranteed.
 |---|---|---|---|
 | `MUSIC_PATH` | `.env` (used by `docker-compose.yml`) | — (required) | Real folder on the host with the songs |
 | `HOST_PORT` | `.env` | `5511` | Host port that points to the game |
+| `PORT` | `.env` | `5511` | Port the server listens on inside the container |
+| `PIPEHERO_SOURCE_PATH` | `.env` | `.` | Build context — only needed if `docker-compose.yml` lives somewhere other than the source code (e.g. Unraid's `appdata` layout) |
 | `SONGS_DIR` | inside the container (already fixed in `docker-compose.yml`) | `/songs` | No need to touch — it's the internal mount point |
-| `PORT` | inside the container | `5511` | Port the server listens on inside the container |
 
 ## Running without Docker (directly on the server)
 
