@@ -1,0 +1,25 @@
+export const COLORS = {
+  primary: "#111318",
+  secondary: "#1b1e26",
+  tertiary: "#9aa0a6",
+  quaternary: "#5c6270",
+  white: "#eeeeee",
+  black: "#05060a",
+  gray: "#333333",
+  success: "#3ddc46",
+  info: "#3d8ee8",
+  warning: "#e8443c",
+
+  laneGreen: "#3ddc46",
+  laneRed: "#e8443c",
+  laneYellow: "#f5d033",
+  laneBlue: "#3d8ee8",
+  laneOrange: "#f58a33",
+  laneOpen: "#c8c8c8",
+
+  canvasBackground: "#05060a",
+  hitLine: "#e0e0e0",
+  noteFallback: "#ffffff",
+  noteStrokeOverlay: "rgba(0, 0, 0, 0.4)",
+  pipeGradientStops: ["#16181d", "#3a3f4a", "#5c6270", "#3a3f4a", "#16181d"],
+} as const;

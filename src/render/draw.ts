@@ -1,0 +1,414 @@
+import type { Fret, Note } from "../types.js";
+import {
+  RENDER_CONFIG,
+  LANE_COLORS,
+  laneX,
+  highwayEdgeX,
+  getVisibleNotes,
+  noteRenderKey,
+  progressFor,
+  noteRadiusAt,
+  type RenderConfig,
+  type VisibleNote,
+} from "./layout.js";
+import { lighten } from "./colorUtils.js";
+import { COLORS } from "../colors.js";
+
+interface CanvasGradientLike {
+  addColorStop(offset: number, color: string): void;
+}
+
+export interface CanvasLike2D {
+  fillStyle: unknown;
+  strokeStyle: unknown;
+  lineWidth: number;
+  globalAlpha: number;
+  createLinearGradient(x0: number, y0: number, x1: number, y1: number): CanvasGradientLike;
+  createRadialGradient(x0: number, y0: number, r0: number, x1: number, y1: number, r1: number): CanvasGradientLike;
+  fillRect(x: number, y: number, w: number, h: number): void;
+  beginPath(): void;
+  closePath(): void;
+  arc(x: number, y: number, radius: number, startAngle: number, endAngle: number, counterclockwise?: boolean): void;
+  ellipse(x: number, y: number, radiusX: number, radiusY: number, rotation: number, startAngle: number, endAngle: number): void;
+  moveTo(x: number, y: number): void;
+  lineTo(x: number, y: number): void;
+  bezierCurveTo(cp1x: number, cp1y: number, cp2x: number, cp2y: number, x: number, y: number): void;
+  fill(): void;
+  stroke(): void;
+}
+
+export const ABSORB_DURATION_SECONDS = 0.22;
+
+const EMPTY_JUDGED_HITS: ReadonlyMap<string, number> = new Map();
+const EMPTY_HOLDING_KEYS: ReadonlySet<string> = new Set();
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function lerp(from: number, to: number, t: number): number {
+  return from + (to - from) * clamp01(t);
+}
+
+function pipeHalfWidthAt(progress: number, config: RenderConfig): number {
+  if (config.laneOrder.length < 2) return config.noteMaxRadius * 2.5;
+  const spacing = Math.abs(laneX(config.laneOrder[1], progress, config) - laneX(config.laneOrder[0], progress, config));
+  return spacing * 0.51;
+}
+
+const FRET_LINE_COUNT = 12;
+
+function drawFretboardGrid(ctx: CanvasLike2D, config: RenderConfig): void {
+  const lastFret = config.laneOrder[config.laneOrder.length - 1];
+  const firstFret = config.laneOrder[0];
+
+  ctx.strokeStyle = COLORS.tertiary;
+  ctx.lineWidth = 2;
+
+  for (const fret of config.laneOrder) {
+    ctx.beginPath();
+    ctx.moveTo(laneX(fret, 0, config), 0);
+    ctx.lineTo(laneX(fret, 1, config), config.hitLineY);
+    ctx.stroke();
+  }
+
+  for (let i = 0; i <= FRET_LINE_COUNT; i++) {
+    const progress = i / FRET_LINE_COUNT;
+    const y = progress * config.hitLineY;
+    ctx.beginPath();
+    ctx.moveTo(laneX(firstFret, progress, config), y);
+    ctx.lineTo(laneX(lastFret, progress, config), y);
+    ctx.stroke();
+  }
+}
+
+function drawEdgeRail(ctx: CanvasLike2D, side: -1 | 1, config: RenderConfig): void {
+  const topX = highwayEdgeX(side, 0, config);
+  const bottomX = highwayEdgeX(side, 1, config);
+  const topHalf = config.noteMinRadius * 0.4;
+  const bottomHalf = config.noteMaxRadius * 0.55;
+
+  const gradient = ctx.createLinearGradient(bottomX - bottomHalf, 0, bottomX + bottomHalf, 0);
+  const stops = COLORS.pipeGradientStops;
+  gradient.addColorStop(0, stops[0]);
+  gradient.addColorStop(0.32, stops[1]);
+  gradient.addColorStop(0.5, stops[2]);
+  gradient.addColorStop(0.68, stops[3]);
+  gradient.addColorStop(1, stops[4]);
+
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.moveTo(topX - topHalf, 0);
+  ctx.lineTo(topX + topHalf, 0);
+  ctx.lineTo(bottomX + bottomHalf, config.hitLineY);
+  ctx.lineTo(bottomX - bottomHalf, config.hitLineY);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawPipeBarrelAndMouth(ctx: CanvasLike2D, fret: Fret, config: RenderConfig): void {
+  const baseColor = LANE_COLORS[fret] ?? COLORS.noteFallback;
+  const x = laneX(fret, 1, config);
+  const halfWidth = pipeHalfWidthAt(1, config);
+
+  const barrelGradient = ctx.createLinearGradient(x - halfWidth, 0, x + halfWidth, 0);
+  barrelGradient.addColorStop(0, lighten(baseColor, -0.6));
+  barrelGradient.addColorStop(0.5, baseColor);
+  barrelGradient.addColorStop(1, lighten(baseColor, -0.6));
+  ctx.fillStyle = barrelGradient;
+  ctx.fillRect(x - halfWidth, config.hitLineY, halfWidth * 2, config.canvasHeight - config.hitLineY);
+
+  const mouthRx = config.pipeMouthRadius;
+  const mouthRy = config.pipeMouthRadius * 0.4;
+
+  ctx.fillStyle = baseColor;
+  ctx.beginPath();
+  ctx.ellipse(x, config.hitLineY, mouthRx, mouthRy, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = lighten(baseColor, -0.8);
+  ctx.beginPath();
+  ctx.ellipse(x, config.hitLineY, mouthRx * 0.7, mouthRy * 0.7, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function taperedDropPath(
+  ctx: CanvasLike2D,
+  bottomX: number,
+  bottomY: number,
+  bottomRadius: number,
+  tipX: number,
+  tipY: number
+): void {
+  const dx = tipX - bottomX;
+  const dy = tipY - bottomY;
+  const tipDistance = Math.hypot(dx, dy);
+  if (tipDistance <= bottomRadius) {
+    ctx.beginPath();
+    ctx.arc(bottomX, bottomY, bottomRadius, 0, Math.PI * 2);
+    return;
+  }
+  const axisAngle = Math.atan2(dy, dx);
+  const beta = Math.acos(bottomRadius / tipDistance);
+  const rightAngle = axisAngle - beta;
+  const leftAngle = axisAngle + beta;
+  const rightX = bottomX + bottomRadius * Math.cos(rightAngle);
+  const rightY = bottomY + bottomRadius * Math.sin(rightAngle);
+  const leftX = bottomX + bottomRadius * Math.cos(leftAngle);
+  const leftY = bottomY + bottomRadius * Math.sin(leftAngle);
+
+  ctx.beginPath();
+  ctx.moveTo(rightX, rightY);
+  ctx.lineTo(tipX, tipY);
+  ctx.lineTo(leftX, leftY);
+  ctx.arc(bottomX, bottomY, bottomRadius, leftAngle, rightAngle, false);
+  ctx.closePath();
+}
+
+function dropPath(ctx: CanvasLike2D, x: number, y: number, radius: number): void {
+  taperedDropPath(ctx, x, y, radius, x, y - radius * 1.8);
+}
+
+function sustainTrailPath(
+  ctx: CanvasLike2D,
+  bottomX: number,
+  bottomY: number,
+  radius: number,
+  tipX: number,
+  tipY: number
+): void {
+  const dx = tipX - bottomX;
+  const dy = tipY - bottomY;
+  const totalLength = Math.hypot(dx, dy);
+  if (totalLength <= radius * 1.05) {
+    ctx.beginPath();
+    ctx.arc(bottomX, bottomY, radius, 0, Math.PI * 2);
+    return;
+  }
+
+  const axisAngle = Math.atan2(dy, dx);
+  const equatorAngle = axisAngle + Math.PI / 2;
+
+  ctx.beginPath();
+  ctx.ellipse(bottomX, bottomY, totalLength, radius, axisAngle, -Math.PI / 2, Math.PI / 2);
+  ctx.arc(bottomX, bottomY, radius, equatorAngle, equatorAngle + Math.PI, false);
+  ctx.closePath();
+}
+
+function drawDrop(ctx: CanvasLike2D, x: number, y: number, radius: number, baseColor: string, alpha: number): void {
+  if (alpha <= 0) return;
+  ctx.globalAlpha = alpha;
+
+  ctx.fillStyle = baseColor;
+  dropPath(ctx, x, y, radius);
+  ctx.fill();
+
+  const highlightX = x - radius * 0.3;
+  const highlightY = y - radius * 0.4;
+  const highlight = ctx.createRadialGradient(highlightX, highlightY, 0, highlightX, highlightY, radius * 0.8);
+  highlight.addColorStop(0, lighten(baseColor, 0.8));
+  highlight.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = highlight;
+  dropPath(ctx, x, y, radius);
+  ctx.fill();
+
+  ctx.strokeStyle = lighten(baseColor, -0.4);
+  ctx.lineWidth = Math.max(1, radius * 0.06);
+  dropPath(ctx, x, y, radius);
+  ctx.stroke();
+
+  ctx.globalAlpha = 1;
+}
+
+const HOLD_SHAKE_FREQUENCY_HZ = 14;
+const HOLD_SHAKE_AMPLITUDE_RATIO = 0.06;
+
+function drawSustainTrail(
+  ctx: CanvasLike2D,
+  note: Note,
+  config: RenderConfig,
+  currentTime: number,
+  baseColor: string,
+  isHolding: boolean
+): void {
+  const endTime = note.time + note.duration;
+  const bottomTime = Math.min(Math.max(currentTime, note.time), endTime);
+  const topTime = Math.min(endTime, currentTime + config.approachTime);
+  if (bottomTime >= topTime) return;
+
+  const bottomProgress = progressFor(bottomTime, currentTime, config);
+  const topProgress = progressFor(topTime, currentTime, config);
+  let bottomX = laneX(note.fret, bottomProgress, config);
+  let bottomY = bottomProgress * config.hitLineY;
+  const bottomRadius = noteRadiusAt(bottomProgress, config);
+  let topX = laneX(note.fret, topProgress, config);
+  let topY = topProgress * config.hitLineY;
+
+  if (isHolding) {
+    const seed = note.fret * 3.7 + note.time * 11.0;
+    const phase = currentTime * HOLD_SHAKE_FREQUENCY_HZ * Math.PI * 2 + seed;
+    const amplitude = bottomRadius * HOLD_SHAKE_AMPLITUDE_RATIO;
+    const jitterX = Math.sin(phase) * amplitude;
+    const jitterY = Math.cos(phase * 1.3) * amplitude * 0.6;
+    bottomX += jitterX;
+    bottomY += jitterY;
+    topX += jitterX;
+    topY += jitterY;
+  }
+
+  const fillColor = isHolding ? lighten(baseColor, 0.15) : baseColor;
+
+  ctx.fillStyle = fillColor;
+  sustainTrailPath(ctx, bottomX, bottomY, bottomRadius, topX, topY);
+  ctx.fill();
+
+  const highlightX = bottomX - bottomRadius * 0.3;
+  const highlightY = bottomY - bottomRadius * 0.4;
+  const highlight = ctx.createRadialGradient(highlightX, highlightY, 0, highlightX, highlightY, bottomRadius * 0.8);
+  highlight.addColorStop(0, lighten(fillColor, 0.8));
+  highlight.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = highlight;
+  sustainTrailPath(ctx, bottomX, bottomY, bottomRadius, topX, topY);
+  ctx.fill();
+
+  ctx.strokeStyle = lighten(fillColor, -0.4);
+  ctx.lineWidth = Math.max(1, bottomRadius * 0.06);
+  sustainTrailPath(ctx, bottomX, bottomY, bottomRadius, topX, topY);
+  ctx.stroke();
+}
+
+function openBarPath(ctx: CanvasLike2D, x: number, y: number, halfWidth: number, halfHeight: number): void {
+  const left = x - halfWidth;
+  const right = x + halfWidth;
+  ctx.beginPath();
+  ctx.moveTo(left + halfHeight, y - halfHeight);
+  ctx.lineTo(right - halfHeight, y - halfHeight);
+  ctx.arc(right - halfHeight, y, halfHeight, -Math.PI / 2, Math.PI / 2, false);
+  ctx.lineTo(left + halfHeight, y + halfHeight);
+  ctx.arc(left + halfHeight, y, halfHeight, Math.PI / 2, -Math.PI / 2, false);
+  ctx.closePath();
+}
+
+function drawOpenNoteBar(
+  ctx: CanvasLike2D,
+  x: number,
+  y: number,
+  halfWidth: number,
+  halfHeight: number,
+  baseColor: string,
+  alpha: number
+): void {
+  if (alpha <= 0) return;
+  ctx.globalAlpha = alpha;
+
+  ctx.fillStyle = baseColor;
+  openBarPath(ctx, x, y, halfWidth, halfHeight);
+  ctx.fill();
+
+  const highlight = ctx.createLinearGradient(x, y - halfHeight, x, y + halfHeight);
+  highlight.addColorStop(0, lighten(baseColor, 0.6));
+  highlight.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = highlight;
+  openBarPath(ctx, x, y, halfWidth, halfHeight);
+  ctx.fill();
+
+  ctx.strokeStyle = lighten(baseColor, -0.4);
+  ctx.lineWidth = Math.max(1, halfHeight * 0.12);
+  openBarPath(ctx, x, y, halfWidth, halfHeight);
+  ctx.stroke();
+
+  ctx.globalAlpha = 1;
+}
+
+function drawSustainDrop(ctx: CanvasLike2D, x: number, y: number, radius: number, baseColor: string, alpha: number): void {
+  if (alpha <= 0 || radius <= 0) return;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = baseColor;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function drawAbsorbSplash(ctx: CanvasLike2D, fret: Fret, config: RenderConfig, elapsedSeconds: number): void {
+  const t = clamp01(elapsedSeconds / ABSORB_DURATION_SECONDS);
+  const baseColor = LANE_COLORS[fret] ?? COLORS.noteFallback;
+  const x = laneX(fret, 1, config);
+  const y = config.hitLineY;
+  const rx = lerp(config.pipeMouthRadius * 0.55, config.pipeMouthRadius * 1.5, t);
+  const ry = rx * 0.4;
+
+  ctx.globalAlpha = 1 - t;
+  ctx.strokeStyle = lighten(baseColor, 0.5);
+  ctx.lineWidth = Math.max(2, config.pipeMouthRadius * 0.12);
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+export function drawFrame(
+  ctx: CanvasLike2D,
+  notes: Note[],
+  currentTime: number,
+  config: RenderConfig = RENDER_CONFIG,
+  judgedHits: ReadonlyMap<string, number> = EMPTY_JUDGED_HITS,
+  holdingKeys: ReadonlySet<string> = EMPTY_HOLDING_KEYS
+): VisibleNote[] {
+  ctx.fillStyle = COLORS.canvasBackground;
+  ctx.fillRect(0, 0, config.canvasWidth, config.canvasHeight);
+
+  drawFretboardGrid(ctx, config);
+  drawEdgeRail(ctx, -1, config);
+  drawEdgeRail(ctx, 1, config);
+  for (const fret of config.laneOrder) {
+    drawPipeBarrelAndMouth(ctx, fret, config);
+  }
+
+  const visible = getVisibleNotes(notes, currentTime, config);
+
+  for (const note of visible) {
+    if (note.fret !== 7 || note.sustainDrops.length === 0) continue;
+    const baseColor = LANE_COLORS[note.fret] ?? COLORS.noteFallback;
+    for (const drop of note.sustainDrops) {
+      drawSustainDrop(ctx, drop.x, drop.y, drop.radius, baseColor, 0.75);
+    }
+  }
+
+  for (const note of visible) {
+    const key = noteRenderKey(note.fret, note.time);
+    const judgedAt = judgedHits.get(key);
+
+    if (judgedAt !== undefined) {
+      const elapsed = currentTime - judgedAt;
+      if (elapsed >= 0 && elapsed <= ABSORB_DURATION_SECONDS) {
+        drawAbsorbSplash(ctx, note.fret, config, elapsed);
+      }
+    }
+
+    const isSustain = note.fret !== 7 && note.duration > 0;
+    if (isSustain) {
+      const baseColor = LANE_COLORS[note.fret] ?? COLORS.noteFallback;
+      drawSustainTrail(ctx, note, config, currentTime, baseColor, holdingKeys.has(key));
+      continue;
+    }
+
+    if (judgedAt !== undefined) continue;
+
+    const progress = note.y / config.hitLineY;
+    const fadeEnd = 1 + config.despawnAfter / config.approachTime;
+    const alpha = progress <= 1 ? 1 : 1 - clamp01((progress - 1) / (fadeEnd - 1));
+    const baseColor = LANE_COLORS[note.fret] ?? COLORS.noteFallback;
+
+    if (note.fret === 7) {
+      const firstFret = config.laneOrder[0];
+      const lastFret = config.laneOrder[config.laneOrder.length - 1];
+      const halfWidth = Math.abs(laneX(lastFret, progress, config) - laneX(firstFret, progress, config)) / 2;
+      drawOpenNoteBar(ctx, note.x, note.y, halfWidth, note.radius * 0.7, baseColor, alpha);
+    } else {
+      drawDrop(ctx, note.x, note.y, note.radius, baseColor, alpha);
+    }
+  }
+
+  return visible;
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+server-dist/
+.env
+
+# oh-my-claudecode tool state (local tool memory, not project source)
+.omc/
+
+# debug screenshots — regenerable via `npm run test:integration:render-visual`
+test/integration/screenshots/

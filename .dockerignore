@@ -1,0 +1,7 @@
+node_modules
+dist
+server-dist
+songs
+test/integration/screenshots
+.git
+*.log

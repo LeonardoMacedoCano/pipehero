@@ -1,0 +1,15 @@
+services:
+  pipehero:
+    build: .
+    container_name: pipehero
+    environment:
+      - PORT=5511
+      - SONGS_DIR=/songs
+    volumes:
+      # points to the real songs folder on the host (Unraid) — each
+      # song is a subfolder with notes.chart + audio + optional
+      # song.ini, in the same format Clone Hero uses
+      - ${MUSIC_PATH}:/songs
+    ports:
+      - "${HOST_PORT:-5511}:5511"
+    restart: unless-stopped

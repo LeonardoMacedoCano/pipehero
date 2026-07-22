@@ -1,0 +1,35 @@
+[Song]
+{
+  Name = "PipeHero Spike Test"
+  Artist = "Cano"
+  Charter = "PipeHero Team"
+  Offset = 0
+  Resolution = 192
+  Genre = "Metal"
+  MediaType = "cd"
+}
+[SyncTrack]
+{
+  0 = TS 4
+  0 = B 120000
+  768 = B 160000
+}
+[Events]
+{
+  0 = E "section Intro"
+  768 = E "section Verse"
+}
+[ExpertSingle]
+{
+  0 = N 0 0
+  192 = N 1 0
+  384 = N 2 0
+  576 = N 0 0
+  576 = N 2 0
+  768 = N 3 480
+  1440 = N 4 0
+  1440 = N 5 0
+  1632 = N 1 0
+  THIS_LINE_IS_INTENTIONALLY_BROKEN
+  1824 = N 0 0
+}

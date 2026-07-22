@@ -1,0 +1,49 @@
+[Song]
+{
+  Name = "PipeHero Easy"
+  Artist = "PipeHero"
+  Charter = "auto-generated"
+  Offset = 0
+  Resolution = 192
+  Genre = "Metal (easy)"
+  MediaType = "cd"
+  MusicStream = "song.wav"
+}
+[SyncTrack]
+{
+  0 = TS 4
+  0 = B 100000
+}
+[ExpertSingle]
+{
+  480 = N 0 0
+  608 = N 1 0
+  736 = N 2 0
+  864 = N 3 0
+  992 = N 4 0
+  1120 = N 0 0
+  1248 = N 1 0
+  1376 = N 2 0
+  1504 = N 3 0
+  1632 = N 4 0
+  1760 = N 0 0
+  1888 = N 1 0
+  2016 = N 2 0
+  2144 = N 3 0
+  2272 = N 4 0
+  2400 = N 0 0
+  2528 = N 1 0
+  2656 = N 2 0
+  2784 = N 3 0
+  2912 = N 4 0
+  3040 = N 0 0
+  3168 = N 1 0
+  3296 = N 2 0
+  3424 = N 3 0
+  3552 = N 4 0
+  3680 = N 0 0
+  3808 = N 1 0
+  3936 = N 2 0
+  4064 = N 3 0
+  4192 = N 4 0
+}
