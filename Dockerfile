@@ -2,10 +2,11 @@
 # JS via tsc). Only installs "dependencies" (not "devDependencies") on
 # purpose — `canvas` (used only by my test scripts, not by the build
 # itself) has no prebuilt binary for Alpine/musl and would break the
-# build trying to compile from scratch. That's why `vite`, `typescript`
-# and `@types/node` live in "dependencies" in package.json, even though
-# that's not the most conventional place — they're what actually builds
-# the game (`npm run build` = `vite build && npm run build:server`).
+# build trying to compile from scratch. That's why `vite`, `typescript`,
+# `@types/node` and `@vitejs/plugin-react` live in "dependencies" in
+# package.json, even though that's not the most conventional place —
+# they're what actually builds the game (`npm run build` = `vite build
+# && npm run build:server`).
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
