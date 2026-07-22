@@ -8,12 +8,13 @@ function getAudioContext(): AudioContext | null {
   return sharedContext;
 }
 
-const NOISE_DURATION_SECONDS = 0.12;
-const THUD_DURATION_SECONDS = 0.15;
+const BUZZ_DURATION_SECONDS = 0.06;
+const THUMP_DURATION_SECONDS = 0.09;
 
-// Synthesized "miss" cue — a burst of band-passed noise (the metallic edge)
-// layered with a quick descending thud (the muted body), in the spirit of
-// the classic rhythm-game "missed note" clank. Synthesized rather than a
+// Synthesized "miss" cue — a short, dull "dead string" buzz (low-passed
+// noise, not bright/metallic) layered with a quick, low, quickly-decaying
+// thump (a palm-muted pluck rather than a ringing tone), in the spirit of
+// the classic rhythm-game "missed note" sound. Synthesized rather than a
 // sampled/ripped sound so there's no copyrighted asset to ship.
 export function playMissClank(): void {
   const ctx = getAudioContext();
@@ -22,7 +23,7 @@ export function playMissClank(): void {
 
   const now = ctx.currentTime;
 
-  const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * NOISE_DURATION_SECONDS));
+  const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * BUZZ_DURATION_SECONDS));
   const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = noiseBuffer.getChannelData(0);
   for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
@@ -30,32 +31,37 @@ export function playMissClank(): void {
   const noise = ctx.createBufferSource();
   noise.buffer = noiseBuffer;
 
-  const bandpass = ctx.createBiquadFilter();
-  bandpass.type = "bandpass";
-  bandpass.frequency.value = 2200;
-  bandpass.Q.value = 1.1;
+  const noiseFilter = ctx.createBiquadFilter();
+  noiseFilter.type = "lowpass";
+  noiseFilter.frequency.value = 1100;
+  noiseFilter.Q.value = 0.7;
 
   const noiseGain = ctx.createGain();
-  noiseGain.gain.setValueAtTime(0.45, now);
-  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + NOISE_DURATION_SECONDS);
+  noiseGain.gain.setValueAtTime(0.35, now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + BUZZ_DURATION_SECONDS);
 
-  noise.connect(bandpass);
-  bandpass.connect(noiseGain);
+  noise.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
   noiseGain.connect(ctx.destination);
   noise.start(now);
-  noise.stop(now + NOISE_DURATION_SECONDS);
+  noise.stop(now + BUZZ_DURATION_SECONDS);
 
-  const thud = ctx.createOscillator();
-  thud.type = "triangle";
-  thud.frequency.setValueAtTime(190, now);
-  thud.frequency.exponentialRampToValueAtTime(85, now + THUD_DURATION_SECONDS);
+  const thump = ctx.createOscillator();
+  thump.type = "square";
+  thump.frequency.setValueAtTime(150, now);
+  thump.frequency.exponentialRampToValueAtTime(70, now + THUMP_DURATION_SECONDS);
 
-  const thudGain = ctx.createGain();
-  thudGain.gain.setValueAtTime(0.3, now);
-  thudGain.gain.exponentialRampToValueAtTime(0.001, now + THUD_DURATION_SECONDS);
+  const thumpFilter = ctx.createBiquadFilter();
+  thumpFilter.type = "lowpass";
+  thumpFilter.frequency.value = 500;
 
-  thud.connect(thudGain);
-  thudGain.connect(ctx.destination);
-  thud.start(now);
-  thud.stop(now + THUD_DURATION_SECONDS);
+  const thumpGain = ctx.createGain();
+  thumpGain.gain.setValueAtTime(0.28, now);
+  thumpGain.gain.exponentialRampToValueAtTime(0.001, now + THUMP_DURATION_SECONDS);
+
+  thump.connect(thumpFilter);
+  thumpFilter.connect(thumpGain);
+  thumpGain.connect(ctx.destination);
+  thump.start(now);
+  thump.stop(now + THUMP_DURATION_SECONDS);
 }

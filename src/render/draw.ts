@@ -38,7 +38,7 @@ export interface CanvasLike2D {
 }
 
 export const ABSORB_DURATION_SECONDS = 0.3;
-export const MISS_FALL_DURATION_SECONDS = 0.55;
+export const MISS_FALL_DURATION_SECONDS = 0.4;
 
 export interface MissedHitInfo {
   fret: Fret;
@@ -403,19 +403,20 @@ function drawAbsorbSplash(ctx: CanvasLike2D, fret: Fret, config: RenderConfig, e
   ctx.globalAlpha = 1;
 }
 
-const MISS_GRAVITY_RATIO = 2.2;
+const MISS_FALL_SECONDS_TO_EXIT = 0.3;
 const MISS_WOBBLE_FREQUENCY_HZ = 9;
 const MISS_TILT_RATIO = 1.5;
-const MISS_FADE_START_FRACTION = 0.55;
+const MISS_FADE_START_FRACTION = 0.85;
 
-// Dramatic fall for a note that was missed: it drops hard past the pipe
-// with an accelerating (gravity-like) descent, tumbling side to side while
-// staying fully readable, then reddens and fades out sharply near the end —
-// the opposite read of a hit (which gets absorbed and vanishes cleanly).
+// Dramatic fall for a note that was missed: it falls at a steady pace from
+// the very first frame (no stall/wind-up before it starts moving) while
+// tumbling side to side and reddening — the opposite read of a hit (which
+// gets absorbed and vanishes cleanly).
 function drawMissedDrop(ctx: CanvasLike2D, info: MissedHitInfo, config: RenderConfig, elapsedSeconds: number): void {
   const t = clamp01(elapsedSeconds / MISS_FALL_DURATION_SECONDS);
   const remainingHeight = Math.max(1, config.canvasHeight - config.hitLineY);
-  const fallDistance = remainingHeight * MISS_GRAVITY_RATIO * t * t;
+  const fallSpeed = remainingHeight / MISS_FALL_SECONDS_TO_EXIT;
+  const fallDistance = fallSpeed * elapsedSeconds;
   const wobbleAmplitude = info.radius * 1.1 * t;
   const wobble = Math.sin(elapsedSeconds * MISS_WOBBLE_FREQUENCY_HZ * Math.PI * 2) * wobbleAmplitude;
 
