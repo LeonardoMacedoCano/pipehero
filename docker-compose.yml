@@ -9,8 +9,10 @@ services:
     volumes:
       # points to the real songs folder on the host (Unraid) — each
       # song is a subfolder with notes.chart + audio + optional
-      # song.ini, in the same format Clone Hero uses
-      - ${MUSIC_PATH}:/songs
+      # song.ini, in the same format Clone Hero uses. If MUSIC_PATH
+      # isn't set, falls back to the "songs" folder inside the project
+      # itself (only the bundled synthetic test songs).
+      - ${MUSIC_PATH:-${PIPEHERO_SOURCE_PATH:-.}/songs}:/songs
     ports:
       - "${HOST_PORT:-5511}:${PORT:-5511}"
     restart: unless-stopped
