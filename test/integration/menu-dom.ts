@@ -8,6 +8,7 @@ const dom = new JSDOM(indexHtml, { url: "http://localhost/", runScripts: "outsid
 const globalAny = globalThis as unknown as Record<string, unknown>;
 globalAny.window = dom.window;
 globalAny.document = dom.window.document;
+Object.defineProperty(globalThis, "navigator", { value: dom.window.navigator, configurable: true });
 globalAny.HTMLElement = dom.window.HTMLElement;
 globalAny.Event = dom.window.Event;
 globalAny.KeyboardEvent = dom.window.KeyboardEvent;
