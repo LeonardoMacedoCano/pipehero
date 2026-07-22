@@ -11,7 +11,7 @@ import {
   type RenderConfig,
   type VisibleNote,
 } from "./layout.js";
-import { lighten } from "./colorUtils.js";
+import { lighten, mix } from "./colorUtils.js";
 import { COLORS } from "../colors.js";
 
 interface CanvasGradientLike {
@@ -37,10 +37,20 @@ export interface CanvasLike2D {
   stroke(): void;
 }
 
-export const ABSORB_DURATION_SECONDS = 0.22;
+export const ABSORB_DURATION_SECONDS = 0.3;
+export const MISS_FALL_DURATION_SECONDS = 0.4;
+
+export interface MissedHitInfo {
+  fret: Fret;
+  x: number;
+  y: number;
+  radius: number;
+  missedAt: number;
+}
 
 const EMPTY_JUDGED_HITS: ReadonlyMap<string, number> = new Map();
 const EMPTY_HOLDING_KEYS: ReadonlySet<string> = new Set();
+const EMPTY_MISSED_HITS: ReadonlyMap<string, MissedHitInfo> = new Map();
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
@@ -330,19 +340,106 @@ function drawSustainDrop(ctx: CanvasLike2D, x: number, y: number, radius: number
   ctx.globalAlpha = 1;
 }
 
-function drawAbsorbSplash(ctx: CanvasLike2D, fret: Fret, config: RenderConfig, elapsedSeconds: number): void {
+const ABSORB_PARTICLE_COUNT = 7;
+const ABSORB_FLASH_FRACTION = 0.35;
+const ABSORB_INNER_RING_FRACTION = 0.6;
+
+// Splash that plays where a note gets absorbed into the pipe mouth: a quick
+// bright flash, a double expanding ring (a fast inner "pop" plus a slower
+// outer ring), and a handful of droplets flung outward — the note itself is
+// never drawn again after this starts (see drawFrame), so this splash is
+// the only thing communicating "it went in", not a fall.
+function drawAbsorbSplash(ctx: CanvasLike2D, fret: Fret, config: RenderConfig, elapsedSeconds: number, seed: number): void {
   const t = clamp01(elapsedSeconds / ABSORB_DURATION_SECONDS);
   const baseColor = LANE_COLORS[fret] ?? COLORS.noteFallback;
   const x = laneX(fret, 1, config);
   const y = config.hitLineY;
-  const rx = lerp(config.pipeMouthRadius * 0.55, config.pipeMouthRadius * 1.5, t);
-  const ry = rx * 0.4;
 
+  const flashT = clamp01(elapsedSeconds / (ABSORB_DURATION_SECONDS * ABSORB_FLASH_FRACTION));
+  if (flashT < 1) {
+    const flashRx = config.pipeMouthRadius * lerp(0.5, 0.95, flashT);
+    const flashRy = flashRx * 0.4;
+    ctx.globalAlpha = (1 - flashT) * 0.9;
+    ctx.fillStyle = lighten(baseColor, 0.85);
+    ctx.beginPath();
+    ctx.ellipse(x, y, flashRx, flashRy, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const outerRx = lerp(config.pipeMouthRadius * 0.55, config.pipeMouthRadius * 1.6, t);
+  const outerRy = outerRx * 0.4;
   ctx.globalAlpha = 1 - t;
   ctx.strokeStyle = lighten(baseColor, 0.5);
   ctx.lineWidth = Math.max(2, config.pipeMouthRadius * 0.12);
   ctx.beginPath();
-  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, y, outerRx, outerRy, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const innerT = clamp01(elapsedSeconds / (ABSORB_DURATION_SECONDS * ABSORB_INNER_RING_FRACTION));
+  const innerRx = lerp(config.pipeMouthRadius * 0.3, config.pipeMouthRadius * 1.05, innerT);
+  const innerRy = innerRx * 0.4;
+  ctx.globalAlpha = (1 - innerT) * 0.8;
+  ctx.strokeStyle = lighten(baseColor, 0.75);
+  ctx.lineWidth = Math.max(1.5, config.pipeMouthRadius * 0.07);
+  ctx.beginPath();
+  ctx.ellipse(x, y, innerRx, innerRy, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const particleColor = lighten(baseColor, 0.3);
+  for (let i = 0; i < ABSORB_PARTICLE_COUNT; i++) {
+    const angle = (i / ABSORB_PARTICLE_COUNT) * Math.PI * 2 + seed;
+    const reach = config.pipeMouthRadius * (0.9 + 0.4 * Math.sin(seed * 3.1 + i));
+    const px = x + Math.cos(angle) * reach * t;
+    const py = y - Math.abs(Math.sin(angle)) * reach * t * 0.7 + reach * 1.4 * t * t;
+    const particleRadius = config.noteMinRadius * 0.22 * (1 - t);
+    if (particleRadius <= 0) continue;
+    ctx.globalAlpha = 1 - t;
+    ctx.fillStyle = particleColor;
+    ctx.beginPath();
+    ctx.arc(px, py, particleRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.globalAlpha = 1;
+}
+
+const MISS_FALL_SECONDS_TO_EXIT = 0.3;
+const MISS_WOBBLE_FREQUENCY_HZ = 9;
+const MISS_TILT_RATIO = 1.5;
+const MISS_FADE_START_FRACTION = 0.85;
+
+// Dramatic fall for a note that was missed: it falls at a steady pace from
+// the very first frame (no stall/wind-up before it starts moving) while
+// tumbling side to side and reddening — the opposite read of a hit (which
+// gets absorbed and vanishes cleanly).
+function drawMissedDrop(ctx: CanvasLike2D, info: MissedHitInfo, config: RenderConfig, elapsedSeconds: number): void {
+  const t = clamp01(elapsedSeconds / MISS_FALL_DURATION_SECONDS);
+  const remainingHeight = Math.max(1, config.canvasHeight - config.hitLineY);
+  const fallSpeed = remainingHeight / MISS_FALL_SECONDS_TO_EXIT;
+  const fallDistance = fallSpeed * elapsedSeconds;
+  const wobbleAmplitude = info.radius * 1.1 * t;
+  const wobble = Math.sin(elapsedSeconds * MISS_WOBBLE_FREQUENCY_HZ * Math.PI * 2) * wobbleAmplitude;
+
+  const bottomX = info.x + wobble;
+  const bottomY = info.y + fallDistance;
+  const radius = info.radius * (1 - 0.5 * t);
+  const alpha = t < MISS_FADE_START_FRACTION ? 1 : 1 - (t - MISS_FADE_START_FRACTION) / (1 - MISS_FADE_START_FRACTION);
+  if (radius <= 0 || alpha <= 0) return;
+
+  const tipX = bottomX + wobble * MISS_TILT_RATIO * 0.6;
+  const tipY = bottomY - radius * 1.8;
+
+  const baseColor = LANE_COLORS[info.fret] ?? COLORS.noteFallback;
+  const missColor = mix(baseColor, COLORS.warning, clamp01(t * 1.3));
+
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = missColor;
+  taperedDropPath(ctx, bottomX, bottomY, radius, tipX, tipY);
+  ctx.fill();
+
+  ctx.strokeStyle = lighten(missColor, 0.35);
+  ctx.lineWidth = Math.max(1, radius * 0.1);
+  taperedDropPath(ctx, bottomX, bottomY, radius, tipX, tipY);
   ctx.stroke();
   ctx.globalAlpha = 1;
 }
@@ -353,7 +450,8 @@ export function drawFrame(
   currentTime: number,
   config: RenderConfig = RENDER_CONFIG,
   judgedHits: ReadonlyMap<string, number> = EMPTY_JUDGED_HITS,
-  holdingKeys: ReadonlySet<string> = EMPTY_HOLDING_KEYS
+  holdingKeys: ReadonlySet<string> = EMPTY_HOLDING_KEYS,
+  missedHits: ReadonlyMap<string, MissedHitInfo> = EMPTY_MISSED_HITS
 ): VisibleNote[] {
   ctx.fillStyle = COLORS.canvasBackground;
   ctx.fillRect(0, 0, config.canvasWidth, config.canvasHeight);
@@ -377,12 +475,17 @@ export function drawFrame(
 
   for (const note of visible) {
     const key = noteRenderKey(note.fret, note.time);
+
+    // missed notes are drawn separately below (their fall isn't bound by
+    // the normal approach/despawn window), never as a normal falling note
+    if (missedHits.has(key)) continue;
+
     const judgedAt = judgedHits.get(key);
 
     if (judgedAt !== undefined) {
       const elapsed = currentTime - judgedAt;
       if (elapsed >= 0 && elapsed <= ABSORB_DURATION_SECONDS) {
-        drawAbsorbSplash(ctx, note.fret, config, elapsed);
+        drawAbsorbSplash(ctx, note.fret, config, elapsed, note.time);
       }
     }
 
@@ -408,6 +511,15 @@ export function drawFrame(
     } else {
       drawDrop(ctx, note.x, note.y, note.radius, baseColor, alpha);
     }
+  }
+
+  // drawn independently of the visible/despawn window above so the dramatic
+  // fall gets its full duration on screen, even past where a normal note
+  // would've already faded out
+  for (const info of missedHits.values()) {
+    const elapsed = currentTime - info.missedAt;
+    if (elapsed < 0 || elapsed > MISS_FALL_DURATION_SECONDS) continue;
+    drawMissedDrop(ctx, info, config, elapsed);
   }
 
   return visible;
