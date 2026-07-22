@@ -8,13 +8,30 @@ function getAudioContext(): AudioContext | null {
   return sharedContext;
 }
 
-const BUZZ_DURATION_SECONDS = 0.06;
-const THUMP_DURATION_SECONDS = 0.09;
+// Classic waveshaper soft-clip curve, used here as a mild amp-overdrive.
+function distortionCurve(amount: number): Float32Array<ArrayBuffer> {
+  const samples = 256;
+  const curve = new Float32Array(new ArrayBuffer(samples * Float32Array.BYTES_PER_ELEMENT));
+  for (let i = 0; i < samples; i++) {
+    const x = (i / (samples - 1)) * 2 - 1;
+    curve[i] = ((3 + amount) * x * 20 * (Math.PI / 180)) / (Math.PI + amount * Math.abs(x));
+  }
+  return curve;
+}
 
-// Synthesized "miss" cue — a short, dull "dead string" buzz (low-passed
-// noise, not bright/metallic) layered with a quick, low, quickly-decaying
-// thump (a palm-muted pluck rather than a ringing tone), in the spirit of
-// the classic rhythm-game "missed note" sound. Synthesized rather than a
+const BASE_FREQUENCY_HZ = 185;
+const DETUNE_CENTS = 60; // ~half a semitone — the two unison oscillators beat against
+// each other, reading as an out-of-tune/wrong note rather than a clean pitch
+const PICK_CLICK_DURATION_SECONDS = 0.004;
+const ATTACK_SECONDS = 0.001;
+const DECAY_SECONDS = 0.05;
+const RELEASE_SECONDS = 0.015;
+const TOTAL_DURATION_SECONDS = ATTACK_SECONDS + DECAY_SECONDS + RELEASE_SECONDS;
+
+// Synthesized "miss" cue: a very short (~65ms), percussive, palm-muted
+// electric guitar "wrong note" — instant attack, no sustain, no reverb,
+// mid/high-mid heavy with a metallic edge, slightly detuned so it reads as
+// dissonant/wrong rather than a clean tone. Synthesized rather than a
 // sampled/ripped sound so there's no copyrighted asset to ship.
 export function playMissClank(): void {
   const ctx = getAudioContext();
@@ -22,46 +39,70 @@ export function playMissClank(): void {
   if (ctx.state === "suspended") void ctx.resume();
 
   const now = ctx.currentTime;
+  const stopAt = now + TOTAL_DURATION_SECONDS;
 
-  const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * BUZZ_DURATION_SECONDS));
-  const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-  const data = noiseBuffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+  const distortion = ctx.createWaveShaper();
+  distortion.curve = distortionCurve(22);
+  distortion.oversample = "2x";
 
-  const noise = ctx.createBufferSource();
-  noise.buffer = noiseBuffer;
+  const highpass = ctx.createBiquadFilter();
+  highpass.type = "highpass";
+  highpass.frequency.value = 150;
 
-  const noiseFilter = ctx.createBiquadFilter();
-  noiseFilter.type = "lowpass";
-  noiseFilter.frequency.value = 1100;
-  noiseFilter.Q.value = 0.7;
+  const bodyPeak = ctx.createBiquadFilter();
+  bodyPeak.type = "peaking";
+  bodyPeak.frequency.value = 1200;
+  bodyPeak.Q.value = 1;
+  bodyPeak.gain.value = 6;
 
-  const noiseGain = ctx.createGain();
-  noiseGain.gain.setValueAtTime(0.35, now);
-  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + BUZZ_DURATION_SECONDS);
+  const metallicPeak = ctx.createBiquadFilter();
+  metallicPeak.type = "peaking";
+  metallicPeak.frequency.value = 4000;
+  metallicPeak.Q.value = 1.2;
+  metallicPeak.gain.value = 8;
 
-  noise.connect(noiseFilter);
-  noiseFilter.connect(noiseGain);
-  noiseGain.connect(ctx.destination);
-  noise.start(now);
-  noise.stop(now + BUZZ_DURATION_SECONDS);
+  const envelope = ctx.createGain();
+  envelope.gain.setValueAtTime(0, now);
+  envelope.gain.linearRampToValueAtTime(0.55, now + ATTACK_SECONDS);
+  envelope.gain.exponentialRampToValueAtTime(0.05, now + ATTACK_SECONDS + DECAY_SECONDS);
+  envelope.gain.linearRampToValueAtTime(0, stopAt);
 
-  const thump = ctx.createOscillator();
-  thump.type = "square";
-  thump.frequency.setValueAtTime(150, now);
-  thump.frequency.exponentialRampToValueAtTime(70, now + THUMP_DURATION_SECONDS);
+  distortion.connect(highpass);
+  highpass.connect(bodyPeak);
+  bodyPeak.connect(metallicPeak);
+  metallicPeak.connect(envelope);
+  envelope.connect(ctx.destination);
 
-  const thumpFilter = ctx.createBiquadFilter();
-  thumpFilter.type = "lowpass";
-  thumpFilter.frequency.value = 500;
+  for (const detuneCents of [-DETUNE_CENTS / 2, DETUNE_CENTS / 2]) {
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.value = BASE_FREQUENCY_HZ;
+    osc.detune.value = detuneCents;
+    osc.connect(distortion);
+    osc.start(now);
+    osc.stop(stopAt);
+  }
 
-  const thumpGain = ctx.createGain();
-  thumpGain.gain.setValueAtTime(0.28, now);
-  thumpGain.gain.exponentialRampToValueAtTime(0.001, now + THUMP_DURATION_SECONDS);
+  // pick-attack transient — a very brief burst of high noise for the "bite"
+  const clickBufferSize = Math.max(1, Math.floor(ctx.sampleRate * PICK_CLICK_DURATION_SECONDS));
+  const clickBuffer = ctx.createBuffer(1, clickBufferSize, ctx.sampleRate);
+  const clickData = clickBuffer.getChannelData(0);
+  for (let i = 0; i < clickBufferSize; i++) clickData[i] = Math.random() * 2 - 1;
 
-  thump.connect(thumpFilter);
-  thumpFilter.connect(thumpGain);
-  thumpGain.connect(ctx.destination);
-  thump.start(now);
-  thump.stop(now + THUMP_DURATION_SECONDS);
+  const click = ctx.createBufferSource();
+  click.buffer = clickBuffer;
+
+  const clickFilter = ctx.createBiquadFilter();
+  clickFilter.type = "highpass";
+  clickFilter.frequency.value = 2500;
+
+  const clickGain = ctx.createGain();
+  clickGain.gain.setValueAtTime(0.4, now);
+  clickGain.gain.exponentialRampToValueAtTime(0.001, now + PICK_CLICK_DURATION_SECONDS);
+
+  click.connect(clickFilter);
+  clickFilter.connect(clickGain);
+  clickGain.connect(ctx.destination);
+  click.start(now);
+  click.stop(now + PICK_CLICK_DURATION_SECONDS);
 }

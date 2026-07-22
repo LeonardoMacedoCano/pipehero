@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Difficulty, Fret, Note, StarPowerPhrase } from "../../types.js";
 import { createPlaythrough } from "../../game/gamePlaythrough.js";
 import { drawFrame, ABSORB_DURATION_SECONDS, MISS_FALL_DURATION_SECONDS, type MissedHitInfo } from "../../render/draw.js";
-import { createRenderConfig, noteRenderKey, laneX, noteRadiusAt } from "../../render/layout.js";
+import { createRenderConfig, noteRenderKey, progressFor, laneX, noteRadiusAt } from "../../render/layout.js";
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
 import { fretForKeyCode } from "../../game/keymap.js";
@@ -77,17 +77,16 @@ export function useGamePlaythrough({
 
     if (newlyMissed.length > 0) playMissClank();
     for (const event of newlyMissed) {
-      // anchored at the pipe mouth (progress=1) rather than wherever the
-      // note actually is by the time a miss is detected (which, depending
-      // on difficulty/judgment window, can already be past the hit line) —
-      // same anchor as the hit splash, so the dramatic fall always starts
-      // from a consistent, fully visible position
+      // uses the note's actual position at the moment it's flagged missed
+      // (not snapped back to the pipe mouth) so the dramatic fall picks up
+      // exactly where the normal falling note left off, with no jump/pause
+      const missProgress = progressFor(event.time, chartTime, config);
       for (const fret of event.frets) {
         missedHitsRef.current.set(noteRenderKey(fret, event.time), {
           fret,
-          x: laneX(fret, 1, config),
-          y: config.hitLineY,
-          radius: noteRadiusAt(1, config),
+          x: laneX(fret, missProgress, config),
+          y: missProgress * config.hitLineY,
+          radius: noteRadiusAt(missProgress, config),
           missedAt: chartTime,
         });
       }
