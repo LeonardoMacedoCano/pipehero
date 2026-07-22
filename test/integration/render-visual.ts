@@ -3,7 +3,7 @@ import { createCanvas } from "canvas";
 import { parseChart } from "../../node_modules/parsehero/dist/index.js";
 import { loadTrack } from "../../src/engine/chartTrack.js";
 import { drawFrame } from "../../src/render/draw.js";
-import { RENDER_CONFIG, LANE_COLORS, noteRenderKey } from "../../src/render/layout.js";
+import { RENDER_CONFIG, LANE_COLORS, noteRenderKey, laneX, noteRadiusAt } from "../../src/render/layout.js";
 
 const OUT_DIR = "test/integration/screenshots";
 mkdirSync(OUT_DIR, { recursive: true });
@@ -109,6 +109,32 @@ try {
   console.error("Failure drawing the absorb animation:", err);
 }
 checks.push({ name: "drop-entering-pipe animation draws without throwing", ok: drawSucceeded });
+
+const missedNote = notes[1];
+const missedAt = missedNote.time + 0.1;
+// anchored at the pipe mouth (progress=1), same as the hit splash — see
+// the matching comment in useGamePlaythrough.ts for why.
+const missedHits = new Map([
+  [
+    noteRenderKey(missedNote.fret, missedNote.time),
+    {
+      fret: missedNote.fret,
+      x: laneX(missedNote.fret, 1, RENDER_CONFIG),
+      y: RENDER_CONFIG.hitLineY,
+      radius: noteRadiusAt(1, RENDER_CONFIG),
+      missedAt,
+    },
+  ],
+]);
+let missDrawSucceeded = true;
+try {
+  drawFrame(ctx, notes, missedAt + 0.12, RENDER_CONFIG, new Map(), new Set(), missedHits);
+  save("07-missed-note-falling.png");
+} catch (err) {
+  missDrawSucceeded = false;
+  console.error("Failure drawing the miss-fall animation:", err);
+}
+checks.push({ name: "missed-note falling animation draws without throwing", ok: missDrawSucceeded });
 
 console.log("\n=== Checks ===");
 let allOk = true;

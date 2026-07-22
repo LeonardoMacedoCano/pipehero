@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Difficulty, Fret, Note, StarPowerPhrase } from "../../types.js";
 import { createPlaythrough } from "../../game/gamePlaythrough.js";
-import { drawFrame, ABSORB_DURATION_SECONDS } from "../../render/draw.js";
-import { createRenderConfig, noteRenderKey } from "../../render/layout.js";
+import { drawFrame, ABSORB_DURATION_SECONDS, MISS_FALL_DURATION_SECONDS, type MissedHitInfo } from "../../render/draw.js";
+import { createRenderConfig, noteRenderKey, laneX, noteRadiusAt } from "../../render/layout.js";
 import { getCalibration } from "../../audio/calibrationStore.js";
+import { playMissClank } from "../../audio/missSound.js";
 import { fretForKeyCode } from "../../game/keymap.js";
 import { judgmentWindowsForDifficulty } from "../../engine/judge.js";
 
@@ -32,6 +33,7 @@ export function useGamePlaythrough({
   const rafRef = useRef<number | null>(null);
   const judgedHitsRef = useRef<Map<string, number>>(new Map());
   const holdingKeysRef = useRef<Set<string>>(new Set());
+  const missedHitsRef = useRef<Map<string, MissedHitInfo>>(new Map());
 
   const [hud, setHud] = useState<Hud>(INITIAL_HUD);
   const [needsTapToStart, setNeedsTapToStart] = useState(false);
@@ -63,10 +65,32 @@ export function useGamePlaythrough({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const { chartTime } = playthrough.tick();
+    const config = createRenderConfig(canvas.width, canvas.height);
+    const { chartTime, newlyMissed } = playthrough.tick();
 
     for (const [key, judgedAt] of judgedHitsRef.current) {
       if (chartTime - judgedAt > ABSORB_DURATION_SECONDS) judgedHitsRef.current.delete(key);
+    }
+    for (const [key, info] of missedHitsRef.current) {
+      if (chartTime - info.missedAt > MISS_FALL_DURATION_SECONDS) missedHitsRef.current.delete(key);
+    }
+
+    if (newlyMissed.length > 0) playMissClank();
+    for (const event of newlyMissed) {
+      // anchored at the pipe mouth (progress=1) rather than wherever the
+      // note actually is by the time a miss is detected (which, depending
+      // on difficulty/judgment window, can already be past the hit line) —
+      // same anchor as the hit splash, so the dramatic fall always starts
+      // from a consistent, fully visible position
+      for (const fret of event.frets) {
+        missedHitsRef.current.set(noteRenderKey(fret, event.time), {
+          fret,
+          x: laneX(fret, 1, config),
+          y: config.hitLineY,
+          radius: noteRadiusAt(1, config),
+          missedAt: chartTime,
+        });
+      }
     }
 
     const state = playthrough.getState();
@@ -75,8 +99,7 @@ export function useGamePlaythrough({
       for (const fret of event.frets) holdingKeysRef.current.add(noteRenderKey(fret, event.time));
     }
 
-    const config = createRenderConfig(canvas.width, canvas.height);
-    drawFrame(ctx, notes, chartTime, config, judgedHitsRef.current, holdingKeysRef.current);
+    drawFrame(ctx, notes, chartTime, config, judgedHitsRef.current, holdingKeysRef.current, missedHitsRef.current);
 
     setHud({ score: state.score, starPowerMeter: state.starPowerMeter, starPowerActive: state.starPowerActive });
 
@@ -105,6 +128,7 @@ export function useGamePlaythrough({
     setHud(INITIAL_HUD);
     setNeedsTapToStart(false);
     judgedHitsRef.current.clear();
+    missedHitsRef.current.clear();
 
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
