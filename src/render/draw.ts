@@ -11,7 +11,7 @@ import {
   type RenderConfig,
   type VisibleNote,
 } from "./layout.js";
-import { lighten, desaturate } from "./colorUtils.js";
+import { lighten, desaturate, mix } from "./colorUtils.js";
 import { COLORS } from "../colors.js";
 
 interface CanvasGradientLike {
@@ -44,6 +44,9 @@ export const MISS_DESATURATION_AMOUNT = 0.88;
 const EMPTY_JUDGED_HITS: ReadonlyMap<string, number> = new Map();
 const EMPTY_HOLDING_KEYS: ReadonlySet<string> = new Set();
 const EMPTY_MISSED_KEYS: ReadonlySet<string> = new Set();
+const EMPTY_ERROR_CLICKS: ReadonlyMap<Fret, number> = new Map();
+
+const RAIL_MISS_FADE_SECONDS = 0.5;
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
@@ -85,18 +88,39 @@ function drawFretboardGrid(ctx: CanvasLike2D, config: RenderConfig): void {
   }
 }
 
-function drawEdgeRail(ctx: CanvasLike2D, side: -1 | 1, config: RenderConfig): void {
+function drawEdgeRail(ctx: CanvasLike2D, side: -1 | 1, config: RenderConfig, missIntensity: number): void {
   const topX = highwayEdgeX(side, 0, config);
   const bottomX = highwayEdgeX(side, 1, config);
-  const topHalf = config.noteMinRadius * 0.4;
-  const bottomHalf = config.noteMaxRadius * 0.55;
+  const topHalf = config.noteMinRadius * 0.42;
+  const bottomHalf = config.noteMaxRadius * 0.58;
+
+  const normalStops = COLORS.pipeGradientStops;
+  const missStops = COLORS.pipeMissGradientStops;
+  const stops = missIntensity > 0 ? normalStops.map((stop, i) => mix(stop, missStops[i], missIntensity)) : normalStops;
+
+  const inward = -side;
+  const shadowTopStart = topX + inward * topHalf;
+  const shadowBottomStart = bottomX + inward * bottomHalf;
+  const shadowTopEnd = shadowTopStart + inward * topHalf * 2.2;
+  const shadowBottomEnd = shadowBottomStart + inward * bottomHalf * 2.2;
+
+  const shadowGradient = ctx.createLinearGradient(shadowBottomStart, 0, shadowBottomEnd, 0);
+  shadowGradient.addColorStop(0, "rgba(0, 0, 0, 0.55)");
+  shadowGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = shadowGradient;
+  ctx.beginPath();
+  ctx.moveTo(shadowTopStart, 0);
+  ctx.lineTo(shadowTopEnd, 0);
+  ctx.lineTo(shadowBottomEnd, config.hitLineY);
+  ctx.lineTo(shadowBottomStart, config.hitLineY);
+  ctx.closePath();
+  ctx.fill();
 
   const gradient = ctx.createLinearGradient(bottomX - bottomHalf, 0, bottomX + bottomHalf, 0);
-  const stops = COLORS.pipeGradientStops;
   gradient.addColorStop(0, stops[0]);
-  gradient.addColorStop(0.32, stops[1]);
+  gradient.addColorStop(0.3, stops[1]);
   gradient.addColorStop(0.5, stops[2]);
-  gradient.addColorStop(0.68, stops[3]);
+  gradient.addColorStop(0.7, stops[3]);
   gradient.addColorStop(1, stops[4]);
 
   ctx.fillStyle = gradient;
@@ -107,6 +131,25 @@ function drawEdgeRail(ctx: CanvasLike2D, side: -1 | 1, config: RenderConfig): vo
   ctx.lineTo(bottomX - bottomHalf, config.hitLineY);
   ctx.closePath();
   ctx.fill();
+
+  const glossOffset = 0.18;
+  ctx.strokeStyle = lighten(stops[2], 0.4);
+  ctx.lineWidth = Math.max(1, topHalf * 0.35);
+  ctx.globalAlpha = 0.85;
+  ctx.beginPath();
+  ctx.moveTo(topX - inward * topHalf * glossOffset, topHalf * 0.5);
+  ctx.lineTo(bottomX - inward * bottomHalf * glossOffset, config.hitLineY - bottomHalf * 0.5);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  ctx.strokeStyle = lighten(stops[0], -0.3);
+  ctx.lineWidth = Math.max(1, topHalf * 0.25);
+  ctx.globalAlpha = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(topX + inward * topHalf * 0.85, topHalf * 0.5);
+  ctx.lineTo(bottomX + inward * bottomHalf * 0.85, config.hitLineY - bottomHalf * 0.5);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
 }
 
 function drawPipeBarrelAndMouth(ctx: CanvasLike2D, fret: Fret, config: RenderConfig): void {
@@ -337,9 +380,17 @@ const ABSORB_PARTICLE_COUNT = 7;
 const ABSORB_FLASH_FRACTION = 0.35;
 const ABSORB_INNER_RING_FRACTION = 0.6;
 
-function drawAbsorbSplash(ctx: CanvasLike2D, fret: Fret, config: RenderConfig, elapsedSeconds: number, seed: number): void {
+function drawClickFlash(
+  ctx: CanvasLike2D,
+  fret: Fret,
+  config: RenderConfig,
+  elapsedSeconds: number,
+  seed: number,
+  withParticles: boolean
+): void {
   const t = clamp01(elapsedSeconds / ABSORB_DURATION_SECONDS);
-  const baseColor = LANE_COLORS[fret] ?? COLORS.noteFallback;
+  const laneColor = LANE_COLORS[fret] ?? COLORS.noteFallback;
+  const baseColor = withParticles ? laneColor : mix(laneColor, COLORS.pipeMissGradientStops[2], 0.6);
   const x = laneX(fret, 1, config);
   const y = config.hitLineY;
 
@@ -373,6 +424,11 @@ function drawAbsorbSplash(ctx: CanvasLike2D, fret: Fret, config: RenderConfig, e
   ctx.ellipse(x, y, innerRx, innerRy, 0, 0, Math.PI * 2);
   ctx.stroke();
 
+  if (!withParticles) {
+    ctx.globalAlpha = 1;
+    return;
+  }
+
   const particleColor = lighten(baseColor, 0.3);
   for (let i = 0; i < ABSORB_PARTICLE_COUNT; i++) {
     const angle = (i / ABSORB_PARTICLE_COUNT) * Math.PI * 2 + seed;
@@ -398,16 +454,28 @@ export function drawFrame(
   config: RenderConfig = RENDER_CONFIG,
   judgedHits: ReadonlyMap<string, number> = EMPTY_JUDGED_HITS,
   holdingKeys: ReadonlySet<string> = EMPTY_HOLDING_KEYS,
-  missedKeys: ReadonlySet<string> = EMPTY_MISSED_KEYS
+  missedKeys: ReadonlySet<string> = EMPTY_MISSED_KEYS,
+  errorClicks: ReadonlyMap<Fret, number> = EMPTY_ERROR_CLICKS,
+  lastErrorAt: number | null = null
 ): VisibleNote[] {
   ctx.fillStyle = COLORS.canvasBackground;
   ctx.fillRect(0, 0, config.canvasWidth, config.canvasHeight);
 
+  const railMissIntensity =
+    lastErrorAt === null ? 0 : 1 - clamp01((currentTime - lastErrorAt) / RAIL_MISS_FADE_SECONDS);
+
   drawFretboardGrid(ctx, config);
-  drawEdgeRail(ctx, -1, config);
-  drawEdgeRail(ctx, 1, config);
+  drawEdgeRail(ctx, -1, config, railMissIntensity);
+  drawEdgeRail(ctx, 1, config, railMissIntensity);
   for (const fret of config.laneOrder) {
     drawPipeBarrelAndMouth(ctx, fret, config);
+  }
+
+  for (const [fret, pressedAt] of errorClicks) {
+    const elapsed = currentTime - pressedAt;
+    if (elapsed >= 0 && elapsed <= ABSORB_DURATION_SECONDS) {
+      drawClickFlash(ctx, fret, config, elapsed, pressedAt, false);
+    }
   }
 
   const visible = getVisibleNotes(notes, currentTime, config);
@@ -429,7 +497,7 @@ export function drawFrame(
     if (judgedAt !== undefined) {
       const elapsed = currentTime - judgedAt;
       if (elapsed >= 0 && elapsed <= ABSORB_DURATION_SECONDS) {
-        drawAbsorbSplash(ctx, note.fret, config, elapsed, note.time);
+        drawClickFlash(ctx, note.fret, config, elapsed, note.time, true);
       }
     }
 
