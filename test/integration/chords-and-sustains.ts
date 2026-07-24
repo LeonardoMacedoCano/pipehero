@@ -54,11 +54,12 @@ for (const fret of firstSustain.frets) engine3.handleKeyDown(fret, firstSustain.
 const halfway = firstSustain.time + firstSustain.duration / 2;
 for (const fret of firstSustain.frets) engine3.handleKeyUp(fret, halfway);
 const scoreAfterHalfSustain = engine3.getState().score;
-const expectedHalfScore = 100 + Math.round(50 * 0.5);
-const scenario3Ok = scoreAfterHalfSustain === expectedHalfScore;
+const expectedScoreAfterDrop = 100;
+const droppedCorrectly = engine3.getState().droppedSustains.length === 1;
+const scenario3Ok = scoreAfterHalfSustain === expectedScoreAfterDrop && droppedCorrectly;
 
-console.log("\n=== Scenario: releasing a sustain halfway gives ~half the bonus ===");
-console.log(`Score: ${scoreAfterHalfSustain} (expected: ${expectedHalfScore})`);
+console.log("\n=== Scenario: releasing a sustain halfway drops it (all-or-nothing, no partial bonus) ===");
+console.log(`Score: ${scoreAfterHalfSustain} (expected: ${expectedScoreAfterDrop})`);
 console.log(`Result: ${scenario3Ok ? "OK ✔" : "FAILED"}`);
 
 const allOk = scenario1Ok && scenario2Ok && scenario3Ok;
