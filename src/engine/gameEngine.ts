@@ -22,11 +22,10 @@ export function createGameEngine(
   }));
   const hits: GameEvent[] = [];
   const misses: GameEvent[] = [];
+  const droppedSustains: GameEvent[] = [];
   const heldFrets = new Set<Fret>();
   const holdingEvents = new Set<GameEvent>();
   const sustainOwnerByFret = new Map<Fret, GameEvent>();
-  const actualHoldStartByEvent = new Map<GameEvent, number>();
-  const alreadyLateGrabbedEvents = new Set<GameEvent>();
   let combo = 0;
   let maxCombo = 0;
   let score = 0;
@@ -75,30 +74,21 @@ export function createGameEngine(
     return closest;
   }
 
-  function finalizeSustain(event: GameEvent, releaseTime: number): void {
+  // All-or-nothing: the sustain bonus is only awarded when the note is held
+  // all the way to its natural end (via update()). Releasing early — even a
+  // moment before the end — drops it: no bonus, and it's marked as dropped
+  // so it renders grayed-out and can never be re-grabbed for the remainder.
+  function finalizeSustain(event: GameEvent, dropped: boolean): void {
     if (!holdingEvents.has(event)) return;
     holdingEvents.delete(event);
-    const holdStart = actualHoldStartByEvent.get(event) ?? event.time;
-    actualHoldStartByEvent.delete(event);
     for (const fret of event.frets) {
       if (sustainOwnerByFret.get(fret) === event) sustainOwnerByFret.delete(fret);
     }
-    const heldFraction = Math.max(0, Math.min(1, (releaseTime - holdStart) / event.duration));
-    score += Math.round(SUSTAIN_HOLD_BONUS * heldFraction * scoreMultiplier());
-  }
-
-  function findMissedSingleFretSustainStillGrabbable(fret: Fret, time: number): GameEvent | null {
-    for (const event of pending) {
-      if (event.state === "hit") continue;
-      const isSingleFretSustain = event.duration > 0 && event.frets.length === 1 && event.frets[0] === fret;
-      if (!isSingleFretSustain) continue;
-      if (alreadyLateGrabbedEvents.has(event)) continue;
-      const isStillWithinNormalJudgmentWindow = time <= event.time + windows.good;
-      const sustainAlreadyEnded = time >= event.time + event.duration;
-      if (isStillWithinNormalJudgmentWindow || sustainAlreadyEnded) continue;
-      return event;
+    if (dropped) {
+      droppedSustains.push(event);
+    } else {
+      score += Math.round(SUSTAIN_HOLD_BONUS * scoreMultiplier());
     }
-    return null;
   }
 
   function handleKeyDown(fret: Fret, time: number): KeyDownResult {
@@ -117,22 +107,12 @@ export function createGameEngine(
 
       if (event.duration > 0) {
         holdingEvents.add(event);
-        actualHoldStartByEvent.set(event, time);
         for (const eventFret of event.frets) {
           sustainOwnerByFret.set(eventFret, event);
         }
       }
 
       return { type: "judged", event, rating };
-    }
-
-    const lateGrab = findMissedSingleFretSustainStillGrabbable(fret, time);
-    if (lateGrab) {
-      alreadyLateGrabbedEvents.add(lateGrab);
-      holdingEvents.add(lateGrab);
-      actualHoldStartByEvent.set(lateGrab, time);
-      sustainOwnerByFret.set(fret, lateGrab);
-      return { type: "lateGrab", event: lateGrab, fret };
     }
 
     return { type: "unmatched", fret, time };
@@ -142,7 +122,7 @@ export function createGameEngine(
     heldFrets.delete(fret);
     const event = sustainOwnerByFret.get(fret);
     if (event && time < event.time + event.duration) {
-      finalizeSustain(event, time);
+      finalizeSustain(event, true);
     }
   }
 
@@ -160,7 +140,7 @@ export function createGameEngine(
 
     for (const event of holdingEvents) {
       if (currentTime >= event.time + event.duration) {
-        finalizeSustain(event, event.time + event.duration);
+        finalizeSustain(event, false);
       }
     }
 
@@ -184,6 +164,7 @@ export function createGameEngine(
       maxCombo,
       hits: [...hits],
       misses: [...misses],
+      droppedSustains: [...droppedSustains],
       pendingCount: pending.filter((event) => event.state === "pending").length,
       holdingCount: holdingEvents.size,
       activeHolds: [...holdingEvents],

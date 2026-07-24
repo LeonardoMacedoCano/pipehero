@@ -124,18 +124,33 @@ test("sustain: holding the key until the end of the duration gives the full bonu
   assert.equal(engine.getState().holdingCount, 0);
 });
 
-test("sustain: releasing the key before the end gives a proportional bonus", () => {
+test("sustain: releasing the key before the end is all-or-nothing — no partial bonus", () => {
   const engine = createGameEngine([event({ time: 1.0, frets: [0], duration: 1.0 })]);
   engine.handleKeyDown(0, 1.0);
   engine.handleKeyUp(0, 1.5);
-  assert.equal(engine.getState().score, 125);
+  assert.equal(engine.getState().score, 100);
   assert.equal(engine.getState().holdingCount, 0);
 });
 
-test("sustain: releasing right after hitting gives the minimum bonus (near zero)", () => {
+test("sustain: releasing right after hitting also gives zero bonus", () => {
   const engine = createGameEngine([event({ time: 1.0, frets: [0], duration: 1.0 })]);
   engine.handleKeyDown(0, 1.0);
   engine.handleKeyUp(0, 1.0);
+  assert.equal(engine.getState().score, 100);
+});
+
+test("sustain: releasing early marks it as dropped, and it can't be pressed again for the rest of its duration", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0], duration: 1.0 })]);
+  engine.handleKeyDown(0, 1.0);
+  engine.handleKeyUp(0, 1.5);
+  assert.equal(engine.getState().droppedSustains.length, 1);
+
+  const result = engine.handleKeyDown(0, 1.7);
+  assert.equal(result.type, "unmatched");
+  assert.equal(engine.getState().holdingCount, 0);
+  assert.equal(engine.getState().droppedSustains.length, 1);
+
+  engine.update(2.0);
   assert.equal(engine.getState().score, 100);
 });
 
@@ -146,39 +161,29 @@ test("a note without duration (duration=0) doesn't enter a sustain state", () =>
   assert.equal(engine.getState().score, 100);
 });
 
-test("sustain: grabbing mid-hold after missing the start counts as a miss but gives a proportional bonus", () => {
+test("sustain: missing the start locks the note out — it can't be grabbed mid-hold anymore", () => {
   const engine = createGameEngine([event({ time: 1.0, frets: [0], duration: 1.0 })]);
   engine.update(1.2);
   assert.equal(engine.getState().misses.length, 1);
 
   const result = engine.handleKeyDown(0, 1.5);
-  assert.equal(result.type, "lateGrab");
+  assert.equal(result.type, "unmatched");
   assert.equal(engine.getState().hits.length, 0);
   assert.equal(engine.getState().misses.length, 1);
+  assert.equal(engine.getState().holdingCount, 0);
 
   engine.update(2.0);
-  assert.equal(engine.getState().score, Math.round(50 * 0.5));
+  assert.equal(engine.getState().score, 0);
 });
 
-test("sustain: the same note can't be grabbed late twice", () => {
-  const engine = createGameEngine([event({ time: 1.0, frets: [0], duration: 1.0 })]);
-  engine.update(1.2);
-  const first = engine.handleKeyDown(0, 1.3);
-  assert.equal(first.type, "lateGrab");
-  engine.handleKeyUp(0, 1.4);
-
-  const second = engine.handleKeyDown(0, 1.6);
-  assert.equal(second.type, "unmatched");
-});
-
-test("sustain: can't be grabbed late after the sustain has already ended", () => {
+test("sustain: can't be grabbed after the sustain has already ended", () => {
   const engine = createGameEngine([event({ time: 1.0, frets: [0], duration: 1.0 })]);
   engine.update(2.5);
   const result = engine.handleKeyDown(0, 2.5);
   assert.equal(result.type, "unmatched");
 });
 
-test("activeHolds reflects events currently being held, both a normal hit and a late grab", () => {
+test("activeHolds reflects events currently being held", () => {
   const engine = createGameEngine([event({ time: 1.0, frets: [0], duration: 1.0 })]);
   assert.equal(engine.getState().activeHolds.length, 0);
 

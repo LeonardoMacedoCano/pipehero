@@ -11,7 +11,7 @@ import {
   type RenderConfig,
   type VisibleNote,
 } from "./layout.js";
-import { lighten, mix } from "./colorUtils.js";
+import { lighten, desaturate } from "./colorUtils.js";
 import { COLORS } from "../colors.js";
 
 interface CanvasGradientLike {
@@ -38,19 +38,15 @@ export interface CanvasLike2D {
 }
 
 export const ABSORB_DURATION_SECONDS = 0.3;
-export const MISS_FALL_DURATION_SECONDS = 0.4;
 
-export interface MissedHitInfo {
-  fret: Fret;
-  x: number;
-  y: number;
-  radius: number;
-  missedAt: number;
-}
+// A missed note keeps its exact shape (drop, sustain trail, or open bar) and
+// trajectory — the only change is losing almost all color, so it reads as
+// "gone dull/inaccessible" rather than becoming a different animation.
+export const MISS_DESATURATION_AMOUNT = 0.88;
 
 const EMPTY_JUDGED_HITS: ReadonlyMap<string, number> = new Map();
 const EMPTY_HOLDING_KEYS: ReadonlySet<string> = new Set();
-const EMPTY_MISSED_HITS: ReadonlyMap<string, MissedHitInfo> = new Map();
+const EMPTY_MISSED_KEYS: ReadonlySet<string> = new Set();
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
@@ -403,47 +399,6 @@ function drawAbsorbSplash(ctx: CanvasLike2D, fret: Fret, config: RenderConfig, e
   ctx.globalAlpha = 1;
 }
 
-const MISS_FALL_SECONDS_TO_EXIT = 0.3;
-const MISS_WOBBLE_FREQUENCY_HZ = 9;
-const MISS_TILT_RATIO = 1.5;
-const MISS_FADE_START_FRACTION = 0.85;
-
-// Dramatic fall for a note that was missed: it falls at a steady pace from
-// the very first frame (no stall/wind-up before it starts moving) while
-// tumbling side to side and reddening — the opposite read of a hit (which
-// gets absorbed and vanishes cleanly).
-function drawMissedDrop(ctx: CanvasLike2D, info: MissedHitInfo, config: RenderConfig, elapsedSeconds: number): void {
-  const t = clamp01(elapsedSeconds / MISS_FALL_DURATION_SECONDS);
-  const remainingHeight = Math.max(1, config.canvasHeight - config.hitLineY);
-  const fallSpeed = remainingHeight / MISS_FALL_SECONDS_TO_EXIT;
-  const fallDistance = fallSpeed * elapsedSeconds;
-  const wobbleAmplitude = info.radius * 1.1 * t;
-  const wobble = Math.sin(elapsedSeconds * MISS_WOBBLE_FREQUENCY_HZ * Math.PI * 2) * wobbleAmplitude;
-
-  const bottomX = info.x + wobble;
-  const bottomY = info.y + fallDistance;
-  const radius = info.radius * (1 - 0.5 * t);
-  const alpha = t < MISS_FADE_START_FRACTION ? 1 : 1 - (t - MISS_FADE_START_FRACTION) / (1 - MISS_FADE_START_FRACTION);
-  if (radius <= 0 || alpha <= 0) return;
-
-  const tipX = bottomX + wobble * MISS_TILT_RATIO * 0.6;
-  const tipY = bottomY - radius * 1.8;
-
-  const baseColor = LANE_COLORS[info.fret] ?? COLORS.noteFallback;
-  const missColor = mix(baseColor, COLORS.warning, clamp01(t * 1.3));
-
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = missColor;
-  taperedDropPath(ctx, bottomX, bottomY, radius, tipX, tipY);
-  ctx.fill();
-
-  ctx.strokeStyle = lighten(missColor, 0.35);
-  ctx.lineWidth = Math.max(1, radius * 0.1);
-  taperedDropPath(ctx, bottomX, bottomY, radius, tipX, tipY);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-}
-
 export function drawFrame(
   ctx: CanvasLike2D,
   notes: Note[],
@@ -451,7 +406,7 @@ export function drawFrame(
   config: RenderConfig = RENDER_CONFIG,
   judgedHits: ReadonlyMap<string, number> = EMPTY_JUDGED_HITS,
   holdingKeys: ReadonlySet<string> = EMPTY_HOLDING_KEYS,
-  missedHits: ReadonlyMap<string, MissedHitInfo> = EMPTY_MISSED_HITS
+  missedKeys: ReadonlySet<string> = EMPTY_MISSED_KEYS
 ): VisibleNote[] {
   ctx.fillStyle = COLORS.canvasBackground;
   ctx.fillRect(0, 0, config.canvasWidth, config.canvasHeight);
@@ -475,10 +430,7 @@ export function drawFrame(
 
   for (const note of visible) {
     const key = noteRenderKey(note.fret, note.time);
-
-    // missed notes are drawn separately below (their fall isn't bound by
-    // the normal approach/despawn window), never as a normal falling note
-    if (missedHits.has(key)) continue;
+    const isMissed = missedKeys.has(key);
 
     const judgedAt = judgedHits.get(key);
 
@@ -492,7 +444,8 @@ export function drawFrame(
     const isSustain = note.fret !== 7 && note.duration > 0;
     if (isSustain) {
       const baseColor = LANE_COLORS[note.fret] ?? COLORS.noteFallback;
-      drawSustainTrail(ctx, note, config, currentTime, baseColor, holdingKeys.has(key));
+      const color = isMissed ? desaturate(baseColor, MISS_DESATURATION_AMOUNT) : baseColor;
+      drawSustainTrail(ctx, note, config, currentTime, color, !isMissed && holdingKeys.has(key));
       continue;
     }
 
@@ -502,24 +455,16 @@ export function drawFrame(
     const fadeEnd = 1 + config.despawnAfter / config.approachTime;
     const alpha = progress <= 1 ? 1 : 1 - clamp01((progress - 1) / (fadeEnd - 1));
     const baseColor = LANE_COLORS[note.fret] ?? COLORS.noteFallback;
+    const color = isMissed ? desaturate(baseColor, MISS_DESATURATION_AMOUNT) : baseColor;
 
     if (note.fret === 7) {
       const firstFret = config.laneOrder[0];
       const lastFret = config.laneOrder[config.laneOrder.length - 1];
       const halfWidth = Math.abs(laneX(lastFret, progress, config) - laneX(firstFret, progress, config)) / 2;
-      drawOpenNoteBar(ctx, note.x, note.y, halfWidth, note.radius * 0.7, baseColor, alpha);
+      drawOpenNoteBar(ctx, note.x, note.y, halfWidth, note.radius * 0.7, color, alpha);
     } else {
-      drawDrop(ctx, note.x, note.y, note.radius, baseColor, alpha);
+      drawDrop(ctx, note.x, note.y, note.radius, color, alpha);
     }
-  }
-
-  // drawn independently of the visible/despawn window above so the dramatic
-  // fall gets its full duration on screen, even past where a normal note
-  // would've already faded out
-  for (const info of missedHits.values()) {
-    const elapsed = currentTime - info.missedAt;
-    if (elapsed < 0 || elapsed > MISS_FALL_DURATION_SECONDS) continue;
-    drawMissedDrop(ctx, info, config, elapsed);
   }
 
   return visible;

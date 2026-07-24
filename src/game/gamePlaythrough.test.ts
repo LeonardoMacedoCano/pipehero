@@ -78,7 +78,7 @@ test("a chord (two notes flattened at the same time) is grouped and judged as a 
   assert.equal(playthrough.getState().hits.length, 1);
 });
 
-test("sustain: releaseFret before the end gives a partial bonus through the playthrough layer", () => {
+test("sustain: releaseFret before the end drops it through the playthrough layer — no bonus, can't be re-hit", () => {
   const notes = [note({ time: 1.0, fret: 0, duration: 1.0 })];
   let fakeAudioTime = 1.0;
   const playthrough = createPlaythrough({ notes, getAudioTime: () => fakeAudioTime });
@@ -87,7 +87,12 @@ test("sustain: releaseFret before the end gives a partial bonus through the play
   fakeAudioTime = 1.5;
   playthrough.releaseFret(0);
 
-  assert.equal(playthrough.getState().score, 125);
+  assert.equal(playthrough.getState().score, 100);
+  assert.equal(playthrough.getState().droppedSustains.length, 1);
+
+  fakeAudioTime = 1.7;
+  const result = playthrough.pressFret(0);
+  assert.equal(result.type, "unmatched");
 });
 
 test("custom windows reach the engine: an input that would be unmatched on Expert becomes a hit on Easy", () => {

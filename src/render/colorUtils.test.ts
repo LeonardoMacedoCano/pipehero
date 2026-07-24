@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { lighten, mix } from "./colorUtils.js";
+import { lighten, mix, desaturate } from "./colorUtils.js";
 
 test("amount=0 returns the same color", () => {
   assert.equal(lighten("#3ddc46", 0), "#3ddc46");
@@ -35,4 +35,26 @@ test("mix: amount=0.5 falls halfway between both colors", () => {
 test("mix: clamps amount outside [0,1]", () => {
   assert.equal(mix("#000000", "#ffffff", -1), "#000000");
   assert.equal(mix("#000000", "#ffffff", 2), "#ffffff");
+});
+
+test("desaturate: amount=0 returns the same color", () => {
+  assert.equal(desaturate("#e8443c", 0), "#e8443c");
+});
+
+test("desaturate: amount=1 turns the color into a neutral gray (r === g === b)", () => {
+  const result = desaturate("#e8443c", 1);
+  const r = parseInt(result.slice(1, 3), 16);
+  const g = parseInt(result.slice(3, 5), 16);
+  const b = parseInt(result.slice(5, 7), 16);
+  assert.equal(r, g);
+  assert.equal(g, b);
+});
+
+test("desaturate: a high amount keeps only a faint trace of the original hue", () => {
+  const result = desaturate("#e8443c", 0.88);
+  const r = parseInt(result.slice(1, 3), 16);
+  const g = parseInt(result.slice(3, 5), 16);
+  const b = parseInt(result.slice(5, 7), 16);
+  assert.ok(r > g && r > b, "still faintly reddish");
+  assert.ok(r - g < 30, "but nearly gray");
 });
