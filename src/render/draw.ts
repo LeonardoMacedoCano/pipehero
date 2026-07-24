@@ -39,9 +39,6 @@ export interface CanvasLike2D {
 
 export const ABSORB_DURATION_SECONDS = 0.3;
 
-// A missed note keeps its exact shape (drop, sustain trail, or open bar) and
-// trajectory — the only change is losing almost all color, so it reads as
-// "gone dull/inaccessible" rather than becoming a different animation.
 export const MISS_DESATURATION_AMOUNT = 0.88;
 
 const EMPTY_JUDGED_HITS: ReadonlyMap<string, number> = new Map();
@@ -340,11 +337,6 @@ const ABSORB_PARTICLE_COUNT = 7;
 const ABSORB_FLASH_FRACTION = 0.35;
 const ABSORB_INNER_RING_FRACTION = 0.6;
 
-// Splash that plays where a note gets absorbed into the pipe mouth: a quick
-// bright flash, a double expanding ring (a fast inner "pop" plus a slower
-// outer ring), and a handful of droplets flung outward — the note itself is
-// never drawn again after this starts (see drawFrame), so this splash is
-// the only thing communicating "it went in", not a fall.
 function drawAbsorbSplash(ctx: CanvasLike2D, fret: Fret, config: RenderConfig, elapsedSeconds: number, seed: number): void {
   const t = clamp01(elapsedSeconds / ABSORB_DURATION_SECONDS);
   const baseColor = LANE_COLORS[fret] ?? COLORS.noteFallback;

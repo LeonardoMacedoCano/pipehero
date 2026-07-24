@@ -84,8 +84,6 @@ export function useGamePlaythrough({
     for (const event of state.activeHolds) {
       for (const fret of event.frets) holdingKeysRef.current.add(noteRenderKey(fret, event.time));
     }
-    // dropped sustains (held, then released before the end) get the same
-    // grayed-out treatment as a miss, and can never be re-grabbed either
     for (const event of state.droppedSustains) {
       for (const fret of event.frets) missedKeysRef.current.add(noteRenderKey(fret, event.time));
     }

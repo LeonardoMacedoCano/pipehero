@@ -74,10 +74,6 @@ export function createGameEngine(
     return closest;
   }
 
-  // All-or-nothing: the sustain bonus is only awarded when the note is held
-  // all the way to its natural end (via update()). Releasing early — even a
-  // moment before the end — drops it: no bonus, and it's marked as dropped
-  // so it renders grayed-out and can never be re-grabbed for the remainder.
   function finalizeSustain(event: GameEvent, dropped: boolean): void {
     if (!holdingEvents.has(event)) return;
     holdingEvents.delete(event);

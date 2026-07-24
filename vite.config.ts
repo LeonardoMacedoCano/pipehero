@@ -21,11 +21,6 @@ const MIME_TYPES: Record<string, string> = {
   ".webp": "image/webp",
 };
 
-// Serves the song library live from the songs folder — on purpose
-// OUTSIDE the project/Vite build directory, to be a truly "dynamic"
-// folder (adding a new song doesn't require a rebuild). Used only in
-// `npm run dev`; the production version (Docker) uses the same logic
-// in server.ts.
 function songsMiddlewarePlugin(songsDir: string): Plugin {
   return {
     name: "pipehero-songs-middleware",
@@ -64,11 +59,6 @@ function songsMiddlewarePlugin(songsDir: string): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  // Reads a .env file at the project root (same mechanism docker-compose
-  // uses) — so you can configure the songs folder without touching a
-  // system/terminal environment variable, just create a ".env" with
-  // SONGS_DIR=... (or MUSIC_PATH=..., both work, so you don't have to
-  // remember a different name than Docker's).
   const env = loadEnv(mode, process.cwd(), "");
   const songsDir = resolve(env.SONGS_DIR ?? env.MUSIC_PATH ?? "./songs");
   console.log(`[pipehero] serving songs from: ${songsDir}`);
