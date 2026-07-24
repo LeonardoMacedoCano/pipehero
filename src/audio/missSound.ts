@@ -8,7 +8,6 @@ function getAudioContext(): AudioContext | null {
   return sharedContext;
 }
 
-// Classic waveshaper soft-clip curve, used here as a mild amp-overdrive.
 function distortionCurve(amount: number): Float32Array<ArrayBuffer> {
   const samples = 256;
   const curve = new Float32Array(new ArrayBuffer(samples * Float32Array.BYTES_PER_ELEMENT));
@@ -20,19 +19,13 @@ function distortionCurve(amount: number): Float32Array<ArrayBuffer> {
 }
 
 const BASE_FREQUENCY_HZ = 185;
-const DETUNE_CENTS = 60; // ~half a semitone — the two unison oscillators beat against
-// each other, reading as an out-of-tune/wrong note rather than a clean pitch
+const DETUNE_CENTS = 60;
 const PICK_CLICK_DURATION_SECONDS = 0.004;
 const ATTACK_SECONDS = 0.001;
 const DECAY_SECONDS = 0.05;
 const RELEASE_SECONDS = 0.015;
 const TOTAL_DURATION_SECONDS = ATTACK_SECONDS + DECAY_SECONDS + RELEASE_SECONDS;
 
-// Synthesized "miss" cue: a very short (~65ms), percussive, palm-muted
-// electric guitar "wrong note" — instant attack, no sustain, no reverb,
-// mid/high-mid heavy with a metallic edge, slightly detuned so it reads as
-// dissonant/wrong rather than a clean tone. Synthesized rather than a
-// sampled/ripped sound so there's no copyrighted asset to ship.
 export function playMissClank(): void {
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -83,7 +76,6 @@ export function playMissClank(): void {
     osc.stop(stopAt);
   }
 
-  // pick-attack transient — a very brief burst of high noise for the "bite"
   const clickBufferSize = Math.max(1, Math.floor(ctx.sampleRate * PICK_CLICK_DURATION_SECONDS));
   const clickBuffer = ctx.createBuffer(1, clickBufferSize, ctx.sampleRate);
   const clickData = clickBuffer.getChannelData(0);

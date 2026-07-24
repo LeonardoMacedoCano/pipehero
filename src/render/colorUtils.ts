@@ -28,6 +28,21 @@ export function mix(hexA: string, hexB: string, amount: number): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+export function desaturate(hex: string, amount: number): string {
+  const t = Math.max(0, Math.min(1, amount));
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+
+  const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
+  const dr = clamp(r + (gray - r) * t);
+  const dg = clamp(g + (gray - g) * t);
+  const db = clamp(b + (gray - b) * t);
+
+  return `#${toHex(dr)}${toHex(dg)}${toHex(db)}`;
+}
+
 function toHex(n: number): string {
   return n.toString(16).padStart(2, "0");
 }

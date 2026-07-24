@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Difficulty, Fret, Note, StarPowerPhrase } from "../../types.js";
 import { createPlaythrough } from "../../game/gamePlaythrough.js";
-import { drawFrame, ABSORB_DURATION_SECONDS, MISS_FALL_DURATION_SECONDS, type MissedHitInfo } from "../../render/draw.js";
-import { createRenderConfig, noteRenderKey, progressFor, laneX, noteRadiusAt } from "../../render/layout.js";
+import { drawFrame, ABSORB_DURATION_SECONDS } from "../../render/draw.js";
+import { createRenderConfig, noteRenderKey } from "../../render/layout.js";
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
 import { fretForKeyCode } from "../../game/keymap.js";
@@ -33,7 +33,7 @@ export function useGamePlaythrough({
   const rafRef = useRef<number | null>(null);
   const judgedHitsRef = useRef<Map<string, number>>(new Map());
   const holdingKeysRef = useRef<Set<string>>(new Set());
-  const missedHitsRef = useRef<Map<string, MissedHitInfo>>(new Map());
+  const missedKeysRef = useRef<Set<string>>(new Set());
 
   const [hud, setHud] = useState<Hud>(INITIAL_HUD);
   const [needsTapToStart, setNeedsTapToStart] = useState(false);
@@ -71,24 +71,11 @@ export function useGamePlaythrough({
     for (const [key, judgedAt] of judgedHitsRef.current) {
       if (chartTime - judgedAt > ABSORB_DURATION_SECONDS) judgedHitsRef.current.delete(key);
     }
-    for (const [key, info] of missedHitsRef.current) {
-      if (chartTime - info.missedAt > MISS_FALL_DURATION_SECONDS) missedHitsRef.current.delete(key);
-    }
 
     if (newlyMissed.length > 0) playMissClank();
     for (const event of newlyMissed) {
-      // uses the note's actual position at the moment it's flagged missed
-      // (not snapped back to the pipe mouth) so the dramatic fall picks up
-      // exactly where the normal falling note left off, with no jump/pause
-      const missProgress = progressFor(event.time, chartTime, config);
       for (const fret of event.frets) {
-        missedHitsRef.current.set(noteRenderKey(fret, event.time), {
-          fret,
-          x: laneX(fret, missProgress, config),
-          y: missProgress * config.hitLineY,
-          radius: noteRadiusAt(missProgress, config),
-          missedAt: chartTime,
-        });
+        missedKeysRef.current.add(noteRenderKey(fret, event.time));
       }
     }
 
@@ -97,8 +84,11 @@ export function useGamePlaythrough({
     for (const event of state.activeHolds) {
       for (const fret of event.frets) holdingKeysRef.current.add(noteRenderKey(fret, event.time));
     }
+    for (const event of state.droppedSustains) {
+      for (const fret of event.frets) missedKeysRef.current.add(noteRenderKey(fret, event.time));
+    }
 
-    drawFrame(ctx, notes, chartTime, config, judgedHitsRef.current, holdingKeysRef.current, missedHitsRef.current);
+    drawFrame(ctx, notes, chartTime, config, judgedHitsRef.current, holdingKeysRef.current, missedKeysRef.current);
 
     setHud({ score: state.score, starPowerMeter: state.starPowerMeter, starPowerActive: state.starPowerActive });
 
@@ -127,7 +117,7 @@ export function useGamePlaythrough({
     setHud(INITIAL_HUD);
     setNeedsTapToStart(false);
     judgedHitsRef.current.clear();
-    missedHitsRef.current.clear();
+    missedKeysRef.current.clear();
 
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
@@ -144,7 +134,7 @@ export function useGamePlaythrough({
     const playthrough = playthroughRef.current;
     if (!playthrough) return undefined;
     const result = playthrough.pressFret(fret);
-    if (result.type === "judged" || result.type === "lateGrab") {
+    if (result.type === "judged") {
       const judgedAt = playthrough.currentChartTime();
       for (const f of result.event.frets) {
         judgedHitsRef.current.set(noteRenderKey(f, result.event.time), judgedAt);

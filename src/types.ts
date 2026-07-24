@@ -49,6 +49,7 @@ export interface GameState {
   maxCombo: number;
   hits: GameEvent[];
   misses: GameEvent[];
+  droppedSustains: GameEvent[];
   pendingCount: number;
   holdingCount: number;
   activeHolds: GameEvent[];
@@ -59,8 +60,7 @@ export interface GameState {
 
 export type KeyDownResult =
   | { type: "unmatched"; fret: Fret; time: number }
-  | { type: "judged"; event: GameEvent; rating: Rating }
-  | { type: "lateGrab"; event: GameEvent; fret: Fret };
+  | { type: "judged"; event: GameEvent; rating: Rating };
 
 export interface GameEngine {
   handleKeyDown(fret: Fret, time: number): KeyDownResult;
