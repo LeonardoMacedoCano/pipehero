@@ -20,7 +20,7 @@ export function readGamepadSnapshots(
   return getGamepads()
     .filter((gamepad): gamepad is Gamepad => !!gamepad)
     .map((gamepad) => ({
-      deviceId: gamepad.id,
+      deviceId: `${gamepad.id}#${gamepad.index}`,
       buttons: gamepad.buttons.map((button) => button.pressed),
     }));
 }
@@ -35,6 +35,14 @@ export function diffGamepadSnapshots(prev: GamepadSnapshot[], curr: GamepadSnaps
       const wasPressed = prevDevice?.buttons[button] ?? false;
       if (isPressed && !wasPressed) pressed.push({ deviceId: currDevice.deviceId, button });
       if (!isPressed && wasPressed) released.push({ deviceId: currDevice.deviceId, button });
+    });
+  }
+
+  for (const prevDevice of prev) {
+    const stillConnected = curr.some((device) => device.deviceId === prevDevice.deviceId);
+    if (stillConnected) continue;
+    prevDevice.buttons.forEach((wasPressed, button) => {
+      if (wasPressed) released.push({ deviceId: prevDevice.deviceId, button });
     });
   }
 

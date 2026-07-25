@@ -29,7 +29,7 @@ interface FakeGamepadButton {
 }
 
 const fakeGamepadButtons: FakeGamepadButton[] = Array.from({ length: 8 }, () => ({ pressed: false }));
-const fakeGamepad = { id: "Fake Guitar Controller", buttons: fakeGamepadButtons, axes: [] as number[] };
+const fakeGamepad = { id: "Fake Guitar Controller", index: 0, buttons: fakeGamepadButtons, axes: [] as number[] };
 (dom.window.navigator as unknown as { getGamepads: () => unknown[] }).getGamepads = () => [fakeGamepad];
 
 const FAKE_SONGS = [
@@ -248,10 +248,10 @@ try {
   const storedAfterGamepadRemap = dom.window.localStorage.getItem("pipehero:keyBindings");
   const bindingsAfterGamepadRemap = storedAfterGamepadRemap ? JSON.parse(storedAfterGamepadRemap) : null;
   checks.push({
-    name: "confirming the gamepad remap persists fretRed -> {gamepad, Fake Guitar Controller, button 2}",
+    name: "confirming the gamepad remap persists fretRed -> {gamepad, Fake Guitar Controller#0, button 2}",
     ok:
       bindingsAfterGamepadRemap?.fretRed?.source === "gamepad" &&
-      bindingsAfterGamepadRemap?.fretRed?.deviceId === "Fake Guitar Controller" &&
+      bindingsAfterGamepadRemap?.fretRed?.deviceId === "Fake Guitar Controller#0" &&
       bindingsAfterGamepadRemap?.fretRed?.button === 2,
   });
 } finally {

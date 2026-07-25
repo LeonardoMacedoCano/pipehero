@@ -11,12 +11,26 @@ test("readGamepadSnapshots maps connected gamepads' button.pressed into plain sn
     null,
     {
       id: "Fake Guitar",
+      index: 1,
       buttons: [{ pressed: true }, { pressed: false }, { pressed: false }],
     },
   ] as unknown as (Gamepad | null)[];
 
   const snapshots = readGamepadSnapshots(() => fakeGamepads);
-  assert.deepEqual(snapshots, [{ deviceId: "Fake Guitar", buttons: [true, false, false] }]);
+  assert.deepEqual(snapshots, [{ deviceId: "Fake Guitar#1", buttons: [true, false, false] }]);
+});
+
+test("readGamepadSnapshots disambiguates two identical-model controllers by index", () => {
+  const fakeGamepads = [
+    { id: "Same Model Guitar", index: 0, buttons: [{ pressed: true }] },
+    { id: "Same Model Guitar", index: 1, buttons: [{ pressed: false }] },
+  ] as unknown as (Gamepad | null)[];
+
+  const snapshots = readGamepadSnapshots(() => fakeGamepads);
+  assert.deepEqual(snapshots, [
+    { deviceId: "Same Model Guitar#0", buttons: [true] },
+    { deviceId: "Same Model Guitar#1", buttons: [false] },
+  ]);
 });
 
 test("diffGamepadSnapshots: a button going from unpressed to pressed is a 'pressed' edge", () => {
@@ -63,8 +77,19 @@ test("diffGamepadSnapshots: a device that appears for the first time already pre
   assert.deepEqual(edges.pressed, [{ deviceId: "guitar", button: 0 }]);
 });
 
-test("diffGamepadSnapshots: a device that disconnects mid-hold doesn't produce a stray 'released' for the vanished device", () => {
-  const prev: GamepadSnapshot[] = [{ deviceId: "guitar", buttons: [true] }];
+test("diffGamepadSnapshots: a device that disconnects mid-hold releases every button it was holding", () => {
+  const prev: GamepadSnapshot[] = [{ deviceId: "guitar", buttons: [true, false, true] }];
+  const curr: GamepadSnapshot[] = [];
+  const edges = diffGamepadSnapshots(prev, curr);
+  assert.deepEqual(edges.pressed, []);
+  assert.deepEqual(edges.released, [
+    { deviceId: "guitar", button: 0 },
+    { deviceId: "guitar", button: 2 },
+  ]);
+});
+
+test("diffGamepadSnapshots: a device that disconnects with nothing held produces no edges", () => {
+  const prev: GamepadSnapshot[] = [{ deviceId: "guitar", buttons: [false, false] }];
   const curr: GamepadSnapshot[] = [];
   const edges = diffGamepadSnapshots(prev, curr);
   assert.deepEqual(edges, { pressed: [], released: [] });
