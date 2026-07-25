@@ -34,6 +34,8 @@ export function useGamePlaythrough({
   const judgedHitsRef = useRef<Map<string, number>>(new Map());
   const holdingKeysRef = useRef<Set<string>>(new Set());
   const missedKeysRef = useRef<Set<string>>(new Set());
+  const errorClicksRef = useRef<Map<Fret, number>>(new Map());
+  const lastErrorAtRef = useRef<number | null>(null);
 
   const [hud, setHud] = useState<Hud>(INITIAL_HUD);
   const [needsTapToStart, setNeedsTapToStart] = useState(false);
@@ -72,7 +74,10 @@ export function useGamePlaythrough({
       if (chartTime - judgedAt > ABSORB_DURATION_SECONDS) judgedHitsRef.current.delete(key);
     }
 
-    if (newlyMissed.length > 0) playMissClank();
+    if (newlyMissed.length > 0) {
+      playMissClank();
+      lastErrorAtRef.current = chartTime;
+    }
     for (const event of newlyMissed) {
       for (const fret of event.frets) {
         missedKeysRef.current.add(noteRenderKey(fret, event.time));
@@ -88,7 +93,17 @@ export function useGamePlaythrough({
       for (const fret of event.frets) missedKeysRef.current.add(noteRenderKey(fret, event.time));
     }
 
-    drawFrame(ctx, notes, chartTime, config, judgedHitsRef.current, holdingKeysRef.current, missedKeysRef.current);
+    drawFrame(
+      ctx,
+      notes,
+      chartTime,
+      config,
+      judgedHitsRef.current,
+      holdingKeysRef.current,
+      missedKeysRef.current,
+      errorClicksRef.current,
+      lastErrorAtRef.current
+    );
 
     setHud({ score: state.score, starPowerMeter: state.starPowerMeter, starPowerActive: state.starPowerActive });
 
@@ -118,6 +133,8 @@ export function useGamePlaythrough({
     setNeedsTapToStart(false);
     judgedHitsRef.current.clear();
     missedKeysRef.current.clear();
+    errorClicksRef.current.clear();
+    lastErrorAtRef.current = null;
 
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
@@ -139,6 +156,10 @@ export function useGamePlaythrough({
       for (const f of result.event.frets) {
         judgedHitsRef.current.set(noteRenderKey(f, result.event.time), judgedAt);
       }
+    } else {
+      const pressedAt = playthrough.currentChartTime();
+      errorClicksRef.current.set(fret, pressedAt);
+      lastErrorAtRef.current = pressedAt;
     }
     return result;
   }, []);

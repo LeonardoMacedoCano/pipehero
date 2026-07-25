@@ -21,5 +21,6 @@ export const COLORS = {
   hitLine: "#e0e0e0",
   noteFallback: "#ffffff",
   noteStrokeOverlay: "rgba(0, 0, 0, 0.4)",
-  pipeGradientStops: ["#16181d", "#3a3f4a", "#5c6270", "#3a3f4a", "#16181d"],
+  pipeGradientStops: ["#202430", "#454b58", "#8891a0", "#454b58", "#202430"],
+  pipeMissGradientStops: ["#300a0a", "#5c1414", "#9c2424", "#5c1414", "#300a0a"],
 } as const;
