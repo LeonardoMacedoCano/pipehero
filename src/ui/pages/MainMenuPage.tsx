@@ -1,5 +1,5 @@
-import { Panel, Stack } from "lcano-react-ui";
-import LockedMenuItem, { MenuItem, MenuItemLabel } from "../components/LockedMenuItem.js";
+import { Button, Panel, Stack } from "lcano-react-ui";
+import LockedMenuItem, { MENU_BUTTON_STYLE } from "../components/LockedMenuItem.js";
 
 export default function MainMenuPage({
   onPlaySingleplayer,
@@ -11,9 +11,7 @@ export default function MainMenuPage({
   return (
     <Panel title="PipeHero" maxWidth="480px">
       <Stack direction="column" gap="10px" style={{ padding: "12px 0" }}>
-        <MenuItem type="button" onClick={onPlaySingleplayer}>
-          <MenuItemLabel>Um Jogador</MenuItemLabel>
-        </MenuItem>
+        <Button description="Um Jogador" variant="secondary" width="100%" onClick={onPlaySingleplayer} style={MENU_BUTTON_STYLE} />
 
         <LockedMenuItem
           label="Multijogador"
@@ -35,9 +33,7 @@ export default function MainMenuPage({
           hint="Em breve — vai mostrar suas conquistas e pontuação máxima por música, e comparar com amigos; depende de sistema de progresso salvo, ainda não implementado."
         />
 
-        <MenuItem type="button" onClick={onOpenOptions}>
-          <MenuItemLabel>Opções</MenuItemLabel>
-        </MenuItem>
+        <Button description="Opções" variant="secondary" width="100%" onClick={onOpenOptions} style={MENU_BUTTON_STYLE} />
       </Stack>
     </Panel>
   );
