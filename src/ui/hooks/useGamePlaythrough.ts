@@ -5,8 +5,10 @@ import { drawFrame, ABSORB_DURATION_SECONDS } from "../../render/draw.js";
 import { createRenderConfig, noteRenderKey } from "../../render/layout.js";
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
-import { fretForKeyCode } from "../../game/keymap.js";
+import { fretForBinding, isStarPowerBinding, DEFAULT_ACTION_BINDINGS } from "../../game/keymap.js";
+import { getBindings, type ActionBindings } from "../../game/keymapStore.js";
 import { judgmentWindowsForDifficulty } from "../../engine/judge.js";
+import { useGamepadPolling } from "./useGamepadPolling.js";
 
 interface Hud {
   score: number;
@@ -172,19 +174,24 @@ export function useGamePlaythrough({
     playthroughRef.current?.activateStarPower();
   }, []);
 
+  const bindingsRef = useRef<ActionBindings>(DEFAULT_ACTION_BINDINGS);
+
   useEffect(() => {
+    bindingsRef.current = getBindings();
+
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
+      const binding = { source: "keyboard" as const, code: event.code };
+      if (isStarPowerBinding(binding, bindingsRef.current)) {
         activateStarPower();
         return;
       }
       if (event.repeat) return;
-      const fret = fretForKeyCode(event.code);
+      const fret = fretForBinding(binding, bindingsRef.current);
       if (fret !== null) pressFret(fret);
     }
 
     function handleKeyUp(event: KeyboardEvent) {
-      const fret = fretForKeyCode(event.code);
+      const fret = fretForBinding({ source: "keyboard", code: event.code }, bindingsRef.current);
       if (fret !== null) releaseFret(fret);
     }
 
@@ -195,6 +202,28 @@ export function useGamePlaythrough({
       document.removeEventListener("keyup", handleKeyUp);
     };
   }, [pressFret, releaseFret, activateStarPower]);
+
+  useGamepadPolling(
+    (edges) => {
+      for (const edge of edges.pressed) {
+        const binding = { source: "gamepad" as const, deviceId: edge.deviceId, button: edge.button };
+        if (isStarPowerBinding(binding, bindingsRef.current)) {
+          activateStarPower();
+          continue;
+        }
+        const fret = fretForBinding(binding, bindingsRef.current);
+        if (fret !== null) pressFret(fret);
+      }
+      for (const edge of edges.released) {
+        const fret = fretForBinding(
+          { source: "gamepad", deviceId: edge.deviceId, button: edge.button },
+          bindingsRef.current
+        );
+        if (fret !== null) releaseFret(fret);
+      }
+    },
+    true
+  );
 
   return { canvasRef, audioRef, hud, needsTapToStart, start, stop };
 }
