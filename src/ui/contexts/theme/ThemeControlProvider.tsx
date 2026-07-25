@@ -11,7 +11,7 @@ const ThemeContext = createContext<ThemeControlContextValue | undefined>(undefin
 export function useThemeControl(): ThemeControlContextValue {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error("useThemeControl precisa ser usado dentro de <ThemeControlProvider>");
+    throw new Error("useThemeControl must be used within a <ThemeControlProvider>");
   }
   return context;
 }

@@ -76,14 +76,14 @@ test("isStarPowerBinding matches only the configured star power binding", () => 
 test("describeKeyCode gives human-readable names", () => {
   assert.equal(describeKeyCode("KeyA"), "A");
   assert.equal(describeKeyCode("Digit3"), "3");
-  assert.equal(describeKeyCode("Space"), "Espaço");
-  assert.equal(describeKeyCode("ShiftLeft"), "Shift Esquerdo");
+  assert.equal(describeKeyCode("Space"), "Space");
+  assert.equal(describeKeyCode("ShiftLeft"), "Left Shift");
   assert.equal(describeKeyCode("F1"), "F1");
 });
 
 test("describeBinding formats keyboard and gamepad bindings, and a null binding", () => {
   assert.equal(describeBinding({ source: "keyboard", code: "KeyA" }), "A");
-  assert.equal(describeBinding({ source: "gamepad", deviceId: "Guitar", button: 0 }), "Botão 1");
-  assert.equal(describeBinding({ source: "gamepad", deviceId: "Guitar", button: 4 }), "Botão 5");
+  assert.equal(describeBinding({ source: "gamepad", deviceId: "Guitar", button: 0 }), "Button 1");
+  assert.equal(describeBinding({ source: "gamepad", deviceId: "Guitar", button: 4 }), "Button 5");
   assert.equal(describeBinding(null), "—");
 });
