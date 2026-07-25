@@ -16,10 +16,17 @@ production deploy, see [`DEPLOY.md`](./DEPLOY.md).
   game's `<canvas>` is imperative code outside React's render tree,
   drawn via `requestAnimationFrame`.
 - **Build/dev server**: Vite.
-- **Backend**: Node server with no external runtime dependencies (it
-  only serves files and lists the songs folder). Compiled from
-  TypeScript to plain JS at build time (`server-dist/`), to keep the
-  final Docker image without `node_modules`.
+- **Backend**: Node server (`http`, no framework) that serves files,
+  lists the songs folder, and — since the Google login feature — talks
+  to a Postgres database for accounts/sessions. Compiled from
+  TypeScript to plain JS at build time (`server-dist/`). The only
+  runtime dependency is [`pg`](https://node-postgres.com/); JWT
+  verification (Google's `id_token`) and session-cookie signing are
+  done with Node's built-in `crypto`, on purpose, to avoid pulling in
+  `google-auth-library`/`passport`/`express` for what amounts to a
+  handful of `crypto` calls. Login is fully optional — without
+  `DATABASE_URL`/`GOOGLE_CLIENT_ID`/`SESSION_SECRET` set, the rest of
+  the app works exactly as before.
 - **Tests**: Node's native test runner (`node --test`, via `tsx`) for
   unit tests, plus real integration tests (a real running server, DOM
   simulated via `jsdom`, headless rendering via `node-canvas`).
@@ -37,7 +44,7 @@ src/
   audio/     audio↔chart sync and latency calibration
   game/      wires engine + audio + keyboard together
   lyrics/    synced lyrics, read from the chart's own events
-  server/    song library — used both in dev (Vite) and in production (server.ts, compiled)
+  server/    song library + Google login/sessions (Postgres) — used both in dev (Vite) and in production (server.ts, compiled)
   ui/        React components/pages/hooks (TypeScript + styled-components, lcano-react-ui theme)
 scripts/     development tools (generate test songs, inspect a chart)
 test/

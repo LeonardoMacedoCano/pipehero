@@ -16,11 +16,17 @@ RUN npm run build
 
 # Stage 2: runtime — only what's needed to serve. server-dist/ is the
 # already compiled (tsc) output of server.ts + src/server/*.ts as plain
-# JS — the runtime has no TypeScript or any other package from
-# node_modules installed (only Node's native modules).
+# JS. Since the Google login feature needs `pg` (Postgres client) at
+# runtime, this stage now also carries the build stage's node_modules
+# (the same "dependencies" from package.json, minus devDependencies —
+# dominated in practice by `pg`'s small dependency tree; the build-only
+# tools like vite/typescript ride along unused, which is a fine
+# trade-off for a personal project vs. the complexity of pruning them
+# out package-by-package).
 FROM node:22-alpine AS runtime
 WORKDIR /app
 COPY --from=build --chown=node:node /app/package.json ./package.json
+COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/server-dist ./server-dist
 

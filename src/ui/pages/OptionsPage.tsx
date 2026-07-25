@@ -5,19 +5,19 @@ import LockedMenuItem from "../components/LockedMenuItem.js";
 export default function OptionsPage({ onBack }: { onBack: () => void }) {
   return (
     <Panel
-      title="Opções"
+      title="Options"
       maxWidth="640px"
       actionButton={<Button description="« Menu" variant="secondary" onClick={onBack} />}
     >
       <Tabs
         tabs={[
-          { label: "Controles", content: <ControlsMappingPanel /> },
+          { label: "Controls", content: <ControlsMappingPanel /> },
           {
-            label: "Conta",
+            label: "Account",
             content: (
               <LockedMenuItem
-                label="Conta"
-                hint="Em breve — depende de login e sistema de contas, ainda não implementado."
+                label="Account"
+                hint="Coming soon — depends on login and an account system, not implemented yet."
               />
             ),
           },

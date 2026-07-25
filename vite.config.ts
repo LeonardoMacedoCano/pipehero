@@ -4,6 +4,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { listSongs } from "./src/server/songLibrary.js";
+import { handleAuthRequest } from "./src/server/authRoutes.js";
+import { runMigrations } from "./src/server/migrate.js";
 
 const MIME_TYPES: Record<string, string> = {
   ".chart": "text/plain; charset=utf-8",
@@ -25,7 +27,13 @@ function songsMiddlewarePlugin(songsDir: string): Plugin {
   return {
     name: "pipehero-songs-middleware",
     configureServer(server) {
+      void runMigrations();
+
       server.middlewares.use(async (req: IncomingMessage, res: ServerResponse, next) => {
+        if (req.url?.startsWith("/api/auth/")) {
+          if (await handleAuthRequest(req, res)) return;
+        }
+
         if (req.url === "/api/songs") {
           const songs = await listSongs(songsDir);
           res.setHeader("Content-Type", "application/json; charset=utf-8");
