@@ -3,7 +3,7 @@
 ## Basic flow
 
 1. Open the game in your browser — you land on the **main menu**.
-   Click **"Um Jogador"** to reach the **song menu**.
+   Click **"Single Player"** to reach the **song menu**.
 2. Click a song. A modal opens with the **available difficulties**
    and latency calibration.
 3. Click a difficulty — the game **starts playing right away**, no
@@ -25,11 +25,11 @@ Default bindings:
 | `K` | 4 | 🔵 Blue |
 | `L` | 5 | 🟠 Orange |
 | `Space` | Open note | ⚪ White (bar across the whole track) |
-| `Shift Esquerdo` | Activate Star Power | — |
+| `Left Shift` | Activate Star Power | — |
 
 Every action can be remapped to a different keyboard key **or** to a
 gamepad/joystick button (e.g. a PC guitar that the OS sees as a
-controller) from **Opções → Controles**.
+controller) from **Options → Controls**.
 
 ## Goal
 
@@ -65,7 +65,7 @@ fades away — no extra penalty, it just doesn't score).
 
 - Certain stretches of a song are **Star Power** phrases — hitting
   notes within them fills the meter (top-right corner).
-- With the meter at **50% or more**, press **Shift Esquerdo** (or
+- With the meter at **50% or more**, press **Left Shift** (or
   whatever it's remapped to) to activate.
 - While active, score **doubles**. The meter drains on its own after
   about **12 seconds** of use.

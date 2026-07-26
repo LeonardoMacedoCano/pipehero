@@ -2,6 +2,8 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve, sep } from "node:path";
 import { listSongs } from "./src/server/songLibrary.js";
+import { handleAuthRequest } from "./src/server/authRoutes.js";
+import { runMigrations } from "./src/server/migrate.js";
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 5511;
 const STATIC_DIR = resolve(process.env.STATIC_DIR ?? "./dist");
@@ -86,6 +88,10 @@ async function serveSongAsset(req: IncomingMessage, res: ServerResponse): Promis
 
 const server = createServer(async (req, res) => {
   try {
+    if (req.url?.startsWith("/api/auth/")) {
+      if (await handleAuthRequest(req, res)) return;
+    }
+
     if (req.url === "/api/songs") {
       const songs = await listSongs(SONGS_DIR);
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
@@ -105,6 +111,8 @@ const server = createServer(async (req, res) => {
     res.end("Internal Server Error");
   }
 });
+
+await runMigrations();
 
 server.listen(PORT, () => {
   console.log(`PipeHero (production) running at http://localhost:${PORT}`);

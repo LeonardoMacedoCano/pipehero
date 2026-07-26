@@ -18,12 +18,12 @@ export interface ControlActionInfo {
 }
 
 export const CONTROL_ACTIONS: ControlActionInfo[] = [
-  { id: "fretGreen", label: "Verde", color: COLORS.laneGreen, fret: 0 },
-  { id: "fretRed", label: "Vermelho", color: COLORS.laneRed, fret: 1 },
-  { id: "fretYellow", label: "Amarelo", color: COLORS.laneYellow, fret: 2 },
-  { id: "fretBlue", label: "Azul", color: COLORS.laneBlue, fret: 3 },
-  { id: "fretOrange", label: "Laranja", color: COLORS.laneOrange, fret: 4 },
-  { id: "fretOpen", label: "Aberta", color: COLORS.laneOpen, fret: 7 },
+  { id: "fretGreen", label: "Green", color: COLORS.laneGreen, fret: 0 },
+  { id: "fretRed", label: "Red", color: COLORS.laneRed, fret: 1 },
+  { id: "fretYellow", label: "Yellow", color: COLORS.laneYellow, fret: 2 },
+  { id: "fretBlue", label: "Blue", color: COLORS.laneBlue, fret: 3 },
+  { id: "fretOrange", label: "Orange", color: COLORS.laneOrange, fret: 4 },
+  { id: "fretOpen", label: "Open", color: COLORS.laneOpen, fret: 7 },
   { id: "starPower", label: "Star Power", color: COLORS.info },
 ];
 
@@ -71,17 +71,17 @@ export function isStarPowerBinding(binding: InputBinding, bindings: Record<Contr
 }
 
 const KEY_CODE_LABELS: Record<string, string> = {
-  Space: "Espaço",
-  ShiftLeft: "Shift Esquerdo",
-  ShiftRight: "Shift Direito",
-  ControlLeft: "Ctrl Esquerdo",
-  ControlRight: "Ctrl Direito",
-  AltLeft: "Alt Esquerdo",
-  AltRight: "Alt Direito",
-  ArrowUp: "Seta Cima",
-  ArrowDown: "Seta Baixo",
-  ArrowLeft: "Seta Esquerda",
-  ArrowRight: "Seta Direita",
+  Space: "Space",
+  ShiftLeft: "Left Shift",
+  ShiftRight: "Right Shift",
+  ControlLeft: "Left Ctrl",
+  ControlRight: "Right Ctrl",
+  AltLeft: "Left Alt",
+  AltRight: "Right Alt",
+  ArrowUp: "Up Arrow",
+  ArrowDown: "Down Arrow",
+  ArrowLeft: "Left Arrow",
+  ArrowRight: "Right Arrow",
   Enter: "Enter",
   Escape: "Esc",
   Tab: "Tab",
@@ -101,5 +101,5 @@ export function describeKeyCode(code: string): string {
 export function describeBinding(binding: InputBinding | null | undefined): string {
   if (!binding) return "—";
   if (binding.source === "keyboard") return describeKeyCode(binding.code);
-  return `Botão ${binding.button + 1}`;
+  return `Button ${binding.button + 1}`;
 }

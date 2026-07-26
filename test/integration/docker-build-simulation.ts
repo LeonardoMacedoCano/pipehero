@@ -18,6 +18,7 @@ console.log("(copying ONLY the files the Dockerfile copies into the final stage)
 
 try {
   cpSync("package.json", join(runtimeDir, "package.json"));
+  cpSync("node_modules", join(runtimeDir, "node_modules"), { recursive: true });
   cpSync("dist", join(runtimeDir, "dist"), { recursive: true });
   cpSync("server-dist", join(runtimeDir, "server-dist"), { recursive: true });
 
@@ -27,7 +28,7 @@ try {
   writeFileSync(join(songDir, "song.ini"), "[song]\nname = Docker Test Song\nartist = PipeHero\n");
   writeFileSync(join(songDir, "song.wav"), "");
 
-  console.log("Starting `node server-dist/server.js` with only what was copied (no node_modules, no rest of the project)...");
+  console.log("Starting `node server-dist/server.js` with only what was copied (node_modules' 'dependencies' + dist/server-dist, no rest of the project)...");
   const server = spawn("node", ["server-dist/server.js"], {
     cwd: runtimeDir,
     env: {

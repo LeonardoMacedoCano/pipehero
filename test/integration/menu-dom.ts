@@ -103,20 +103,20 @@ try {
 
   checks.push({
     name: "main menu shows every expected item",
-    ok: ["Um Jogador", "Multijogador", "Entrar com Google", "Amigos", "Conquistas", "Opções"].every((label) =>
+    ok: ["Single Player", "Multiplayer", "Log in with Google", "Friends", "Achievements", "Options"].every((label) =>
       root?.innerHTML.includes(label)
     ),
   });
 
-  const clickedLocked = clickButtonWithText(document, "Multijogador");
+  const clickedLocked = clickButtonWithText(document, "Multiplayer");
   await new Promise((r) => setTimeout(r, 100));
   checks.push({ name: "clicking a locked item exists and is clickable", ok: clickedLocked });
   checks.push({
     name: "clicking a locked item shows an explanatory message, doesn't navigate",
-    ok: !!root?.innerHTML.includes("ainda não implementado") && document.querySelectorAll("#root canvas").length === 0,
+    ok: !!root?.innerHTML.includes("not implemented yet") && document.querySelectorAll("#root canvas").length === 0,
   });
 
-  checks.push({ name: "'Um Jogador' navigates to the song list", ok: clickButtonWithText(document, "Um Jogador") });
+  checks.push({ name: "'Single Player' navigates to the song list", ok: clickButtonWithText(document, "Single Player") });
   await new Promise((r) => setTimeout(r, 300));
 
   const songButtons = document.querySelectorAll("#root button");
@@ -170,36 +170,36 @@ try {
 
   checks.push({ name: "'« Menu' from the song list goes back to the main menu", ok: clickButtonWithText(document, "« Menu") });
   await new Promise((r) => setTimeout(r, 200));
-  checks.push({ name: "main menu shows again after going back", ok: !!root?.innerHTML.includes("Um Jogador") });
+  checks.push({ name: "main menu shows again after going back", ok: !!root?.innerHTML.includes("Single Player") });
 
-  checks.push({ name: "'Opções' navigates to the options screen", ok: clickButtonWithText(document, "Opções") });
+  checks.push({ name: "'Options' navigates to the options screen", ok: clickButtonWithText(document, "Options") });
   await new Promise((r) => setTimeout(r, 200));
 
-  const actionLabels = ["Verde", "Vermelho", "Amarelo", "Azul", "Laranja", "Aberta", "Star Power"];
+  const actionLabels = ["Green", "Red", "Yellow", "Blue", "Orange", "Open", "Star Power"];
   checks.push({
-    name: "Controles tab lists every control action",
+    name: "Controls tab lists every control action",
     ok: actionLabels.every((label) => root?.innerHTML.includes(label)),
   });
 
-  const remapButtons = [...document.querySelectorAll("#root button")].filter((b) => b.textContent?.trim() === "Remapear");
-  const verdeRemapButton = remapButtons.find((b) => b.parentElement?.parentElement?.textContent?.includes("Verde"));
-  checks.push({ name: "'Remapear' button exists for the Verde action", ok: !!verdeRemapButton });
+  const remapButtons = [...document.querySelectorAll("#root button")].filter((b) => b.textContent?.trim() === "Remap");
+  const greenRemapButton = remapButtons.find((b) => b.parentElement?.parentElement?.textContent?.includes("Green"));
+  checks.push({ name: "'Remap' button exists for the Green action", ok: !!greenRemapButton });
 
-  verdeRemapButton?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  greenRemapButton?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
   await new Promise((r) => setTimeout(r, 100));
   checks.push({
-    name: "clicking 'Remapear' enters listening state",
-    ok: !!root?.innerHTML.includes("Pressione uma tecla"),
+    name: "clicking 'Remap' enters listening state",
+    ok: !!root?.innerHTML.includes("Press a key"),
   });
 
   dom.window.dispatchEvent(new dom.window.KeyboardEvent("keydown", { code: "KeyZ", bubbles: true, cancelable: true }));
   await new Promise((r) => setTimeout(r, 100));
   checks.push({
-    name: "pressing a key while listening shows it captured, with Confirmar/Cancelar",
-    ok: !!root?.innerHTML.includes(">Z<") && !!root?.innerHTML.includes("Confirmar"),
+    name: "pressing a key while listening shows it captured, with Confirm/Cancel",
+    ok: !!root?.innerHTML.includes(">Z<") && !!root?.innerHTML.includes("Confirm"),
   });
 
-  checks.push({ name: "'Confirmar' commits the new binding", ok: clickButtonWithText(document, "Confirmar") });
+  checks.push({ name: "'Confirm' commits the new binding", ok: clickButtonWithText(document, "Confirm") });
   await new Promise((r) => setTimeout(r, 100));
 
   const storedAfterRemap = dom.window.localStorage.getItem("pipehero:keyBindings");
@@ -209,39 +209,39 @@ try {
     ok: bindingsAfterRemap?.fretGreen?.source === "keyboard" && bindingsAfterRemap?.fretGreen?.code === "KeyZ",
   });
   checks.push({
-    name: "Verde row now displays the new key (Z) instead of the listening prompt",
-    ok: !root?.innerHTML.includes("Pressione uma tecla") && !!root?.innerHTML.includes(">Z<"),
+    name: "Green row now displays the new key (Z) instead of the listening prompt",
+    ok: !root?.innerHTML.includes("Press a key") && !!root?.innerHTML.includes(">Z<"),
   });
 
-  checks.push({ name: "'Restaurar padrões' resets the bindings", ok: clickButtonWithText(document, "Restaurar padrões") });
+  checks.push({ name: "'Restore defaults' resets the bindings", ok: clickButtonWithText(document, "Restore defaults") });
   await new Promise((r) => setTimeout(r, 100));
 
   const storedAfterReset = dom.window.localStorage.getItem("pipehero:keyBindings");
   const bindingsAfterReset = storedAfterReset ? JSON.parse(storedAfterReset) : null;
   checks.push({
-    name: "'Restaurar padrões' restores fretGreen -> KeyA in localStorage",
+    name: "'Restore defaults' restores fretGreen -> KeyA in localStorage",
     ok: bindingsAfterReset?.fretGreen?.source === "keyboard" && bindingsAfterReset?.fretGreen?.code === "KeyA",
   });
 
-  const vermelhoRemapButton = [...document.querySelectorAll("#root button")]
-    .filter((b) => b.textContent?.trim() === "Remapear")
-    .find((b) => b.parentElement?.parentElement?.textContent?.includes("Vermelho"));
-  checks.push({ name: "'Remapear' button exists for the Vermelho action", ok: !!vermelhoRemapButton });
+  const redRemapButton = [...document.querySelectorAll("#root button")]
+    .filter((b) => b.textContent?.trim() === "Remap")
+    .find((b) => b.parentElement?.parentElement?.textContent?.includes("Red"));
+  checks.push({ name: "'Remap' button exists for the Red action", ok: !!redRemapButton });
 
-  vermelhoRemapButton?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  redRemapButton?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
   await new Promise((r) => setTimeout(r, 100));
 
   fakeGamepadButtons[2].pressed = true;
   await new Promise((r) => setTimeout(r, 100));
   checks.push({
     name: "pressing a gamepad button (guitar seen as a joystick, not a keyboard) is captured while listening",
-    ok: !!root?.innerHTML.includes("Botão 3") && !!root?.innerHTML.includes("Confirmar"),
+    ok: !!root?.innerHTML.includes("Button 3") && !!root?.innerHTML.includes("Confirm"),
   });
   fakeGamepadButtons[2].pressed = false;
 
   checks.push({
-    name: "'Confirmar' commits the gamepad binding",
-    ok: clickButtonWithText(document, "Confirmar"),
+    name: "'Confirm' commits the gamepad binding",
+    ok: clickButtonWithText(document, "Confirm"),
   });
   await new Promise((r) => setTimeout(r, 100));
 

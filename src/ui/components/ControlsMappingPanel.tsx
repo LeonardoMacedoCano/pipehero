@@ -54,7 +54,7 @@ export default function ControlsMappingPanel() {
       (action) => action.id !== listeningAction && bindingsEqual(bindings[action.id], capturedBinding)
     );
     setBindings(setBinding(listeningAction, capturedBinding));
-    setConflictNote(conflicting ? `Também estava em "${conflicting.label}" — desvinculado.` : null);
+    setConflictNote(conflicting ? `Was also bound to "${conflicting.label}" — unbound.` : null);
     setListeningAction(null);
     setCapturedBinding(null);
   }
@@ -81,18 +81,18 @@ export default function ControlsMappingPanel() {
               {isCapturing ? (
                 <RowActions>
                   <KeyBadge>{describeBinding(capturedBinding)}</KeyBadge>
-                  <Button description="Confirmar" variant="success" onClick={confirm} />
-                  <Button description="Cancelar" variant="secondary" onClick={cancel} />
+                  <Button description="Confirm" variant="success" onClick={confirm} />
+                  <Button description="Cancel" variant="secondary" onClick={cancel} />
                 </RowActions>
               ) : isListening ? (
                 <RowActions>
-                  <Listening>Pressione uma tecla ou botão da guitarra...</Listening>
-                  <Button description="Cancelar" variant="secondary" onClick={cancel} />
+                  <Listening>Press a key or guitar button...</Listening>
+                  <Button description="Cancel" variant="secondary" onClick={cancel} />
                 </RowActions>
               ) : (
                 <RowActions>
                   <KeyBadge>{describeBinding(bindings[action.id])}</KeyBadge>
-                  <Button description="Remapear" variant="secondary" onClick={() => startListening(action.id)} />
+                  <Button description="Remap" variant="secondary" onClick={() => startListening(action.id)} />
                 </RowActions>
               )}
             </Row>
@@ -103,7 +103,7 @@ export default function ControlsMappingPanel() {
       {conflictNote && <Note>{conflictNote}</Note>}
 
       <Footer>
-        <Button description="Restaurar padrões" variant="secondary" onClick={restoreDefaults} />
+        <Button description="Restore defaults" variant="secondary" onClick={restoreDefaults} />
       </Footer>
     </Wrapper>
   );
