@@ -65,6 +65,22 @@ export function createRenderConfig(canvasWidth: number, canvasHeight: number): R
 
 export const RENDER_CONFIG: RenderConfig = createRenderConfig(800, 600);
 
+// Scales the highway's width and pipe mouths down toward a thin centered line (buildProgress=0)
+// or up to the full track (buildProgress=1). Every other draw call derives its geometry from
+// these three fields via laneX/highwayEdgeX, so passing the scaled config into drawFrame collapses
+// or unfolds the whole highway (rails, lanes, grid, pipes) together, for a "track assembling" intro
+// and a matching collapse when a song ends — no changes needed in the individual draw functions.
+export function highwayBuildConfig(config: RenderConfig, buildProgress: number): RenderConfig {
+  const t = clamp(buildProgress, 0, 1);
+  if (t >= 1) return config;
+  return {
+    ...config,
+    highwayTopWidth: config.highwayTopWidth * t,
+    highwayBottomWidth: config.highwayBottomWidth * t,
+    pipeMouthRadius: config.pipeMouthRadius * t,
+  };
+}
+
 export const LANE_COLORS: Record<Fret, string> = {
   0: COLORS.laneGreen,
   1: COLORS.laneRed,

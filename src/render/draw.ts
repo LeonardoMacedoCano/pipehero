@@ -63,9 +63,9 @@ function pipeHalfWidthAt(progress: number, config: RenderConfig): number {
   return spacing * 0.51;
 }
 
-const FRET_LINE_COUNT = 12;
+const GRID_LINE_SPACING_SECONDS = 0.16;
 
-function drawFretboardGrid(ctx: CanvasLike2D, config: RenderConfig): void {
+function drawFretboardGrid(ctx: CanvasLike2D, config: RenderConfig, currentTime: number): void {
   const lastFret = config.laneOrder[config.laneOrder.length - 1];
   const firstFret = config.laneOrder[0];
 
@@ -79,8 +79,12 @@ function drawFretboardGrid(ctx: CanvasLike2D, config: RenderConfig): void {
     ctx.stroke();
   }
 
-  for (let i = 0; i <= FRET_LINE_COUNT; i++) {
-    const progress = i / FRET_LINE_COUNT;
+  // Rungs are anchored to absolute-time multiples of the spacing (not relative to
+  // currentTime's fractional part), so they scroll continuously without a visible
+  // reset, moving at the same visualProgress speed as the notes — a conveyor belt.
+  const firstLineTime = Math.ceil(currentTime / GRID_LINE_SPACING_SECONDS) * GRID_LINE_SPACING_SECONDS;
+  for (let t = firstLineTime; t <= currentTime + config.approachTime; t += GRID_LINE_SPACING_SECONDS) {
+    const progress = visualProgress(progressFor(t, currentTime, config), config);
     const y = progress * config.hitLineY;
     ctx.beginPath();
     ctx.moveTo(laneX(firstFret, progress, config), y);
@@ -465,7 +469,7 @@ export function drawFrame(
   const railMissIntensity =
     lastErrorAt === null ? 0 : 1 - clamp01((currentTime - lastErrorAt) / RAIL_MISS_FADE_SECONDS);
 
-  drawFretboardGrid(ctx, config);
+  drawFretboardGrid(ctx, config, currentTime);
   drawEdgeRail(ctx, -1, config, railMissIntensity);
   drawEdgeRail(ctx, 1, config, railMissIntensity);
   for (const fret of config.laneOrder) {

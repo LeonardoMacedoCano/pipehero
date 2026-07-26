@@ -10,6 +10,7 @@ import {
   noteRadiusAt,
   progressFor,
   visualProgress,
+  highwayBuildConfig,
   noteRenderKey,
   getVisibleNotes,
 } from "./layout.js";
@@ -146,4 +147,36 @@ test("getVisibleNotes: keeps the original chart's time order and appends x/y/rad
   assert.ok(typeof visible[0].x === "number");
   assert.ok(typeof visible[0].y === "number");
   assert.ok(typeof visible[0].radius === "number");
+});
+
+test("highwayBuildConfig: buildProgress=1 returns the config unchanged", () => {
+  assert.equal(highwayBuildConfig(RENDER_CONFIG, 1), RENDER_CONFIG);
+});
+
+test("highwayBuildConfig: buildProgress=0 collapses the highway width and pipe mouths to 0", () => {
+  const collapsed = highwayBuildConfig(RENDER_CONFIG, 0);
+  assert.equal(collapsed.highwayTopWidth, 0);
+  assert.equal(collapsed.highwayBottomWidth, 0);
+  assert.equal(collapsed.pipeMouthRadius, 0);
+});
+
+test("highwayBuildConfig: scales width and pipe mouth radius proportionally to buildProgress", () => {
+  const half = highwayBuildConfig(RENDER_CONFIG, 0.5);
+  assert.ok(Math.abs(half.highwayTopWidth - RENDER_CONFIG.highwayTopWidth * 0.5) < 1e-9);
+  assert.ok(Math.abs(half.highwayBottomWidth - RENDER_CONFIG.highwayBottomWidth * 0.5) < 1e-9);
+  assert.ok(Math.abs(half.pipeMouthRadius - RENDER_CONFIG.pipeMouthRadius * 0.5) < 1e-9);
+});
+
+test("highwayBuildConfig: clamps out-of-range buildProgress to [0, 1]", () => {
+  const overshoot = highwayBuildConfig(RENDER_CONFIG, 1.5);
+  assert.equal(overshoot.highwayTopWidth, RENDER_CONFIG.highwayTopWidth);
+  const undershoot = highwayBuildConfig(RENDER_CONFIG, -0.5);
+  assert.equal(undershoot.highwayTopWidth, 0);
+});
+
+test("highwayBuildConfig: leaves unrelated config fields untouched", () => {
+  const collapsed = highwayBuildConfig(RENDER_CONFIG, 0);
+  assert.equal(collapsed.hitLineY, RENDER_CONFIG.hitLineY);
+  assert.equal(collapsed.approachTime, RENDER_CONFIG.approachTime);
+  assert.equal(collapsed.noteMaxRadius, RENDER_CONFIG.noteMaxRadius);
 });

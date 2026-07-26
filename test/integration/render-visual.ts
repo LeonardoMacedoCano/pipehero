@@ -3,7 +3,7 @@ import { createCanvas } from "canvas";
 import { parseChart } from "../../node_modules/parsehero/dist/index.js";
 import { loadTrack } from "../../src/engine/chartTrack.js";
 import { drawFrame } from "../../src/render/draw.js";
-import { RENDER_CONFIG, LANE_COLORS, noteRenderKey } from "../../src/render/layout.js";
+import { RENDER_CONFIG, LANE_COLORS, noteRenderKey, highwayBuildConfig } from "../../src/render/layout.js";
 
 const OUT_DIR = "test/integration/screenshots";
 mkdirSync(OUT_DIR, { recursive: true });
@@ -122,6 +122,33 @@ try {
   console.error("Failure drawing the missed-note desaturation:", err);
 }
 checks.push({ name: "missed-note desaturation draws without throwing", ok: missDrawSucceeded });
+
+let highwayBuildSucceeded = true;
+try {
+  drawFrame(ctx, notes, midNoteTime, highwayBuildConfig(RENDER_CONFIG, 0.4));
+  save("08-highway-building-intro.png");
+  drawFrame(ctx, [], 0, highwayBuildConfig(RENDER_CONFIG, 0));
+  save("09-highway-collapsed.png");
+} catch (err) {
+  highwayBuildSucceeded = false;
+  console.error("Failure drawing the highway build/collapse animation:", err);
+}
+checks.push({ name: "highway build/collapse (intro/outro) animation draws without throwing", ok: highwayBuildSucceeded });
+
+let gridDrawSucceeded = true;
+try {
+  drawFrame(ctx, notes, midNoteTime);
+  save("10-conveyor-grid-a.png");
+  drawFrame(ctx, notes, midNoteTime + 0.08);
+  save("11-conveyor-grid-b.png");
+} catch (err) {
+  gridDrawSucceeded = false;
+  console.error("Failure drawing the scrolling fretboard grid:", err);
+}
+checks.push({
+  name: "fretboard grid (conveyor effect) draws without throwing at two different currentTimes",
+  ok: gridDrawSucceeded,
+});
 
 console.log("\n=== Checks ===");
 let allOk = true;
