@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import type { ParsedChart } from "parsehero";
 import styled from "styled-components";
 import { Button } from "lcano-react-ui";
@@ -6,10 +6,19 @@ import type { Difficulty, Song } from "../../types.js";
 import { loadTrack } from "../../engine/chartTrack.js";
 import { trackNameForDifficulty } from "../../engine/availableTracks.js";
 import { extractStarPowerPhrases } from "../../engine/starPower.js";
+import { computeStars } from "../../scoring/stars.js";
 import { useGamePlaythrough } from "../hooks/useGamePlaythrough.js";
 import GameCanvas from "../components/GameCanvas.js";
 import StarPowerBar from "../components/StarPowerBar.js";
 import ResultsOverlay from "../components/ResultsOverlay.js";
+
+function submitScore(songId: string, difficulty: Difficulty, stars: number, fullCombo: boolean): void {
+  fetch("/api/scores", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ songId, difficulty, stars, fullCombo }),
+  }).catch(() => {});
+}
 
 export default function GamePage({
   song,
@@ -37,6 +46,13 @@ export default function GamePage({
     starPowerPhrases,
     difficulty,
   });
+
+  useEffect(() => {
+    if (phase !== "results" || !results) return;
+    const stars = computeStars(results.hits, results.totalNotes);
+    const fullCombo = results.misses.length === 0 && results.droppedSustains.length === 0 && results.totalNotes > 0;
+    submitScore(song.id, difficulty, stars, fullCombo);
+  }, [phase, results, song.id, difficulty]);
 
   return (
     <Screen>

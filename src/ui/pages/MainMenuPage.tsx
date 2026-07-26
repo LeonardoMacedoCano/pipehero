@@ -7,9 +7,11 @@ import { useAuth } from "../hooks/useAuth.js";
 export default function MainMenuPage({
   onPlaySingleplayer,
   onOpenOptions,
+  onOpenAchievements,
 }: {
   onPlaySingleplayer: () => void;
   onOpenOptions: () => void;
+  onOpenAchievements: () => void;
 }) {
   const { user, googleClientId, isLoading, login, logout } = useAuth();
 
@@ -39,10 +41,7 @@ export default function MainMenuPage({
           hint="Coming soon — depends on login and an account system, not implemented yet."
         />
 
-        <LockedMenuItem
-          label="Achievements"
-          hint="Coming soon — will show your achievements and high score per song, and let you compare with friends; depends on a saved-progress system, not implemented yet."
-        />
+        <Button description="Achievements" variant="secondary" width="100%" onClick={onOpenAchievements} style={MENU_BUTTON_STYLE} />
 
         <Button description="Options" variant="secondary" width="100%" onClick={onOpenOptions} style={MENU_BUTTON_STYLE} />
       </Stack>

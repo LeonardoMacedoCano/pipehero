@@ -1,7 +1,7 @@
 import type { ChartTrack, Difficulty as ParseHeroDifficulty, ParsedChart } from "parsehero";
 import type { Difficulty } from "../types.js";
 
-const DIFFICULTY_ORDER: Difficulty[] = ["Expert", "Hard", "Medium", "Easy"];
+export const DIFFICULTY_ORDER: Difficulty[] = ["Expert", "Hard", "Medium", "Easy"];
 const GUITAR_FIVE_FRET_INSTRUMENT = "Single";
 
 export function listAvailableDifficulties(parsedChart: ParsedChart): Difficulty[] {
