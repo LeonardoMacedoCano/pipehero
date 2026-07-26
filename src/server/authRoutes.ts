@@ -5,6 +5,21 @@ import { createSession, destroySession, findOrCreateUser, getSessionUser, signVa
 const SESSION_COOKIE_NAME = "pipehero_session";
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
+const LOGIN_RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 20;
+const loginAttemptsByIp = new Map<string, { count: number; windowStart: number }>();
+
+function isLoginRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = loginAttemptsByIp.get(ip);
+  if (!entry || now - entry.windowStart > LOGIN_RATE_LIMIT_WINDOW_MS) {
+    loginAttemptsByIp.set(ip, { count: 1, windowStart: now });
+    return false;
+  }
+  entry.count += 1;
+  return entry.count > LOGIN_RATE_LIMIT_MAX_ATTEMPTS;
+}
+
 interface PublicUser {
   name: string;
   email: string;
@@ -60,6 +75,10 @@ export async function handleAuthRequest(req: IncomingMessage, res: ServerRespons
   if (url === "/api/auth/google" && req.method === "POST") {
     if (!secret || !clientId) {
       sendJson(res, 500, { error: "Login not configured on the server" });
+      return true;
+    }
+    if (isLoginRateLimited(req.socket.remoteAddress ?? "unknown")) {
+      sendJson(res, 429, { error: "Too many login attempts, try again later" });
       return true;
     }
     try {
