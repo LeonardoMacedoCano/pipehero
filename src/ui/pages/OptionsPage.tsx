@@ -1,6 +1,6 @@
 import { Button, Panel, Tabs } from "lcano-react-ui";
 import ControlsMappingPanel from "../components/ControlsMappingPanel.js";
-import LockedMenuItem from "../components/LockedMenuItem.js";
+import AccountTab from "../components/AccountTab.js";
 
 export default function OptionsPage({ onBack }: { onBack: () => void }) {
   return (
@@ -12,15 +12,7 @@ export default function OptionsPage({ onBack }: { onBack: () => void }) {
       <Tabs
         tabs={[
           { label: "Controls", content: <ControlsMappingPanel /> },
-          {
-            label: "Account",
-            content: (
-              <LockedMenuItem
-                label="Account"
-                hint="Coming soon — depends on login and an account system, not implemented yet."
-              />
-            ),
-          },
+          { label: "Account", content: <AccountTab /> },
         ]}
       />
     </Panel>

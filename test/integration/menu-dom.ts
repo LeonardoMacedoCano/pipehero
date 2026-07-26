@@ -254,6 +254,23 @@ try {
       bindingsAfterGamepadRemap?.fretRed?.deviceId === "Fake Guitar Controller#0" &&
       bindingsAfterGamepadRemap?.fretRed?.button === 2,
   });
+
+  checks.push({ name: "'Account' tab button exists", ok: clickButtonWithText(document, "Account") });
+  await new Promise((r) => setTimeout(r, 300));
+  checks.push({
+    name: "Account tab shows a locked 'Account' item when logged out (no DATABASE_URL in this test env)",
+    ok: !!root?.innerHTML.includes("Account  🔒"),
+  });
+
+  checks.push({
+    name: "clicking the locked Account item shows the log-in hint",
+    ok: clickButtonWithText(document, "Account  🔒"),
+  });
+  await new Promise((r) => setTimeout(r, 100));
+  checks.push({
+    name: "hint explains you need to log in first",
+    ok: !!root?.innerHTML.includes("Log in with Google from the main menu"),
+  });
 } finally {
   await vite.close();
 }

@@ -1,6 +1,7 @@
 import { Button, Panel, Stack } from "lcano-react-ui";
 import LockedMenuItem, { MENU_BUTTON_STYLE } from "../components/LockedMenuItem.js";
 import GoogleSignInButton from "../components/GoogleSignInButton.js";
+import AccountSummary from "../components/AccountSummary.js";
 import { useAuth } from "../hooks/useAuth.js";
 
 export default function MainMenuPage({
@@ -22,25 +23,7 @@ export default function MainMenuPage({
           hint="Coming soon — depends on a multiplayer server, not implemented yet."
         />
 
-        {!isLoading && user && (
-          <Stack direction="row" gap="10px" alignCenter justifyBetween style={{ padding: "10px 20px" }}>
-            <Stack direction="row" gap="10px" alignCenter width="auto">
-              {user.avatarUrl && (
-                <img
-                  src={user.avatarUrl}
-                  alt=""
-                  width={32}
-                  height={32}
-                  style={{ borderRadius: "50%", flexShrink: 0 }}
-                />
-              )}
-              <span style={{ fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {user.name}
-              </span>
-            </Stack>
-            <Button description="Log out" variant="secondary" onClick={logout} />
-          </Stack>
-        )}
+        {!isLoading && user && <AccountSummary user={user} onLogout={logout} />}
 
         {!isLoading && !user && googleClientId && <GoogleSignInButton clientId={googleClientId} onCredential={login} />}
 
