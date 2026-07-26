@@ -43,4 +43,9 @@ ENV PORT=5511
 USER node
 
 EXPOSE 5511
+
+# Lets Docker/Unraid show a real up/down status instead of just "running".
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -q --spider "http://127.0.0.1:${PORT}/api/songs" || exit 1
+
 CMD ["node", "server-dist/server.js"]
