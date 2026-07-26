@@ -23,7 +23,6 @@ interface SubmitScoreBody {
   fullCombo?: boolean;
 }
 
-/** Handles /api/scores and /api/achievements if the request matches one of its routes. Returns whether it did. */
 export async function handleScoreRequest(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const url = (req.url ?? "").split("?")[0];
 

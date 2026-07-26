@@ -5,7 +5,6 @@ import { getRequestUser } from "./requestUser.js";
 
 const MAX_CALIBRATION_MS = 1000;
 
-/** Handles /api/settings/* if the request matches one of its routes. Returns whether it did. */
 export async function handleSettingsRequest(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const url = (req.url ?? "").split("?")[0];
 
