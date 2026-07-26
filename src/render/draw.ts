@@ -7,6 +7,7 @@ import {
   getVisibleNotes,
   noteRenderKey,
   progressFor,
+  visualProgress,
   noteRadiusAt,
   type RenderConfig,
   type VisibleNote,
@@ -62,9 +63,9 @@ function pipeHalfWidthAt(progress: number, config: RenderConfig): number {
   return spacing * 0.51;
 }
 
-const FRET_LINE_COUNT = 12;
+const GRID_LINE_SPACING_SECONDS = 0.16;
 
-function drawFretboardGrid(ctx: CanvasLike2D, config: RenderConfig): void {
+function drawFretboardGrid(ctx: CanvasLike2D, config: RenderConfig, currentTime: number): void {
   const lastFret = config.laneOrder[config.laneOrder.length - 1];
   const firstFret = config.laneOrder[0];
 
@@ -78,8 +79,9 @@ function drawFretboardGrid(ctx: CanvasLike2D, config: RenderConfig): void {
     ctx.stroke();
   }
 
-  for (let i = 0; i <= FRET_LINE_COUNT; i++) {
-    const progress = i / FRET_LINE_COUNT;
+  const firstLineTime = Math.ceil(currentTime / GRID_LINE_SPACING_SECONDS) * GRID_LINE_SPACING_SECONDS;
+  for (let t = firstLineTime; t <= currentTime + config.approachTime; t += GRID_LINE_SPACING_SECONDS) {
+    const progress = visualProgress(progressFor(t, currentTime, config), config);
     const y = progress * config.hitLineY;
     ctx.beginPath();
     ctx.moveTo(laneX(firstFret, progress, config), y);
@@ -282,8 +284,8 @@ function drawSustainTrail(
   const topTime = Math.min(endTime, currentTime + config.approachTime);
   if (bottomTime >= topTime) return;
 
-  const bottomProgress = progressFor(bottomTime, currentTime, config);
-  const topProgress = progressFor(topTime, currentTime, config);
+  const bottomProgress = visualProgress(progressFor(bottomTime, currentTime, config), config);
+  const topProgress = visualProgress(progressFor(topTime, currentTime, config), config);
   let bottomX = laneX(note.fret, bottomProgress, config);
   let bottomY = bottomProgress * config.hitLineY;
   const bottomRadius = noteRadiusAt(bottomProgress, config);
@@ -464,7 +466,7 @@ export function drawFrame(
   const railMissIntensity =
     lastErrorAt === null ? 0 : 1 - clamp01((currentTime - lastErrorAt) / RAIL_MISS_FADE_SECONDS);
 
-  drawFretboardGrid(ctx, config);
+  drawFretboardGrid(ctx, config, currentTime);
   drawEdgeRail(ctx, -1, config, railMissIntensity);
   drawEdgeRail(ctx, 1, config, railMissIntensity);
   for (const fret of config.laneOrder) {

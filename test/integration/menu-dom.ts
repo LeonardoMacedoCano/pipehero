@@ -21,8 +21,20 @@ globalAny.ResizeObserver = class {
   disconnect() {}
 };
 
-dom.window.HTMLMediaElement.prototype.play = () => Promise.resolve();
-dom.window.HTMLMediaElement.prototype.pause = () => {};
+const audioPausedState = new WeakMap<HTMLMediaElement, boolean>();
+Object.defineProperty(dom.window.HTMLMediaElement.prototype, "paused", {
+  configurable: true,
+  get(this: HTMLMediaElement) {
+    return audioPausedState.get(this) ?? true;
+  },
+});
+dom.window.HTMLMediaElement.prototype.play = function (this: HTMLMediaElement) {
+  audioPausedState.set(this, false);
+  return Promise.resolve();
+};
+dom.window.HTMLMediaElement.prototype.pause = function (this: HTMLMediaElement) {
+  audioPausedState.set(this, true);
+};
 
 interface FakeGamepadButton {
   pressed: boolean;
@@ -171,6 +183,39 @@ try {
   checks.push({ name: "'« Menu' from the song list goes back to the main menu", ok: clickButtonWithText(document, "« Menu") });
   await new Promise((r) => setTimeout(r, 200));
   checks.push({ name: "main menu shows again after going back", ok: !!root?.innerHTML.includes("Single Player") });
+
+  clickButtonWithText(document, "Single Player");
+  await new Promise((r) => setTimeout(r, 300));
+  [...document.querySelectorAll("#root button")].find((b) => b.textContent?.includes("Test Song"))?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 300));
+  [...document.querySelectorAll("#root button")].find((b) => b.textContent?.trim() === "Expert")?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 400));
+
+  checks.push({ name: "re-entering the game shows the canvas again", ok: !!document.querySelector("#root canvas") });
+
+  const audioEl = document.querySelector("#root audio") as HTMLMediaElement | null;
+  checks.push({ name: "the <audio> element is present", ok: !!audioEl });
+  Object.defineProperty(audioEl, "ended", { get: () => true, configurable: true });
+
+  await new Promise((r) => setTimeout(r, 900));
+
+  checks.push({
+    name: "song ending shows the results screen (score + song name) and hides the canvas HUD",
+    ok: !!root?.innerHTML.includes("Test Song") && !!root?.innerHTML.includes("Score") && !root?.innerHTML.includes("Star Power"),
+  });
+
+  const resultsBackButton = [...document.querySelectorAll("#root button")].find((b) => b.textContent?.includes("Back to menu"));
+  checks.push({ name: "results screen has a 'Back to menu' button", ok: !!resultsBackButton });
+
+  resultsBackButton?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 200));
+  checks.push({
+    name: "'Back to menu' from the results screen leaves the game screen (back to the song list)",
+    ok: document.querySelectorAll("#root canvas").length === 0 && !!root?.innerHTML.includes("Test Song"),
+  });
+
+  clickButtonWithText(document, "« Menu");
+  await new Promise((r) => setTimeout(r, 200));
 
   checks.push({ name: "'Options' navigates to the options screen", ok: clickButtonWithText(document, "Options") });
   await new Promise((r) => setTimeout(r, 200));

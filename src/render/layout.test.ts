@@ -9,6 +9,8 @@ import {
   noteY,
   noteRadiusAt,
   progressFor,
+  visualProgress,
+  highwayBuildConfig,
   noteRenderKey,
   getVisibleNotes,
 } from "./layout.js";
@@ -24,7 +26,7 @@ test("progressFor: 0 at the top (approachTime seconds before), 1 at the hit line
 
 test("noteY: a note exactly at the current time sits on the hit line", () => {
   const n = note({ time: 5.0 });
-  assert.equal(noteY(n, 5.0), RENDER_CONFIG.hitLineY);
+  assert.ok(Math.abs(noteY(n, 5.0) - RENDER_CONFIG.hitLineY) < 1e-9);
 });
 
 test("noteY: a note 'approachTime' seconds in the future starts at the top (y=0)", () => {
@@ -40,13 +42,23 @@ test("noteY: correct order — the note closer to the current time is closer to 
   assert.ok(noteY(near, currentTime) > noteY(far, currentTime));
 });
 
-test("noteY: spacing is proportional to the time difference between notes", () => {
+test("visualProgress: preserves the endpoints — 0 stays at the top, 1 stays at the hit line", () => {
+  assert.equal(visualProgress(0), 0);
+  assert.ok(Math.abs(visualProgress(1) - 1) < 1e-9);
+});
+
+test("visualProgress: warps progress so equal steps take up more screen space near the hit line than at the top", () => {
+  const gapFar = visualProgress(0.1) - visualProgress(0.0);
+  const gapNear = visualProgress(1.0) - visualProgress(0.9);
+  assert.ok(gapNear > gapFar, `expected the gap near the hit line (${gapNear}) to be bigger than far away (${gapFar})`);
+});
+
+test("noteY: the pixel gap between two notes a fixed time apart grows as they approach the hit line, compensating for their growing radius", () => {
   const a = note({ time: 5.0 });
-  const b = note({ time: 6.0 });
-  const currentTime = 3.0;
-  const deltaY = noteY(a, currentTime) - noteY(b, currentTime);
-  const expectedDeltaY = (1 / RENDER_CONFIG.approachTime) * RENDER_CONFIG.hitLineY;
-  assert.ok(Math.abs(deltaY - expectedDeltaY) < 1e-9);
+  const b = note({ time: 5.1 });
+  const gapFar = noteY(a, 3.0) - noteY(b, 3.0);
+  const gapNear = noteY(a, 4.9) - noteY(b, 4.9);
+  assert.ok(gapNear > gapFar, `expected the gap near the hit line (${gapNear}) to be bigger than far away (${gapFar})`);
 });
 
 test("noteRadiusAt: grows from noteMinRadius (far) to noteMaxRadius (at the hit line)", () => {
@@ -135,4 +147,36 @@ test("getVisibleNotes: keeps the original chart's time order and appends x/y/rad
   assert.ok(typeof visible[0].x === "number");
   assert.ok(typeof visible[0].y === "number");
   assert.ok(typeof visible[0].radius === "number");
+});
+
+test("highwayBuildConfig: buildProgress=1 returns the config unchanged", () => {
+  assert.equal(highwayBuildConfig(RENDER_CONFIG, 1), RENDER_CONFIG);
+});
+
+test("highwayBuildConfig: buildProgress=0 collapses the highway width and pipe mouths to 0", () => {
+  const collapsed = highwayBuildConfig(RENDER_CONFIG, 0);
+  assert.equal(collapsed.highwayTopWidth, 0);
+  assert.equal(collapsed.highwayBottomWidth, 0);
+  assert.equal(collapsed.pipeMouthRadius, 0);
+});
+
+test("highwayBuildConfig: scales width and pipe mouth radius proportionally to buildProgress", () => {
+  const half = highwayBuildConfig(RENDER_CONFIG, 0.5);
+  assert.ok(Math.abs(half.highwayTopWidth - RENDER_CONFIG.highwayTopWidth * 0.5) < 1e-9);
+  assert.ok(Math.abs(half.highwayBottomWidth - RENDER_CONFIG.highwayBottomWidth * 0.5) < 1e-9);
+  assert.ok(Math.abs(half.pipeMouthRadius - RENDER_CONFIG.pipeMouthRadius * 0.5) < 1e-9);
+});
+
+test("highwayBuildConfig: clamps out-of-range buildProgress to [0, 1]", () => {
+  const overshoot = highwayBuildConfig(RENDER_CONFIG, 1.5);
+  assert.equal(overshoot.highwayTopWidth, RENDER_CONFIG.highwayTopWidth);
+  const undershoot = highwayBuildConfig(RENDER_CONFIG, -0.5);
+  assert.equal(undershoot.highwayTopWidth, 0);
+});
+
+test("highwayBuildConfig: leaves unrelated config fields untouched", () => {
+  const collapsed = highwayBuildConfig(RENDER_CONFIG, 0);
+  assert.equal(collapsed.hitLineY, RENDER_CONFIG.hitLineY);
+  assert.equal(collapsed.approachTime, RENDER_CONFIG.approachTime);
+  assert.equal(collapsed.noteMaxRadius, RENDER_CONFIG.noteMaxRadius);
 });

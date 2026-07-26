@@ -4,16 +4,16 @@ import { DEFAULT_JUDGMENT_WINDOWS, JUDGMENT_WINDOWS_BY_DIFFICULTY, classifyTimin
 
 test("classifyTiming without an explicit window uses the default window (Expert)", () => {
   assert.equal(classifyTiming(0), "perfect");
-  assert.equal(classifyTiming(0.035), "perfect");
-  assert.equal(classifyTiming(0.036), "good");
-  assert.equal(classifyTiming(0.09), "good");
-  assert.equal(classifyTiming(0.091), "miss");
+  assert.equal(classifyTiming(0.05), "perfect");
+  assert.equal(classifyTiming(0.051), "good");
+  assert.equal(classifyTiming(0.14), "good");
+  assert.equal(classifyTiming(0.141), "miss");
 });
 
 test("classifyTiming accepts a custom window (more forgiving difficulty)", () => {
   const easy = JUDGMENT_WINDOWS_BY_DIFFICULTY.Easy;
-  assert.equal(classifyTiming(0.12, DEFAULT_JUDGMENT_WINDOWS), "miss");
-  assert.equal(classifyTiming(0.12, easy), "good");
+  assert.equal(classifyTiming(0.2, DEFAULT_JUDGMENT_WINDOWS), "miss");
+  assert.equal(classifyTiming(0.2, easy), "good");
 });
 
 test("classifyTiming works the same for negative and positive deltas (uses absolute value)", () => {
