@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Difficulty, Fret, Note, StarPowerPhrase } from "../../types.js";
+import type { Difficulty, Fret, GameState, Note, StarPowerPhrase } from "../../types.js";
 import { createPlaythrough } from "../../game/gamePlaythrough.js";
 import { drawFrame, ABSORB_DURATION_SECONDS } from "../../render/draw.js";
-import { createRenderConfig, noteRenderKey } from "../../render/layout.js";
+import { createRenderConfig, highwayBuildConfig, noteRenderKey } from "../../render/layout.js";
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
 import { fretForBinding, isStarPowerBinding, DEFAULT_ACTION_BINDINGS } from "../../game/keymap.js";
@@ -17,6 +17,21 @@ interface Hud {
 }
 
 const INITIAL_HUD: Hud = { score: 0, starPowerMeter: 0, starPowerActive: false };
+
+export type GamePhase = "playing" | "results";
+
+const HIGHWAY_BUILD_INTRO_MS = 550;
+const HIGHWAY_BUILD_OUTRO_MS = 500;
+
+function easeOutCubic(t: number): number {
+  const clamped = Math.min(1, Math.max(0, t));
+  return 1 - Math.pow(1 - clamped, 3);
+}
+
+function easeInCubic(t: number): number {
+  const clamped = Math.min(1, Math.max(0, t));
+  return clamped * clamped * clamped;
+}
 
 export function useGamePlaythrough({
   notes,
@@ -38,9 +53,14 @@ export function useGamePlaythrough({
   const missedKeysRef = useRef<Set<string>>(new Set());
   const errorClicksRef = useRef<Map<Fret, number>>(new Map());
   const lastErrorAtRef = useRef<number | null>(null);
+  const introStartRef = useRef<number | null>(null);
+  const endedAtRef = useRef<number | null>(null);
+  const resultsSnapshotRef = useRef<GameState | null>(null);
 
   const [hud, setHud] = useState<Hud>(INITIAL_HUD);
   const [needsTapToStart, setNeedsTapToStart] = useState(false);
+  const [phase, setPhase] = useState<GamePhase>("playing");
+  const [results, setResults] = useState<GameState | null>(null);
 
   const stop = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -70,6 +90,24 @@ export function useGamePlaythrough({
     if (!ctx) return;
 
     const config = createRenderConfig(canvas.width, canvas.height);
+
+    if (audio.ended) {
+      if (endedAtRef.current === null) {
+        endedAtRef.current = performance.now();
+        resultsSnapshotRef.current = playthrough.getState();
+      }
+      const outroElapsed = performance.now() - endedAtRef.current;
+      const remaining = 1 - Math.min(1, outroElapsed / HIGHWAY_BUILD_OUTRO_MS);
+      drawFrame(ctx, [], 0, highwayBuildConfig(config, easeInCubic(remaining)));
+      if (outroElapsed < HIGHWAY_BUILD_OUTRO_MS) {
+        rafRef.current = requestAnimationFrame(loop);
+      } else {
+        setResults(resultsSnapshotRef.current);
+        setPhase("results");
+      }
+      return;
+    }
+
     const { chartTime, newlyMissed } = playthrough.tick();
 
     for (const [key, judgedAt] of judgedHitsRef.current) {
@@ -95,11 +133,17 @@ export function useGamePlaythrough({
       for (const fret of event.frets) missedKeysRef.current.add(noteRenderKey(fret, event.time));
     }
 
+    const introElapsed = introStartRef.current === null ? Infinity : performance.now() - introStartRef.current;
+    const frameConfig =
+      introElapsed < HIGHWAY_BUILD_INTRO_MS
+        ? highwayBuildConfig(config, easeOutCubic(introElapsed / HIGHWAY_BUILD_INTRO_MS))
+        : config;
+
     drawFrame(
       ctx,
       notes,
       chartTime,
-      config,
+      frameConfig,
       judgedHitsRef.current,
       holdingKeysRef.current,
       missedKeysRef.current,
@@ -109,7 +153,7 @@ export function useGamePlaythrough({
 
     setHud({ score: state.score, starPowerMeter: state.starPowerMeter, starPowerActive: state.starPowerActive });
 
-    if (!audio.paused && !audio.ended) {
+    if (!audio.paused) {
       rafRef.current = requestAnimationFrame(loop);
     }
   }, [notes]);
@@ -120,9 +164,14 @@ export function useGamePlaythrough({
     stop();
     createFreshPlaythrough();
     audio.currentTime = 0;
+    endedAtRef.current = null;
+    resultsSnapshotRef.current = null;
+    setResults(null);
+    setPhase("playing");
     try {
       await audio.play();
       setNeedsTapToStart(false);
+      introStartRef.current = performance.now();
       rafRef.current = requestAnimationFrame(loop);
     } catch {
       setNeedsTapToStart(true);
@@ -133,15 +182,19 @@ export function useGamePlaythrough({
     stop();
     setHud(INITIAL_HUD);
     setNeedsTapToStart(false);
+    setPhase("playing");
+    setResults(null);
     judgedHitsRef.current.clear();
     missedKeysRef.current.clear();
     errorClicksRef.current.clear();
     lastErrorAtRef.current = null;
+    endedAtRef.current = null;
+    resultsSnapshotRef.current = null;
 
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (ctx && canvas && notes) {
-      drawFrame(ctx, notes, 0, createRenderConfig(canvas.width, canvas.height));
+      drawFrame(ctx, notes, 0, highwayBuildConfig(createRenderConfig(canvas.width, canvas.height), 0));
     }
 
     if (notes) start();
@@ -225,5 +278,5 @@ export function useGamePlaythrough({
     true
   );
 
-  return { canvasRef, audioRef, hud, needsTapToStart, start, stop };
+  return { canvasRef, audioRef, hud, needsTapToStart, phase, results, start, stop };
 }

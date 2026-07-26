@@ -9,6 +9,7 @@ import { extractStarPowerPhrases } from "../../engine/starPower.js";
 import { useGamePlaythrough } from "../hooks/useGamePlaythrough.js";
 import GameCanvas from "../components/GameCanvas.js";
 import StarPowerBar from "../components/StarPowerBar.js";
+import ResultsOverlay from "../components/ResultsOverlay.js";
 
 export default function GamePage({
   song,
@@ -30,7 +31,7 @@ export default function GamePage({
 
   const chartOffsetSeconds = chart.Song.offset ?? 0;
 
-  const { canvasRef, audioRef, hud, needsTapToStart, start } = useGamePlaythrough({
+  const { canvasRef, audioRef, hud, needsTapToStart, phase, results, start } = useGamePlaythrough({
     notes,
     chartOffsetSeconds,
     starPowerPhrases,
@@ -47,12 +48,17 @@ export default function GamePage({
       <CanvasArea>
         <GameCanvas canvasRef={canvasRef} />
 
-        <ScoreOverlay>{hud.score}</ScoreOverlay>
-        <StarPowerOverlay>
-          <StarPowerBar meter={hud.starPowerMeter} active={hud.starPowerActive} />
-        </StarPowerOverlay>
+        {phase === "playing" && (
+          <>
+            <ScoreOverlay>{hud.score}</ScoreOverlay>
+            <StarPowerOverlay>
+              <StarPowerBar meter={hud.starPowerMeter} active={hud.starPowerActive} />
+            </StarPowerOverlay>
+            {needsTapToStart && <TapToStartOverlay onClick={start}>Tap to start</TapToStartOverlay>}
+          </>
+        )}
 
-        {needsTapToStart && <TapToStartOverlay onClick={start}>Tap to start</TapToStartOverlay>}
+        {phase === "results" && results && <ResultsOverlay song={song} results={results} onBack={onBack} />}
 
         <audio ref={audioRef} src={song.audioUrl ?? ""} preload="auto" />
       </CanvasArea>
