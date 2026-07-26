@@ -106,6 +106,11 @@ game keeps working normally** — this is optional, not a requirement.
    DATABASE_URL=postgres://pipehero:YOUR_PASSWORD@POSTGRES_HOST:5432/postgres
    ```
 
+   If `POSTGRES_HOST` isn't on a network you fully trust (e.g. a managed
+   Postgres reachable over the internet, not just your LAN), append
+   `?sslmode=require` to encrypt the connection — supported out of the
+   box by the `pg` driver already in use, no code change needed.
+
    **Watch out for `POSTGRES_HOST`** if Postgres runs on the same
    Unraid server but outside PipeHero's `docker-compose.yml`: from
    inside the container, `localhost`/`127.0.0.1` points at the

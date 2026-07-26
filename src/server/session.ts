@@ -91,3 +91,7 @@ export async function getSessionUser(sessionId: string): Promise<SessionUser | n
 export async function destroySession(sessionId: string): Promise<void> {
   await query("DELETE FROM sessions WHERE id = $1", [sessionId]);
 }
+
+export async function cleanupExpiredSessions(): Promise<void> {
+  await query("DELETE FROM sessions WHERE expires_at <= now()");
+}
