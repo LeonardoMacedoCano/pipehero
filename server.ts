@@ -4,6 +4,9 @@ import { extname, join, normalize, resolve, sep } from "node:path";
 import { listSongs } from "./src/server/songLibrary.js";
 import { handleAuthRequest } from "./src/server/authRoutes.js";
 import { runMigrations } from "./src/server/migrate.js";
+import { cleanupExpiredSessions } from "./src/server/session.js";
+
+const SESSION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 5511;
 const STATIC_DIR = resolve(process.env.STATIC_DIR ?? "./dist");
@@ -112,7 +115,20 @@ const server = createServer(async (req, res) => {
   }
 });
 
-await runMigrations();
+let dbAvailable = false;
+try {
+  await runMigrations();
+  dbAvailable = Boolean(process.env.DATABASE_URL);
+} catch (err) {
+  console.error("[pipehero] failed to run migrations — starting without login/accounts:", err);
+}
+
+if (dbAvailable) {
+  cleanupExpiredSessions().catch((err) => console.error("[pipehero] session cleanup failed:", err));
+  setInterval(() => {
+    cleanupExpiredSessions().catch((err) => console.error("[pipehero] session cleanup failed:", err));
+  }, SESSION_CLEANUP_INTERVAL_MS).unref();
+}
 
 server.listen(PORT, () => {
   console.log(`PipeHero (production) running at http://localhost:${PORT}`);
