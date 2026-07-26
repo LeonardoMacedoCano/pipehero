@@ -7,6 +7,7 @@ import {
   getVisibleNotes,
   noteRenderKey,
   progressFor,
+  visualProgress,
   noteRadiusAt,
   type RenderConfig,
   type VisibleNote,
@@ -282,8 +283,8 @@ function drawSustainTrail(
   const topTime = Math.min(endTime, currentTime + config.approachTime);
   if (bottomTime >= topTime) return;
 
-  const bottomProgress = progressFor(bottomTime, currentTime, config);
-  const topProgress = progressFor(topTime, currentTime, config);
+  const bottomProgress = visualProgress(progressFor(bottomTime, currentTime, config), config);
+  const topProgress = visualProgress(progressFor(topTime, currentTime, config), config);
   let bottomX = laneX(note.fret, bottomProgress, config);
   let bottomY = bottomProgress * config.hitLineY;
   const bottomRadius = noteRadiusAt(bottomProgress, config);

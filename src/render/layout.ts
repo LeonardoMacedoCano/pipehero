@@ -106,12 +106,26 @@ export function progressFor(time: number, currentTime: number, config: RenderCon
   return 1 - timeUntilHit / config.approachTime;
 }
 
+// Notes travel at a constant rate in time, but their drawn radius grows from
+// noteMinRadius to noteMaxRadius as they approach the hit line. Placing them at
+// a raw linear progress keeps the pixel gap between two time-adjacent notes
+// constant while their radius keeps growing, so the visible gap (edge-to-edge)
+// shrinks and notes look like they pile up right before the hit line. This warps
+// progress so the pixel gap grows in step with the radius, keeping the gap-to-note-size
+// ratio constant along the whole trail — same effect as real depth perspective
+// (Guitar Hero-style highways), where things both shrink and bunch up together
+// far away, and both grow and spread out together up close.
+export function visualProgress(rawProgress: number, config: RenderConfig = RENDER_CONFIG): number {
+  const ratio = config.noteMinRadius / config.noteMaxRadius;
+  return (2 * ratio * rawProgress + (1 - ratio) * rawProgress * rawProgress) / (1 + ratio);
+}
+
 export function laneX(fret: Fret, progress: number, config: RenderConfig = RENDER_CONFIG): number {
   return config.highwayCenterX + laneCenterOffset(fret, config) * highwayHalfWidthAt(progress, config);
 }
 
 export function noteY(note: { time: number }, currentTime: number, config: RenderConfig = RENDER_CONFIG): number {
-  return progressFor(note.time, currentTime, config) * config.hitLineY;
+  return visualProgress(progressFor(note.time, currentTime, config), config) * config.hitLineY;
 }
 
 export function noteRadiusAt(progress: number, config: RenderConfig = RENDER_CONFIG): number {
@@ -126,7 +140,7 @@ function sustainDrops(note: Note, currentTime: number, config: RenderConfig): Su
   for (let t = note.time + SUSTAIN_DROP_SPACING_SECONDS; t <= endTime; t += SUSTAIN_DROP_SPACING_SECONDS) {
     const timeUntilHit = t - currentTime;
     if (timeUntilHit > config.approachTime || timeUntilHit < -config.despawnAfter) continue;
-    const progress = progressFor(t, currentTime, config);
+    const progress = visualProgress(progressFor(t, currentTime, config), config);
     drops.push({
       x: laneX(note.fret, progress, config),
       y: progress * config.hitLineY,
@@ -148,7 +162,7 @@ export function getVisibleNotes(notes: Note[], currentTime: number, config: Rend
       return timeUntilStart <= config.approachTime && timeUntilEnd >= -config.despawnAfter;
     })
     .map((note) => {
-      const progress = progressFor(note.time, currentTime, config);
+      const progress = visualProgress(progressFor(note.time, currentTime, config), config);
       return {
         ...note,
         x: laneX(note.fret, progress, config),
