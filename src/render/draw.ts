@@ -79,9 +79,6 @@ function drawFretboardGrid(ctx: CanvasLike2D, config: RenderConfig, currentTime:
     ctx.stroke();
   }
 
-  // Rungs are anchored to absolute-time multiples of the spacing (not relative to
-  // currentTime's fractional part), so they scroll continuously without a visible
-  // reset, moving at the same visualProgress speed as the notes — a conveyor belt.
   const firstLineTime = Math.ceil(currentTime / GRID_LINE_SPACING_SECONDS) * GRID_LINE_SPACING_SECONDS;
   for (let t = firstLineTime; t <= currentTime + config.approachTime; t += GRID_LINE_SPACING_SECONDS) {
     const progress = visualProgress(progressFor(t, currentTime, config), config);

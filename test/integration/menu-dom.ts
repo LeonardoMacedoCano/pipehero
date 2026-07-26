@@ -21,9 +21,6 @@ globalAny.ResizeObserver = class {
   disconnect() {}
 };
 
-// jsdom's HTMLMediaElement has no real playback pipeline, so `paused` never flips on its
-// own — simulate it so the game's rAF render loop (which stops once audio.paused is true,
-// same as a real browser) keeps running for as long as a real `<audio>` would.
 const audioPausedState = new WeakMap<HTMLMediaElement, boolean>();
 Object.defineProperty(dom.window.HTMLMediaElement.prototype, "paused", {
   configurable: true,
@@ -187,7 +184,6 @@ try {
   await new Promise((r) => setTimeout(r, 200));
   checks.push({ name: "main menu shows again after going back", ok: !!root?.innerHTML.includes("Single Player") });
 
-  // Re-enter the game to drive it all the way to the end-of-song results screen.
   clickButtonWithText(document, "Single Player");
   await new Promise((r) => setTimeout(r, 300));
   [...document.querySelectorAll("#root button")].find((b) => b.textContent?.includes("Test Song"))?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
@@ -201,9 +197,6 @@ try {
   checks.push({ name: "the <audio> element is present", ok: !!audioEl });
   Object.defineProperty(audioEl, "ended", { get: () => true, configurable: true });
 
-  // The song "ending" is detected via audio.ended on the next rAF tick, then the highway
-  // plays a short collapse animation (HIGHWAY_BUILD_OUTRO_MS = 500ms) before the results
-  // phase flips on — wait comfortably past that.
   await new Promise((r) => setTimeout(r, 900));
 
   checks.push({

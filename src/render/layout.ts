@@ -65,11 +65,6 @@ export function createRenderConfig(canvasWidth: number, canvasHeight: number): R
 
 export const RENDER_CONFIG: RenderConfig = createRenderConfig(800, 600);
 
-// Scales the highway's width and pipe mouths down toward a thin centered line (buildProgress=0)
-// or up to the full track (buildProgress=1). Every other draw call derives its geometry from
-// these three fields via laneX/highwayEdgeX, so passing the scaled config into drawFrame collapses
-// or unfolds the whole highway (rails, lanes, grid, pipes) together, for a "track assembling" intro
-// and a matching collapse when a song ends — no changes needed in the individual draw functions.
 export function highwayBuildConfig(config: RenderConfig, buildProgress: number): RenderConfig {
   const t = clamp(buildProgress, 0, 1);
   if (t >= 1) return config;
@@ -122,15 +117,6 @@ export function progressFor(time: number, currentTime: number, config: RenderCon
   return 1 - timeUntilHit / config.approachTime;
 }
 
-// Notes travel at a constant rate in time, but their drawn radius grows from
-// noteMinRadius to noteMaxRadius as they approach the hit line. Placing them at
-// a raw linear progress keeps the pixel gap between two time-adjacent notes
-// constant while their radius keeps growing, so the visible gap (edge-to-edge)
-// shrinks and notes look like they pile up right before the hit line. This warps
-// progress so the pixel gap grows in step with the radius, keeping the gap-to-note-size
-// ratio constant along the whole trail — same effect as real depth perspective
-// (Guitar Hero-style highways), where things both shrink and bunch up together
-// far away, and both grow and spread out together up close.
 export function visualProgress(rawProgress: number, config: RenderConfig = RENDER_CONFIG): number {
   const ratio = config.noteMinRadius / config.noteMaxRadius;
   return (2 * ratio * rawProgress + (1 - ratio) * rawProgress * rawProgress) / (1 + ratio);
