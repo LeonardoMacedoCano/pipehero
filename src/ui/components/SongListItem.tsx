@@ -1,7 +1,16 @@
 import styled from "styled-components";
-import type { Song } from "../../types.js";
+import type { Difficulty, Song } from "../../types.js";
+import DifficultyStars from "./DifficultyStars.js";
 
-export default function SongListItem({ song, onSelect }: { song: Song; onSelect: (song: Song) => void }) {
+export default function SongListItem({
+  song,
+  stars,
+  onSelect,
+}: {
+  song: Song;
+  stars?: Partial<Record<Difficulty, number>>;
+  onSelect: (song: Song) => void;
+}) {
   const metaParts = [song.artist, song.genre].filter(Boolean);
   if (song.album) metaParts.push(song.album);
 
@@ -16,6 +25,7 @@ export default function SongListItem({ song, onSelect }: { song: Song; onSelect:
         <Name>{song.name}</Name>
         <Meta>{metaParts.join(" — ")}</Meta>
       </Info>
+      <DifficultyStars stars={stars} />
     </Card>
   );
 }

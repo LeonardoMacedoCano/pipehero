@@ -30,7 +30,7 @@ function toPublicUser(user: { name: string; email: string; avatarUrl: string | n
   return { name: user.name, email: user.email, avatarUrl: user.avatarUrl };
 }
 
-function readSessionIdFromCookies(req: IncomingMessage, secret: string): string | null {
+export function readSessionIdFromCookies(req: IncomingMessage, secret: string): string | null {
   const cookieHeader = req.headers.cookie;
   if (!cookieHeader) return null;
   const entry = cookieHeader
@@ -54,14 +54,14 @@ function clearSessionCookie(res: ServerResponse): void {
   res.setHeader("Set-Cookie", `${SESSION_COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`);
 }
 
-async function readJsonBody<T>(req: IncomingMessage): Promise<T> {
+export async function readJsonBody<T>(req: IncomingMessage): Promise<T> {
   const chunks: Buffer[] = [];
   for await (const chunk of req) chunks.push(chunk as Buffer);
   const raw = Buffer.concat(chunks).toString("utf8");
   return raw ? (JSON.parse(raw) as T) : ({} as T);
 }
 
-function sendJson(res: ServerResponse, status: number, body: unknown): void {
+export function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(body));
 }

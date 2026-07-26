@@ -3,6 +3,8 @@ import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 import { listSongs } from "./src/server/songLibrary.js";
 import { handleAuthRequest } from "./src/server/authRoutes.js";
+import { handleScoreRequest } from "./src/server/scoreRoutes.js";
+import { handleSettingsRequest } from "./src/server/settingsRoutes.js";
 import { runMigrations } from "./src/server/migrate.js";
 import { cleanupExpiredSessions } from "./src/server/session.js";
 import { isInsideDir } from "./src/server/pathGuard.js";
@@ -90,6 +92,14 @@ const server = createServer(async (req, res) => {
   try {
     if (req.url?.startsWith("/api/auth/")) {
       if (await handleAuthRequest(req, res)) return;
+    }
+
+    if (req.url?.startsWith("/api/scores") || req.url?.startsWith("/api/achievements")) {
+      if (await handleScoreRequest(req, res)) return;
+    }
+
+    if (req.url?.startsWith("/api/settings/")) {
+      if (await handleSettingsRequest(req, res)) return;
     }
 
     if (req.url === "/api/songs") {

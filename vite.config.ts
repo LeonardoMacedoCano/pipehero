@@ -5,6 +5,8 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { listSongs } from "./src/server/songLibrary.js";
 import { handleAuthRequest } from "./src/server/authRoutes.js";
+import { handleScoreRequest } from "./src/server/scoreRoutes.js";
+import { handleSettingsRequest } from "./src/server/settingsRoutes.js";
 import { runMigrations } from "./src/server/migrate.js";
 import { isInsideDir } from "./src/server/pathGuard.js";
 
@@ -33,6 +35,14 @@ function songsMiddlewarePlugin(songsDir: string): Plugin {
       server.middlewares.use(async (req: IncomingMessage, res: ServerResponse, next) => {
         if (req.url?.startsWith("/api/auth/")) {
           if (await handleAuthRequest(req, res)) return;
+        }
+
+        if (req.url?.startsWith("/api/scores") || req.url?.startsWith("/api/achievements")) {
+          if (await handleScoreRequest(req, res)) return;
+        }
+
+        if (req.url?.startsWith("/api/settings/")) {
+          if (await handleSettingsRequest(req, res)) return;
         }
 
         if (req.url === "/api/songs") {

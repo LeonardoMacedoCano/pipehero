@@ -1,17 +1,44 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { getCalibration, setCalibration } from "../../audio/calibrationStore.js";
 
 const CALIBRATION_STEP_SECONDS = 0.01;
 const MS_PER_SECOND = 1000;
 
+function saveCalibrationToServer(seconds: number): void {
+  fetch("/api/settings/me", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ calibrationMs: Math.round(seconds * MS_PER_SECOND) }),
+  }).catch(() => {});
+}
+
 export default function CalibrationControl() {
   const [value, setValue] = useState(() => getCalibration());
+  const adjustedRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/settings/me")
+      .then((response) => response.json() as Promise<{ calibrationMs: number | null }>)
+      .then((data) => {
+        if (cancelled || adjustedRef.current || data.calibrationMs === null) return;
+        const seconds = data.calibrationMs / MS_PER_SECOND;
+        setCalibration(seconds);
+        setValue(seconds);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function adjust(deltaSeconds: number) {
+    adjustedRef.current = true;
     const next = value + deltaSeconds;
     setCalibration(next);
     setValue(next);
+    saveCalibrationToServer(next);
   }
 
   return (

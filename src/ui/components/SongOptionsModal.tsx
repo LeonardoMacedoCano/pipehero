@@ -3,7 +3,7 @@ import { Modal, Stack, Button, Loading } from "lcano-react-ui";
 import styled from "styled-components";
 import type { Difficulty, Song } from "../../types.js";
 import { useChart } from "../hooks/useChart.js";
-import CalibrationControl from "./CalibrationControl.js";
+import DifficultyStars from "./DifficultyStars.js";
 
 export interface StartGameParams {
   song: Song;
@@ -13,10 +13,12 @@ export interface StartGameParams {
 
 export default function SongOptionsModal({
   song,
+  stars,
   onClose,
   onStart,
 }: {
   song: Song | null;
+  stars?: Partial<Record<Difficulty, number>>;
   onClose: () => void;
   onStart: (params: StartGameParams) => void;
 }) {
@@ -53,7 +55,12 @@ export default function SongOptionsModal({
             </Section>
           )}
 
-          <CalibrationControl />
+          {stars && Object.keys(stars).length > 0 && (
+            <Section>
+              <SectionLabel>Your best scores</SectionLabel>
+              <DifficultyStars stars={stars} />
+            </Section>
+          )}
         </Content>
       }
     />
