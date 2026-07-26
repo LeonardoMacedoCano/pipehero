@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react";
 import { listSongs } from "./src/server/songLibrary.js";
 import { handleAuthRequest } from "./src/server/authRoutes.js";
 import { runMigrations } from "./src/server/migrate.js";
+import { isInsideDir } from "./src/server/pathGuard.js";
 
 const MIME_TYPES: Record<string, string> = {
   ".chart": "text/plain; charset=utf-8",
@@ -44,7 +45,7 @@ function songsMiddlewarePlugin(songsDir: string): Plugin {
         if (req.url?.startsWith("/songs/")) {
           const relPath = decodeURIComponent(req.url.slice("/songs/".length));
           const filePath = normalize(join(songsDir, relPath));
-          if (!filePath.startsWith(songsDir)) {
+          if (!isInsideDir(filePath, songsDir)) {
             res.writeHead(403);
             res.end("Forbidden");
             return;

@@ -1,10 +1,11 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFile, stat } from "node:fs/promises";
-import { extname, join, normalize, resolve, sep } from "node:path";
+import { extname, join, normalize, resolve } from "node:path";
 import { listSongs } from "./src/server/songLibrary.js";
 import { handleAuthRequest } from "./src/server/authRoutes.js";
 import { runMigrations } from "./src/server/migrate.js";
 import { cleanupExpiredSessions } from "./src/server/session.js";
+import { isInsideDir } from "./src/server/pathGuard.js";
 
 const SESSION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 
@@ -32,10 +33,6 @@ const MIME_TYPES: Record<string, string> = {
   ".flac": "audio/flac",
   ".m4a": "audio/mp4",
 };
-
-function isInsideDir(filePath: string, dir: string): boolean {
-  return filePath === dir || filePath.startsWith(dir + sep);
-}
 
 async function serveStaticFile(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const urlPath = decodeURIComponent((req.url ?? "/").split("?")[0]);
