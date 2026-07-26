@@ -44,10 +44,10 @@ note density — it also changes how precise your timing needs to be:
 
 | Difficulty | "Perfect" window | "Good" window |
 |---|---|---|
-| Expert | ±35ms | ±90ms |
-| Hard | ±50ms | ±110ms |
-| Medium | ±70ms | ±140ms |
-| Easy | ±90ms | ±170ms |
+| Expert | ±50ms | ±140ms |
+| Hard | ±70ms | ±170ms |
+| Medium | ±90ms | ±200ms |
+| Easy | ±120ms | ±240ms |
 
 Outside these windows, the note counts as a miss (the drop falls and
 fades away — no extra penalty, it just doesn't score).
