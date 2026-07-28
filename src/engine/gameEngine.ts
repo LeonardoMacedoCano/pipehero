@@ -74,6 +74,12 @@ export function createGameEngine(
     return closest;
   }
 
+  function isAwaitingChord(fret: Fret, time: number): boolean {
+    return pending.some(
+      (event) => event.state === "pending" && event.frets.includes(fret) && Math.abs(event.time - time) <= windows.good
+    );
+  }
+
   function finalizeSustain(event: GameEvent, dropped: boolean): void {
     if (!holdingEvents.has(event)) return;
     holdingEvents.delete(event);
@@ -111,7 +117,7 @@ export function createGameEngine(
       return { type: "judged", event, rating };
     }
 
-    return { type: "unmatched", fret, time };
+    return { type: "unmatched", fret, time, awaitingChord: isAwaitingChord(fret, time) };
   }
 
   function handleKeyUp(fret: Fret, time: number): void {

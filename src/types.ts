@@ -59,7 +59,7 @@ export interface GameState {
 }
 
 export type KeyDownResult =
-  | { type: "unmatched"; fret: Fret; time: number }
+  | { type: "unmatched"; fret: Fret; time: number; awaitingChord: boolean }
   | { type: "judged"; event: GameEvent; rating: Rating };
 
 export interface GameEngine {

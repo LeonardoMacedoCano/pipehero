@@ -211,7 +211,7 @@ export function useGamePlaythrough({
       for (const f of result.event.frets) {
         judgedHitsRef.current.set(noteRenderKey(f, result.event.time), judgedAt);
       }
-    } else {
+    } else if (!result.awaitingChord) {
       const pressedAt = playthrough.currentChartTime();
       errorClicksRef.current.set(fret, pressedAt);
       lastErrorAtRef.current = pressedAt;
