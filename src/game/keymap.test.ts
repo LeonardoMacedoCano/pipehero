@@ -12,7 +12,7 @@ import {
   type InputBinding,
 } from "./keymap.js";
 
-test("all 7 control actions have a unique default binding (no collision)", () => {
+test("all control actions have a unique default binding (no collision)", () => {
   const bindings = Object.values(DEFAULT_ACTION_BINDINGS);
   const serialized = bindings.map((b) => JSON.stringify(b));
   assert.equal(new Set(serialized).size, serialized.length);

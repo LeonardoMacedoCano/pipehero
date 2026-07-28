@@ -98,6 +98,20 @@ test("chord: only counts as a hit when both frets are pressed together", () => {
   assert.equal(engine.getState().hits.length, 1);
 });
 
+test("unmatched: pressing one fret of an incomplete chord is flagged as awaiting the rest, not a wrong press", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0, 2], isChord: true })]);
+  const result = engine.handleKeyDown(0, 1.0);
+  assert.equal(result.type, "unmatched");
+  assert.equal(result.type === "unmatched" && result.awaitingChord, true);
+});
+
+test("unmatched: pressing a fret with no nearby note is a genuine wrong press", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0] })]);
+  const result = engine.handleKeyDown(1, 1.0);
+  assert.equal(result.type, "unmatched");
+  assert.equal(result.type === "unmatched" && result.awaitingChord, false);
+});
+
 test("incomplete chord (only half pressed) becomes a miss when the window closes", () => {
   const engine = createGameEngine([event({ time: 1.0, frets: [0, 2], isChord: true })]);
   engine.handleKeyDown(0, 1.0);

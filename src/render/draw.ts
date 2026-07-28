@@ -46,6 +46,7 @@ const EMPTY_JUDGED_HITS: ReadonlyMap<string, number> = new Map();
 const EMPTY_HOLDING_KEYS: ReadonlySet<string> = new Set();
 const EMPTY_MISSED_KEYS: ReadonlySet<string> = new Set();
 const EMPTY_ERROR_CLICKS: ReadonlyMap<Fret, number> = new Map();
+const EMPTY_OPEN_HOLD_RELEASE: ReadonlyMap<string, number> = new Map();
 
 const RAIL_MISS_FADE_SECONDS = 0.5;
 
@@ -378,9 +379,59 @@ function drawSustainDrop(ctx: CanvasLike2D, x: number, y: number, radius: number
   ctx.globalAlpha = 1;
 }
 
-const ABSORB_PARTICLE_COUNT = 7;
+const ABSORB_DROPLET_COUNT: number = 20;
 const ABSORB_FLASH_FRACTION = 0.35;
 const ABSORB_INNER_RING_FRACTION = 0.6;
+
+const OPEN_RESIDUE_RISE_SECONDS = 0.22;
+export const OPEN_RESIDUE_FALL_SECONDS = 0.28;
+
+function drawSplashDroplets(
+  ctx: CanvasLike2D,
+  x: number,
+  y: number,
+  config: RenderConfig,
+  baseColor: string,
+  seed: number,
+  heightFraction: number,
+  bobTime: number = 0
+): void {
+  if (heightFraction <= 0.02) return;
+
+  const dropletColor = lighten(baseColor, 0.5);
+  const dropletHighlight = lighten(baseColor, 0.92);
+  for (let i = 0; i < ABSORB_DROPLET_COUNT; i++) {
+    const spread = ABSORB_DROPLET_COUNT === 1 ? 0 : (i / (ABSORB_DROPLET_COUNT - 1)) * 2 - 1;
+    const px = x + spread * config.pipeMouthRadius * 0.6 + Math.sin(seed * 4.1 + i * 1.3) * config.pipeMouthRadius * 0.18;
+    let localArc = 1;
+    if (bobTime !== 0) {
+      const cycleSeconds = 0.3 + 0.25 * Math.abs(Math.sin(seed * 1.3 + i * 0.7));
+      const cyclePhase = (((bobTime + i * 0.11 + seed * 0.05) % cycleSeconds) + cycleSeconds) % cycleSeconds;
+      localArc = Math.sin((cyclePhase / cycleSeconds) * Math.PI);
+    }
+    const liveHeightFraction = clamp01(heightFraction * localArc);
+    const maxHeight = config.pipeMouthRadius * (0.115 + 0.8 * Math.abs(Math.sin(seed * 2.7 + i * 1.7)));
+    const py = y - maxHeight * liveHeightFraction;
+    const radius =
+      config.noteMinRadius * (0.065 + 0.08 * Math.abs(Math.sin(seed * 3.3 + i * 2.1))) * lerp(0.5, 1, liveHeightFraction);
+    const alpha = Math.pow(liveHeightFraction, 0.5);
+    if (radius <= 0.2 || alpha <= 0.03) continue;
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = dropletColor;
+    ctx.beginPath();
+    ctx.arc(px, py, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = alpha * 0.9;
+    ctx.fillStyle = dropletHighlight;
+    ctx.beginPath();
+    ctx.arc(px - radius * 0.3, py - radius * 0.3, radius * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.globalAlpha = 1;
+}
 
 function drawClickFlash(
   ctx: CanvasLike2D,
@@ -388,7 +439,8 @@ function drawClickFlash(
   config: RenderConfig,
   elapsedSeconds: number,
   seed: number,
-  withParticles: boolean
+  withParticles: boolean,
+  drawBurstDroplets: boolean = withParticles
 ): void {
   const t = clamp01(elapsedSeconds / ABSORB_DURATION_SECONDS);
   const laneColor = LANE_COLORS[fret] ?? COLORS.noteFallback;
@@ -431,19 +483,9 @@ function drawClickFlash(
     return;
   }
 
-  const particleColor = lighten(baseColor, 0.3);
-  for (let i = 0; i < ABSORB_PARTICLE_COUNT; i++) {
-    const angle = (i / ABSORB_PARTICLE_COUNT) * Math.PI * 2 + seed;
-    const reach = config.pipeMouthRadius * (0.9 + 0.4 * Math.sin(seed * 3.1 + i));
-    const px = x + Math.cos(angle) * reach * t;
-    const py = y - Math.abs(Math.sin(angle)) * reach * t * 0.7 + reach * 1.4 * t * t;
-    const particleRadius = config.noteMinRadius * 0.22 * (1 - t);
-    if (particleRadius <= 0) continue;
-    ctx.globalAlpha = 1 - t;
-    ctx.fillStyle = particleColor;
-    ctx.beginPath();
-    ctx.arc(px, py, particleRadius, 0, Math.PI * 2);
-    ctx.fill();
+  if (drawBurstDroplets) {
+    const arc = Math.sin(clamp01(t) * Math.PI); // rises then falls back down into the pipe, within the impact window
+    drawSplashDroplets(ctx, x, y, config, baseColor, seed, arc);
   }
 
   ctx.globalAlpha = 1;
@@ -458,7 +500,8 @@ export function drawFrame(
   holdingKeys: ReadonlySet<string> = EMPTY_HOLDING_KEYS,
   missedKeys: ReadonlySet<string> = EMPTY_MISSED_KEYS,
   errorClicks: ReadonlyMap<Fret, number> = EMPTY_ERROR_CLICKS,
-  lastErrorAt: number | null = null
+  lastErrorAt: number | null = null,
+  openHoldReleaseAt: ReadonlyMap<string, number> = EMPTY_OPEN_HOLD_RELEASE
 ): VisibleNote[] {
   ctx.fillStyle = COLORS.canvasBackground;
   ctx.fillRect(0, 0, config.canvasWidth, config.canvasHeight);
@@ -476,7 +519,10 @@ export function drawFrame(
   for (const [fret, pressedAt] of errorClicks) {
     const elapsed = currentTime - pressedAt;
     if (elapsed >= 0 && elapsed <= ABSORB_DURATION_SECONDS) {
-      drawClickFlash(ctx, fret, config, elapsed, pressedAt, false);
+      const flashFrets = fret === 7 ? config.laneOrder : [fret];
+      for (const flashFret of flashFrets) {
+        drawClickFlash(ctx, flashFret, config, elapsed, pressedAt, false);
+      }
     }
   }
 
@@ -497,9 +543,40 @@ export function drawFrame(
     const judgedAt = judgedHits.get(key);
 
     if (judgedAt !== undefined) {
+      const isHeldOpen = note.fret === 7 && note.duration > 0;
       const elapsed = currentTime - judgedAt;
+      const flashFrets = note.fret === 7 ? config.laneOrder : [note.fret];
+
       if (elapsed >= 0 && elapsed <= ABSORB_DURATION_SECONDS) {
-        drawClickFlash(ctx, note.fret, config, elapsed, note.time, true);
+        for (const flashFret of flashFrets) {
+          drawClickFlash(ctx, flashFret, config, elapsed, note.time, true, !isHeldOpen);
+        }
+      }
+
+      if (isHeldOpen && currentTime >= judgedAt) {
+        const naturalEnd = note.time + note.duration;
+        const naturalAnchor = currentTime >= naturalEnd ? naturalEnd : Infinity;
+        const detectedAnchor = openHoldReleaseAt.get(key) ?? Infinity;
+        const anchor = Math.min(naturalAnchor, detectedAnchor);
+        const releasedAt = anchor === Infinity ? undefined : anchor;
+        const rise = clamp01(elapsed / OPEN_RESIDUE_RISE_SECONDS);
+        const heightFraction =
+          releasedAt !== undefined ? Math.min(rise, clamp01(1 - (currentTime - releasedAt) / OPEN_RESIDUE_FALL_SECONDS)) : rise;
+        if (heightFraction > 0.02) {
+          for (const flashFret of flashFrets) {
+            const laneColor = LANE_COLORS[flashFret] ?? COLORS.noteFallback;
+            drawSplashDroplets(
+              ctx,
+              laneX(flashFret, 1, config),
+              config.hitLineY,
+              config,
+              laneColor,
+              note.time,
+              heightFraction,
+              currentTime
+            );
+          }
+        }
       }
     }
 

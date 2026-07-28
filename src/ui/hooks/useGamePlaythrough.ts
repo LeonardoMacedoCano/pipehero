@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Difficulty, Fret, GameState, Note, StarPowerPhrase } from "../../types.js";
 import { createPlaythrough } from "../../game/gamePlaythrough.js";
-import { drawFrame, ABSORB_DURATION_SECONDS } from "../../render/draw.js";
+import { drawFrame, ABSORB_DURATION_SECONDS, OPEN_RESIDUE_FALL_SECONDS } from "../../render/draw.js";
 import { createRenderConfig, highwayBuildConfig, noteRenderKey } from "../../render/layout.js";
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
@@ -52,10 +52,17 @@ export function useGamePlaythrough({
   const holdingKeysRef = useRef<Set<string>>(new Set());
   const missedKeysRef = useRef<Set<string>>(new Set());
   const errorClicksRef = useRef<Map<Fret, number>>(new Map());
+  const openHoldReleaseAtRef = useRef<Map<string, number>>(new Map());
   const lastErrorAtRef = useRef<number | null>(null);
   const introStartRef = useRef<number | null>(null);
   const endedAtRef = useRef<number | null>(null);
   const resultsSnapshotRef = useRef<GameState | null>(null);
+
+  const noteByKey = useMemo(() => {
+    const map = new Map<string, Note>();
+    if (notes) for (const note of notes) map.set(noteRenderKey(note.fret, note.time), note);
+    return map;
+  }, [notes]);
 
   const [hud, setHud] = useState<Hud>(INITIAL_HUD);
   const [needsTapToStart, setNeedsTapToStart] = useState(false);
@@ -111,7 +118,16 @@ export function useGamePlaythrough({
     const { chartTime, newlyMissed } = playthrough.tick();
 
     for (const [key, judgedAt] of judgedHitsRef.current) {
-      if (chartTime - judgedAt > ABSORB_DURATION_SECONDS) judgedHitsRef.current.delete(key);
+      const note = noteByKey.get(key);
+      const releasedAt = openHoldReleaseAtRef.current.get(key);
+      const holdEnd =
+        note && note.fret === 7 && note.duration > 0
+          ? (releasedAt ?? note.time + note.duration) + OPEN_RESIDUE_FALL_SECONDS
+          : judgedAt + ABSORB_DURATION_SECONDS;
+      if (chartTime > holdEnd) {
+        judgedHitsRef.current.delete(key);
+        openHoldReleaseAtRef.current.delete(key);
+      }
     }
 
     if (newlyMissed.length > 0) {
@@ -125,9 +141,15 @@ export function useGamePlaythrough({
     }
 
     const state = playthrough.getState();
-    holdingKeysRef.current.clear();
+    const previouslyHoldingKeys = holdingKeysRef.current;
+    holdingKeysRef.current = new Set();
     for (const event of state.activeHolds) {
       for (const fret of event.frets) holdingKeysRef.current.add(noteRenderKey(fret, event.time));
+    }
+    for (const key of previouslyHoldingKeys) {
+      if (holdingKeysRef.current.has(key) || openHoldReleaseAtRef.current.has(key)) continue;
+      const note = noteByKey.get(key);
+      if (note && note.fret === 7 && note.duration > 0) openHoldReleaseAtRef.current.set(key, chartTime);
     }
     for (const event of state.droppedSustains) {
       for (const fret of event.frets) missedKeysRef.current.add(noteRenderKey(fret, event.time));
@@ -148,7 +170,8 @@ export function useGamePlaythrough({
       holdingKeysRef.current,
       missedKeysRef.current,
       errorClicksRef.current,
-      lastErrorAtRef.current
+      lastErrorAtRef.current,
+      openHoldReleaseAtRef.current
     );
 
     setHud({ score: state.score, starPowerMeter: state.starPowerMeter, starPowerActive: state.starPowerActive });
@@ -156,7 +179,7 @@ export function useGamePlaythrough({
     if (!audio.paused) {
       rafRef.current = requestAnimationFrame(loop);
     }
-  }, [notes]);
+  }, [notes, noteByKey]);
 
   const start = useCallback(async () => {
     const audio = audioRef.current;
@@ -187,6 +210,7 @@ export function useGamePlaythrough({
     judgedHitsRef.current.clear();
     missedKeysRef.current.clear();
     errorClicksRef.current.clear();
+    openHoldReleaseAtRef.current.clear();
     lastErrorAtRef.current = null;
     endedAtRef.current = null;
     resultsSnapshotRef.current = null;
@@ -211,7 +235,7 @@ export function useGamePlaythrough({
       for (const f of result.event.frets) {
         judgedHitsRef.current.set(noteRenderKey(f, result.event.time), judgedAt);
       }
-    } else {
+    } else if (!result.awaitingChord) {
       const pressedAt = playthrough.currentChartTime();
       errorClicksRef.current.set(fret, pressedAt);
       lastErrorAtRef.current = pressedAt;
@@ -219,9 +243,22 @@ export function useGamePlaythrough({
     return result;
   }, []);
 
-  const releaseFret = useCallback((fret: Fret) => {
-    playthroughRef.current?.releaseFret(fret);
-  }, []);
+  const releaseFret = useCallback(
+    (fret: Fret) => {
+      const playthrough = playthroughRef.current;
+      if (!playthrough) return;
+      playthrough.releaseFret(fret);
+      if (fret !== 7) return;
+      const releasedAt = playthrough.currentChartTime();
+      for (const key of holdingKeysRef.current) {
+        const note = noteByKey.get(key);
+        if (note && note.fret === 7 && !openHoldReleaseAtRef.current.has(key)) {
+          openHoldReleaseAtRef.current.set(key, releasedAt);
+        }
+      }
+    },
+    [noteByKey]
+  );
 
   const activateStarPower = useCallback(() => {
     playthroughRef.current?.activateStarPower();
