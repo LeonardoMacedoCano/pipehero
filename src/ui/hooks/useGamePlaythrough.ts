@@ -120,8 +120,6 @@ export function useGamePlaythrough({
     for (const [key, judgedAt] of judgedHitsRef.current) {
       const note = noteByKey.get(key);
       const releasedAt = openHoldReleaseAtRef.current.get(key);
-      // Open notes held past the initial hit keep the water-residue animation up until the note ends
-      // or the player lets go, plus a little extra to let the residue finish falling back down.
       const holdEnd =
         note && note.fret === 7 && note.duration > 0
           ? (releasedAt ?? note.time + note.duration) + OPEN_RESIDUE_FALL_SECONDS
@@ -251,8 +249,6 @@ export function useGamePlaythrough({
       if (!playthrough) return;
       playthrough.releaseFret(fret);
       if (fret !== 7) return;
-      // Record the release the instant it happens (not on the next rAF tick) so the water-residue
-      // fall starts exactly on time instead of racing the note's despawn window.
       const releasedAt = playthrough.currentChartTime();
       for (const key of holdingKeysRef.current) {
         const note = noteByKey.get(key);

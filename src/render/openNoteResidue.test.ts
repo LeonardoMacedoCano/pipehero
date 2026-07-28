@@ -5,11 +5,6 @@ import type { Note } from "../types.js";
 import { noteRenderKey, RENDER_CONFIG, getVisibleNotes } from "./layout.js";
 import { OPEN_RESIDUE_FALL_SECONDS } from "./draw.js";
 
-// Regression coverage for a race between the open-note water-residue fall (drawClickFlash/drawSplashDroplets
-// in draw.ts) and getVisibleNotes' despawn window. The residue's fall must always finish (heightFraction <= 0.02)
-// before the note leaves the `visible` list, for any frame-timing pattern (including stalls/jank) — otherwise
-// the residue is cut off mid-fall instead of fading out. See draw.ts's `naturalAnchor`/`detectedAnchor` logic.
-
 interface Sim {
   note: Note;
   key: string;
@@ -68,7 +63,6 @@ function makeSim(duration: number): Sim {
     },
     releaseNowAt: (chartTime: number) => {
       playthrough.releaseFret(7);
-      // Mirrors useGamePlaythrough's releaseFret: written synchronously at the real release instant.
       for (const k of holdingKeys) {
         const n = noteByKey.get(k);
         if (n && n.fret === 7 && !openHoldReleaseAtRef.has(k)) openHoldReleaseAtRef.set(k, chartTime);

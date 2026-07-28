@@ -403,9 +403,6 @@ function drawSplashDroplets(
   for (let i = 0; i < ABSORB_DROPLET_COUNT; i++) {
     const spread = ABSORB_DROPLET_COUNT === 1 ? 0 : (i / (ABSORB_DROPLET_COUNT - 1)) * 2 - 1;
     const px = x + spread * config.pipeMouthRadius * 0.6 + Math.sin(seed * 4.1 + i * 1.3) * config.pipeMouthRadius * 0.18;
-    // While held, each droplet keeps popping up and sinking back on its own cycle, so the residue
-    // reads as continuously bubbling instead of a single frozen cluster; the overall envelope
-    // (heightFraction) only reaches 0 once released or the note ends.
     let localArc = 1;
     if (bobTime !== 0) {
       const cycleSeconds = 0.3 + 0.25 * Math.abs(Math.sin(seed * 1.3 + i * 0.7));
@@ -551,20 +548,12 @@ export function drawFrame(
       const flashFrets = note.fret === 7 ? config.laneOrder : [note.fret];
 
       if (elapsed >= 0 && elapsed <= ABSORB_DURATION_SECONDS) {
-        // The impact flash/rings always play once; held open notes get their droplets from the residue below instead.
         for (const flashFret of flashFrets) {
           drawClickFlash(ctx, flashFret, config, elapsed, note.time, true, !isHeldOpen);
         }
       }
 
       if (isHeldOpen && currentTime >= judgedAt) {
-        // Rises once and holds steady while the note is being played; only comes back down once the
-        // note ends or the player lets go. The natural end is computed straight from note data (not
-        // from the hook's async hold-tracking) so there's no frame-timing race with `getVisibleNotes`
-        // despawning the note — both use the exact same `currentTime` in the same synchronous call.
-        // Take whichever anchor is EARLIER: the hook's detected release can lag behind the real
-        // instant (a stall between frames), so a live natural-end check that's already past due
-        // always wins over a stale/late detection instead of being shadowed by it.
         const naturalEnd = note.time + note.duration;
         const naturalAnchor = currentTime >= naturalEnd ? naturalEnd : Infinity;
         const detectedAnchor = openHoldReleaseAt.get(key) ?? Infinity;
