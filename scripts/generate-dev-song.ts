@@ -50,6 +50,22 @@ for (let i = 0; i < BEAT_COUNT; i++) {
   }
 }
 
+const SP_PHRASE_INTERVAL_BEATS = 12;
+const SP_PHRASE_LENGTH_BEATS = 4;
+const SP_PHRASE_END_PADDING_SECONDS = 0.1;
+
+interface StarPowerPhraseSpec {
+  startTime: number;
+  endTime: number;
+}
+
+const starPowerPhrases: StarPowerPhraseSpec[] = [];
+for (let i = 0; i + SP_PHRASE_LENGTH_BEATS <= BEAT_COUNT; i += SP_PHRASE_INTERVAL_BEATS) {
+  const startTime = LEAD_IN_SECONDS + i * BEAT_INTERVAL_SECONDS;
+  const endTime = LEAD_IN_SECONDS + (i + SP_PHRASE_LENGTH_BEATS - 1) * BEAT_INTERVAL_SECONDS + SP_PHRASE_END_PADDING_SECONDS;
+  starPowerPhrases.push({ startTime, endTime });
+}
+
 function secondsToTick(seconds: number): number {
   return Math.round(seconds * TICKS_PER_SECOND);
 }
@@ -59,8 +75,15 @@ function secondsToTickDuration(seconds: number): number {
 }
 
 const chartNoteLines = noteEvents.flatMap((n) =>
-  n.frets.map((fret) => `  ${secondsToTick(n.time)} = N ${fret} ${secondsToTickDuration(n.durationSeconds)}`)
+  n.frets.map((fret) => ({ tick: secondsToTick(n.time), line: `N ${fret} ${secondsToTickDuration(n.durationSeconds)}` }))
 );
+const chartStarPowerLines = starPowerPhrases.map((phrase) => ({
+  tick: secondsToTick(phrase.startTime),
+  line: `S 2 ${secondsToTick(phrase.endTime) - secondsToTick(phrase.startTime)}`,
+}));
+const chartEventLines = [...chartNoteLines, ...chartStarPowerLines]
+  .sort((a, b) => a.tick - b.tick)
+  .map(({ tick, line }) => `  ${tick} = ${line}`);
 
 const chartLines = [
   "[Song]",
@@ -81,7 +104,7 @@ const chartLines = [
   "}",
   "[ExpertSingle]",
   "{",
-  ...chartNoteLines,
+  ...chartEventLines,
   "}",
   "",
 ];
@@ -144,5 +167,5 @@ function writeWav(path: string, { sampleRate, samples }: { sampleRate: number; s
 }
 
 console.log(
-  `Generated in ${OUT_DIR}/: notes.chart (${noteEvents.length} notes), song.wav (${totalSeconds.toFixed(1)}s), song.ini`
+  `Generated in ${OUT_DIR}/: notes.chart (${noteEvents.length} notes, ${starPowerPhrases.length} star power phrases), song.wav (${totalSeconds.toFixed(1)}s), song.ini`
 );
