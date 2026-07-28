@@ -8,3 +8,6 @@ server-dist/
 
 # debug screenshots — regenerable via `npm run test:integration:render-visual`
 test/integration/screenshots/
+
+# instrucoes locais pro Claude Code, nao versionadas
+CLAUDE.md
