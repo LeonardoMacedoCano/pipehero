@@ -34,6 +34,7 @@ export default function SongOptionsModal({
       isOpen={!!song}
       title={song?.name ?? ""}
       onClose={onClose}
+      variant="info"
       content={
         <Content>
           <Loading isLoading={isLoading} />
