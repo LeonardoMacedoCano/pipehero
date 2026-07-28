@@ -18,21 +18,23 @@ export default function ScoreBox({
   const tierColorKey = TIER_COLOR_KEYS[tier - 1];
 
   return (
-    <IronPipeFrame $glow={starPowerActive}>
+    <IronPipeFrame glow={starPowerActive}>
       <Grille>
         <Score>{score}</Score>
-        <MultiplierBadge $colorKey={tierColorKey} $pulse={starPowerActive}>
-          x{multiplier}
-        </MultiplierBadge>
-        {combo > 0 && <ComboLabel>{combo} combo</ComboLabel>}
+        <Row>
+          <MultiplierBadge $colorKey={tierColorKey} $pulse={starPowerActive}>
+            x{multiplier}
+          </MultiplierBadge>
+          {combo > 0 && <ComboLabel>{combo} combo</ComboLabel>}
+        </Row>
       </Grille>
     </IronPipeFrame>
   );
 }
 
 const pulse = keyframes`
-  0%, 100% { filter: drop-shadow(0 0 6px currentColor); }
-  50% { filter: drop-shadow(0 0 16px currentColor); }
+  0%, 100% { box-shadow: 0 0 6px 1px currentColor; }
+  50% { box-shadow: 0 0 16px 4px currentColor; }
 `;
 
 const Grille = styled.div`
@@ -52,12 +54,23 @@ const Score = styled.div`
   line-height: 1;
 `;
 
+const Row = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+`;
+
 const MultiplierBadge = styled.div<{ $colorKey: (typeof TIER_COLOR_KEYS)[number]; $pulse: boolean }>`
   display: inline-block;
-  margin-top: 4px;
-  font-size: 1.1em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 1em;
   font-weight: bold;
+  line-height: 1.4;
   color: ${({ theme, $colorKey }) => theme.colors[$colorKey]};
+  background: rgba(0, 0, 0, 0.4);
+  border: 1.5px solid ${({ theme, $colorKey }) => theme.colors[$colorKey]};
   animation: ${({ $pulse }) => ($pulse ? pulse : "none")} 1s ease-in-out infinite;
 `;
 

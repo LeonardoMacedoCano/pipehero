@@ -1,5 +1,32 @@
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, useTheme } from "styled-components";
 import IronPipeFrame from "./IronPipeFrame.js";
+
+const DIAL_CX = 100;
+const DIAL_CY = 95;
+const DIAL_R = 88;
+const NEEDLE_LENGTH = 78;
+
+function arcPoints(fromDeg: number, toDeg: number, steps: number): string {
+  const points: string[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const deg = fromDeg + (toDeg - fromDeg) * (i / steps);
+    const rad = (deg * Math.PI) / 180;
+    points.push(`${DIAL_CX + DIAL_R * Math.cos(rad)},${DIAL_CY - DIAL_R * Math.sin(rad)}`);
+  }
+  return points.join(" ");
+}
+
+function wedgePoints(fromDeg: number, toDeg: number): string {
+  return `${DIAL_CX},${DIAL_CY} ${arcPoints(fromDeg, toDeg, 16)}`;
+}
+
+const RED_WEDGE = wedgePoints(180, 120);
+const YELLOW_WEDGE = wedgePoints(120, 60);
+const GREEN_WEDGE = wedgePoints(60, 0);
+
+function clamp01to100(value: number): number {
+  return Math.max(0, Math.min(100, value));
+}
 
 export default function PowerGauge({
   rockMeter,
@@ -10,19 +37,35 @@ export default function PowerGauge({
   starPowerMeter: number;
   starPowerActive: boolean;
 }) {
-  const needleAngle = (rockMeter / 100) * 180 - 90;
+  const theme = useTheme();
+  const needleAngleDeg = 180 * (1 - clamp01to100(rockMeter) / 100);
+  const needleRad = (needleAngleDeg * Math.PI) / 180;
+  const needleX = DIAL_CX + NEEDLE_LENGTH * Math.cos(needleRad);
+  const needleY = DIAL_CY - NEEDLE_LENGTH * Math.sin(needleRad);
+
   const capsule1Fill = Math.min(100, (starPowerMeter / 50) * 100);
   const capsule2Fill = Math.max(0, Math.min(100, ((starPowerMeter - 50) / 50) * 100));
 
   return (
-    <IronPipeFrame $glow={starPowerActive}>
+    <IronPipeFrame glow={starPowerActive}>
       <Layout>
         <DialWrapper>
           <Label>Rock Meter</Label>
-          <Dial>
-            <DialInner />
-            <Needle style={{ transform: `translateX(-50%) rotate(${needleAngle}deg)` }} />
-          </Dial>
+          <svg viewBox="0 0 200 100" width="110" height="55">
+            <polygon points={RED_WEDGE} fill={theme.colors.warning} />
+            <polygon points={YELLOW_WEDGE} fill={theme.colors.laneYellow} />
+            <polygon points={GREEN_WEDGE} fill={theme.colors.success} />
+            <line
+              x1={DIAL_CX}
+              y1={DIAL_CY}
+              x2={needleX}
+              y2={needleY}
+              stroke={theme.colors.white}
+              strokeWidth={5}
+              strokeLinecap="round"
+            />
+            <circle cx={DIAL_CX} cy={DIAL_CY} r={8} fill={theme.colors.black} stroke={theme.colors.white} strokeWidth={1.5} />
+          </svg>
         </DialWrapper>
 
         <Capsules>
@@ -59,47 +102,10 @@ const DialWrapper = styled.div`
   width: 110px;
 `;
 
-const Dial = styled.div`
-  position: relative;
-  width: 100%;
-  height: 55px;
-  border-radius: 55px 55px 0 0;
-  overflow: hidden;
-  background: conic-gradient(
-    from 180deg at 50% 100%,
-    ${({ theme }) => theme.colors.warning} 0deg 60deg,
-    ${({ theme }) => theme.colors.laneYellow} 60deg 120deg,
-    ${({ theme }) => theme.colors.success} 120deg 180deg,
-    transparent 180deg 360deg
-  );
-`;
-
-const DialInner = styled.div`
-  position: absolute;
-  left: 12px;
-  top: 12px;
-  right: 12px;
-  height: calc(100% - 12px);
-  border-radius: 55px 55px 0 0;
-  background: ${({ theme }) => theme.colors.black};
-`;
-
-const Needle = styled.div`
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 3px;
-  height: 48px;
-  border-radius: 2px;
-  background: ${({ theme }) => theme.colors.white};
-  transform-origin: bottom center;
-  transition: transform 0.2s ease-out;
-`;
-
 const Capsules = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   width: 70px;
 `;
 
@@ -107,8 +113,11 @@ const Capsule = styled.div<{ $fill: number; $charged: boolean; $active: boolean 
   position: relative;
   height: 14px;
   border-radius: 7px;
-  background-color: rgba(0, 0, 0, 0.35);
-  border: 1px solid ${({ theme }) => theme.colors.gray};
+  background-color: rgba(0, 0, 0, 0.55);
+  border: 2px solid ${({ theme }) => theme.colors.gray};
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
   overflow: hidden;
   color: ${({ theme }) => theme.colors.info};
   animation: ${({ $charged, $active }) => ($charged || $active ? flicker : "none")} 1.4s ease-in-out infinite;
