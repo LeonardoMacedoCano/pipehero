@@ -8,6 +8,7 @@ export type ControlAction =
   | "fretBlue"
   | "fretOrange"
   | "fretOpen"
+  | "fretOpenAlt"
   | "starPower";
 
 export interface ControlActionInfo {
@@ -24,6 +25,7 @@ export const CONTROL_ACTIONS: ControlActionInfo[] = [
   { id: "fretBlue", label: "Blue", color: COLORS.laneBlue, fret: 3 },
   { id: "fretOrange", label: "Orange", color: COLORS.laneOrange, fret: 4 },
   { id: "fretOpen", label: "Open", color: COLORS.laneOpen, fret: 7 },
+  { id: "fretOpenAlt", label: "Open (2nd strum)", color: COLORS.laneOpen, fret: 7 },
   { id: "starPower", label: "Star Power", color: COLORS.info },
 ];
 
@@ -38,6 +40,7 @@ export const DEFAULT_ACTION_BINDINGS: Record<ControlAction, InputBinding> = {
   fretBlue: { source: "keyboard", code: "KeyK" },
   fretOrange: { source: "keyboard", code: "KeyL" },
   fretOpen: { source: "keyboard", code: "Space" },
+  fretOpenAlt: { source: "keyboard", code: "Enter" },
   starPower: { source: "keyboard", code: "ShiftLeft" },
 };
 
