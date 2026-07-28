@@ -1,7 +1,8 @@
-import type { Fret, Note } from "../types.js";
+import type { Fret, Note, StarPowerPhrase } from "../types.js";
 import {
   RENDER_CONFIG,
   LANE_COLORS,
+  laneColorsFor,
   laneX,
   highwayEdgeX,
   getVisibleNotes,
@@ -13,7 +14,8 @@ import {
   type VisibleNote,
 } from "./layout.js";
 import { lighten, desaturate, mix } from "./colorUtils.js";
-import { COLORS } from "../colors.js";
+import { COLORS, type Palette } from "../colors.js";
+import { isWithinStarPowerPhrase } from "../engine/starPower.js";
 
 interface CanvasGradientLike {
   addColorStop(offset: number, color: string): void;
@@ -47,6 +49,7 @@ const EMPTY_HOLDING_KEYS: ReadonlySet<string> = new Set();
 const EMPTY_MISSED_KEYS: ReadonlySet<string> = new Set();
 const EMPTY_ERROR_CLICKS: ReadonlyMap<Fret, number> = new Map();
 const EMPTY_OPEN_HOLD_RELEASE: ReadonlyMap<string, number> = new Map();
+const EMPTY_STAR_POWER_PHRASES: StarPowerPhrase[] = [];
 
 const RAIL_MISS_FADE_SECONDS = 0.5;
 
@@ -66,11 +69,11 @@ function pipeHalfWidthAt(progress: number, config: RenderConfig): number {
 
 const GRID_LINE_SPACING_SECONDS = 0.16;
 
-function drawFretboardGrid(ctx: CanvasLike2D, config: RenderConfig, currentTime: number): void {
+function drawFretboardGrid(ctx: CanvasLike2D, config: RenderConfig, currentTime: number, palette: Palette): void {
   const lastFret = config.laneOrder[config.laneOrder.length - 1];
   const firstFret = config.laneOrder[0];
 
-  ctx.strokeStyle = COLORS.tertiary;
+  ctx.strokeStyle = palette.tertiary;
   ctx.lineWidth = 2;
 
   for (const fret of config.laneOrder) {
@@ -91,14 +94,14 @@ function drawFretboardGrid(ctx: CanvasLike2D, config: RenderConfig, currentTime:
   }
 }
 
-function drawEdgeRail(ctx: CanvasLike2D, side: -1 | 1, config: RenderConfig, missIntensity: number): void {
+function drawEdgeRail(ctx: CanvasLike2D, side: -1 | 1, config: RenderConfig, missIntensity: number, palette: Palette): void {
   const topX = highwayEdgeX(side, 0, config);
   const bottomX = highwayEdgeX(side, 1, config);
   const topHalf = config.noteMinRadius * 0.42;
   const bottomHalf = config.noteMaxRadius * 0.58;
 
-  const normalStops = COLORS.pipeGradientStops;
-  const missStops = COLORS.pipeMissGradientStops;
+  const normalStops = palette.pipeGradientStops;
+  const missStops = palette.pipeMissGradientStops;
   const stops = missIntensity > 0 ? normalStops.map((stop, i) => mix(stop, missStops[i], missIntensity)) : normalStops;
 
   const inward = -side;
@@ -155,8 +158,14 @@ function drawEdgeRail(ctx: CanvasLike2D, side: -1 | 1, config: RenderConfig, mis
   ctx.globalAlpha = 1;
 }
 
-function drawPipeBarrelAndMouth(ctx: CanvasLike2D, fret: Fret, config: RenderConfig): void {
-  const baseColor = LANE_COLORS[fret] ?? COLORS.noteFallback;
+function drawPipeBarrelAndMouth(
+  ctx: CanvasLike2D,
+  fret: Fret,
+  config: RenderConfig,
+  laneColors: Record<Fret, string>,
+  palette: Palette
+): void {
+  const baseColor = laneColors[fret] ?? palette.noteFallback;
   const x = laneX(fret, 1, config);
   const halfWidth = pipeHalfWidthAt(1, config);
 
@@ -242,6 +251,19 @@ function sustainTrailPath(
   ctx.ellipse(bottomX, bottomY, totalLength, radius, axisAngle, -Math.PI / 2, Math.PI / 2);
   ctx.arc(bottomX, bottomY, radius, equatorAngle, equatorAngle + Math.PI, false);
   ctx.closePath();
+}
+
+const STAR_POWER_HALO_PULSE_HZ = 2.2;
+
+function drawStarPowerHalo(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number, palette: Palette): void {
+  const pulse = 0.55 + 0.45 * Math.sin(currentTime * STAR_POWER_HALO_PULSE_HZ * Math.PI * 2);
+  ctx.globalAlpha = pulse;
+  ctx.strokeStyle = lighten(palette.laneYellow, 0.5);
+  ctx.lineWidth = Math.max(2, radius * 0.22);
+  ctx.beginPath();
+  ctx.arc(x, y, radius * 1.35, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
 }
 
 function drawDrop(ctx: CanvasLike2D, x: number, y: number, radius: number, baseColor: string, alpha: number): void {
@@ -394,14 +416,16 @@ function drawSplashDroplets(
   baseColor: string,
   seed: number,
   heightFraction: number,
-  bobTime: number = 0
+  bobTime: number = 0,
+  intensity: number = 1
 ): void {
   if (heightFraction <= 0.02) return;
 
+  const dropletCount = Math.round(ABSORB_DROPLET_COUNT * intensity);
   const dropletColor = lighten(baseColor, 0.5);
   const dropletHighlight = lighten(baseColor, 0.92);
-  for (let i = 0; i < ABSORB_DROPLET_COUNT; i++) {
-    const spread = ABSORB_DROPLET_COUNT === 1 ? 0 : (i / (ABSORB_DROPLET_COUNT - 1)) * 2 - 1;
+  for (let i = 0; i < dropletCount; i++) {
+    const spread = dropletCount === 1 ? 0 : (i / (dropletCount - 1)) * 2 - 1;
     const px = x + spread * config.pipeMouthRadius * 0.6 + Math.sin(seed * 4.1 + i * 1.3) * config.pipeMouthRadius * 0.18;
     let localArc = 1;
     if (bobTime !== 0) {
@@ -410,10 +434,13 @@ function drawSplashDroplets(
       localArc = Math.sin((cyclePhase / cycleSeconds) * Math.PI);
     }
     const liveHeightFraction = clamp01(heightFraction * localArc);
-    const maxHeight = config.pipeMouthRadius * (0.115 + 0.8 * Math.abs(Math.sin(seed * 2.7 + i * 1.7)));
+    const maxHeight = config.pipeMouthRadius * intensity * (0.115 + 0.8 * Math.abs(Math.sin(seed * 2.7 + i * 1.7)));
     const py = y - maxHeight * liveHeightFraction;
     const radius =
-      config.noteMinRadius * (0.065 + 0.08 * Math.abs(Math.sin(seed * 3.3 + i * 2.1))) * lerp(0.5, 1, liveHeightFraction);
+      config.noteMinRadius *
+      intensity *
+      (0.065 + 0.08 * Math.abs(Math.sin(seed * 3.3 + i * 2.1))) *
+      lerp(0.5, 1, liveHeightFraction);
     const alpha = Math.pow(liveHeightFraction, 0.5);
     if (radius <= 0.2 || alpha <= 0.03) continue;
 
@@ -440,17 +467,20 @@ function drawClickFlash(
   elapsedSeconds: number,
   seed: number,
   withParticles: boolean,
-  drawBurstDroplets: boolean = withParticles
+  drawBurstDroplets: boolean = withParticles,
+  laneColors: Record<Fret, string> = LANE_COLORS,
+  palette: Palette = COLORS,
+  intensity: number = 1
 ): void {
   const t = clamp01(elapsedSeconds / ABSORB_DURATION_SECONDS);
-  const laneColor = LANE_COLORS[fret] ?? COLORS.noteFallback;
-  const baseColor = withParticles ? laneColor : mix(laneColor, COLORS.pipeMissGradientStops[2], 0.6);
+  const laneColor = laneColors[fret] ?? palette.noteFallback;
+  const baseColor = withParticles ? laneColor : mix(laneColor, palette.pipeMissGradientStops[2], 0.6);
   const x = laneX(fret, 1, config);
   const y = config.hitLineY;
 
   const flashT = clamp01(elapsedSeconds / (ABSORB_DURATION_SECONDS * ABSORB_FLASH_FRACTION));
   if (flashT < 1) {
-    const flashRx = config.pipeMouthRadius * lerp(0.5, 0.95, flashT);
+    const flashRx = config.pipeMouthRadius * intensity * lerp(0.5, 0.95, flashT);
     const flashRy = flashRx * 0.4;
     ctx.globalAlpha = (1 - flashT) * 0.9;
     ctx.fillStyle = lighten(baseColor, 0.85);
@@ -459,7 +489,7 @@ function drawClickFlash(
     ctx.fill();
   }
 
-  const outerRx = lerp(config.pipeMouthRadius * 0.55, config.pipeMouthRadius * 1.6, t);
+  const outerRx = lerp(config.pipeMouthRadius * 0.55, config.pipeMouthRadius * intensity * 1.6, t);
   const outerRy = outerRx * 0.4;
   ctx.globalAlpha = 1 - t;
   ctx.strokeStyle = lighten(baseColor, 0.5);
@@ -469,7 +499,7 @@ function drawClickFlash(
   ctx.stroke();
 
   const innerT = clamp01(elapsedSeconds / (ABSORB_DURATION_SECONDS * ABSORB_INNER_RING_FRACTION));
-  const innerRx = lerp(config.pipeMouthRadius * 0.3, config.pipeMouthRadius * 1.05, innerT);
+  const innerRx = lerp(config.pipeMouthRadius * 0.3, config.pipeMouthRadius * intensity * 1.05, innerT);
   const innerRy = innerRx * 0.4;
   ctx.globalAlpha = (1 - innerT) * 0.8;
   ctx.strokeStyle = lighten(baseColor, 0.75);
@@ -484,11 +514,54 @@ function drawClickFlash(
   }
 
   if (drawBurstDroplets) {
-    const arc = Math.sin(clamp01(t) * Math.PI); // rises then falls back down into the pipe, within the impact window
-    drawSplashDroplets(ctx, x, y, config, baseColor, seed, arc);
+    const arc = Math.sin(clamp01(t) * Math.PI);
+    drawSplashDroplets(ctx, x, y, config, baseColor, seed, arc, 0, intensity);
   }
 
   ctx.globalAlpha = 1;
+}
+
+const LIGHTNING_BOLT_COUNT = 3;
+const LIGHTNING_SEGMENT_COUNT = 6;
+const LIGHTNING_FLICKER_HZ = 9;
+
+function pseudoRandom(seed: number): number {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function drawLightningBolt(ctx: CanvasLike2D, config: RenderConfig, index: number, currentTime: number, palette: Palette): void {
+  const flickerFrame = Math.floor(currentTime * LIGHTNING_FLICKER_HZ);
+  const flicker = pseudoRandom(flickerFrame + index * 97.3);
+  if (flicker < 0.55) return;
+
+  const side: -1 | 1 = index % 2 === 0 ? -1 : 1;
+  const startX = highwayEdgeX(side, 0, config) + side * config.noteMaxRadius * 1.5;
+  const startY = config.canvasHeight * (0.05 + pseudoRandom(index * 3.1) * 0.1);
+  const endX = highwayEdgeX(side, 1, config) + side * config.noteMaxRadius * 2;
+  const endY = config.hitLineY * (0.7 + pseudoRandom(index * 5.7) * 0.3);
+
+  ctx.strokeStyle = lighten(palette.laneBlue, 0.6);
+  ctx.lineWidth = Math.max(2, config.noteMaxRadius * 0.12);
+  ctx.globalAlpha = 0.55 + pseudoRandom(index * 7.3 + flickerFrame) * 0.35;
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  for (let i = 1; i <= LIGHTNING_SEGMENT_COUNT; i++) {
+    const t = i / LIGHTNING_SEGMENT_COUNT;
+    const baseX = startX + (endX - startX) * t;
+    const baseY = startY + (endY - startY) * t;
+    const jitterSeed = index * 13.7 + i * 4.1 + flickerFrame * 1.9;
+    const jitter = (pseudoRandom(jitterSeed) - 0.5) * config.noteMaxRadius * 1.4;
+    ctx.lineTo(baseX + jitter, baseY);
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function drawLightningBolts(ctx: CanvasLike2D, config: RenderConfig, currentTime: number, palette: Palette): void {
+  for (let i = 0; i < LIGHTNING_BOLT_COUNT; i++) {
+    drawLightningBolt(ctx, config, i, currentTime, palette);
+  }
 }
 
 export function drawFrame(
@@ -501,19 +574,25 @@ export function drawFrame(
   missedKeys: ReadonlySet<string> = EMPTY_MISSED_KEYS,
   errorClicks: ReadonlyMap<Fret, number> = EMPTY_ERROR_CLICKS,
   lastErrorAt: number | null = null,
-  openHoldReleaseAt: ReadonlyMap<string, number> = EMPTY_OPEN_HOLD_RELEASE
+  openHoldReleaseAt: ReadonlyMap<string, number> = EMPTY_OPEN_HOLD_RELEASE,
+  palette: Palette = COLORS,
+  intense: boolean = false,
+  starPowerPhrases: StarPowerPhrase[] = EMPTY_STAR_POWER_PHRASES
 ): VisibleNote[] {
-  ctx.fillStyle = COLORS.canvasBackground;
+  const laneColors = laneColorsFor(palette);
+  const intensity = intense ? 1.6 : 1;
+
+  ctx.fillStyle = palette.canvasBackground;
   ctx.fillRect(0, 0, config.canvasWidth, config.canvasHeight);
 
   const railMissIntensity =
     lastErrorAt === null ? 0 : 1 - clamp01((currentTime - lastErrorAt) / RAIL_MISS_FADE_SECONDS);
 
-  drawFretboardGrid(ctx, config, currentTime);
-  drawEdgeRail(ctx, -1, config, railMissIntensity);
-  drawEdgeRail(ctx, 1, config, railMissIntensity);
+  drawFretboardGrid(ctx, config, currentTime, palette);
+  drawEdgeRail(ctx, -1, config, railMissIntensity, palette);
+  drawEdgeRail(ctx, 1, config, railMissIntensity, palette);
   for (const fret of config.laneOrder) {
-    drawPipeBarrelAndMouth(ctx, fret, config);
+    drawPipeBarrelAndMouth(ctx, fret, config, laneColors, palette);
   }
 
   for (const [fret, pressedAt] of errorClicks) {
@@ -521,7 +600,7 @@ export function drawFrame(
     if (elapsed >= 0 && elapsed <= ABSORB_DURATION_SECONDS) {
       const flashFrets = fret === 7 ? config.laneOrder : [fret];
       for (const flashFret of flashFrets) {
-        drawClickFlash(ctx, flashFret, config, elapsed, pressedAt, false);
+        drawClickFlash(ctx, flashFret, config, elapsed, pressedAt, false, false, laneColors, palette, intensity);
       }
     }
   }
@@ -530,7 +609,7 @@ export function drawFrame(
 
   for (const note of visible) {
     if (note.fret !== 7 || note.sustainDrops.length === 0) continue;
-    const baseColor = LANE_COLORS[note.fret] ?? COLORS.noteFallback;
+    const baseColor = laneColors[note.fret] ?? palette.noteFallback;
     for (const drop of note.sustainDrops) {
       drawSustainDrop(ctx, drop.x, drop.y, drop.radius, baseColor, 0.75);
     }
@@ -549,7 +628,7 @@ export function drawFrame(
 
       if (elapsed >= 0 && elapsed <= ABSORB_DURATION_SECONDS) {
         for (const flashFret of flashFrets) {
-          drawClickFlash(ctx, flashFret, config, elapsed, note.time, true, !isHeldOpen);
+          drawClickFlash(ctx, flashFret, config, elapsed, note.time, true, !isHeldOpen, laneColors, palette, intensity);
         }
       }
 
@@ -564,7 +643,7 @@ export function drawFrame(
           releasedAt !== undefined ? Math.min(rise, clamp01(1 - (currentTime - releasedAt) / OPEN_RESIDUE_FALL_SECONDS)) : rise;
         if (heightFraction > 0.02) {
           for (const flashFret of flashFrets) {
-            const laneColor = LANE_COLORS[flashFret] ?? COLORS.noteFallback;
+            const laneColor = laneColors[flashFret] ?? palette.noteFallback;
             drawSplashDroplets(
               ctx,
               laneX(flashFret, 1, config),
@@ -573,16 +652,26 @@ export function drawFrame(
               laneColor,
               note.time,
               heightFraction,
-              currentTime
+              currentTime,
+              intensity
             );
           }
         }
       }
     }
 
+    const inStarPowerPhrase =
+      judgedAt === undefined &&
+      !isMissed &&
+      starPowerPhrases.length > 0 &&
+      isWithinStarPowerPhrase(starPowerPhrases, note.time);
+    if (inStarPowerPhrase) {
+      drawStarPowerHalo(ctx, note.x, note.y, note.radius, currentTime, palette);
+    }
+
     const isSustain = note.fret !== 7 && note.duration > 0;
     if (isSustain) {
-      const baseColor = LANE_COLORS[note.fret] ?? COLORS.noteFallback;
+      const baseColor = laneColors[note.fret] ?? palette.noteFallback;
       const color = isMissed ? desaturate(baseColor, MISS_DESATURATION_AMOUNT) : baseColor;
       drawSustainTrail(ctx, note, config, currentTime, color, !isMissed && holdingKeys.has(key));
       continue;
@@ -593,7 +682,7 @@ export function drawFrame(
     const progress = note.y / config.hitLineY;
     const fadeEnd = 1 + config.despawnAfter / config.approachTime;
     const alpha = progress <= 1 ? 1 : 1 - clamp01((progress - 1) / (fadeEnd - 1));
-    const baseColor = LANE_COLORS[note.fret] ?? COLORS.noteFallback;
+    const baseColor = laneColors[note.fret] ?? palette.noteFallback;
     const color = isMissed ? desaturate(baseColor, MISS_DESATURATION_AMOUNT) : baseColor;
 
     if (note.fret === 7) {
@@ -605,6 +694,8 @@ export function drawFrame(
       drawDrop(ctx, note.x, note.y, note.radius, color, alpha);
     }
   }
+
+  if (intense) drawLightningBolts(ctx, config, currentTime, palette);
 
   return visible;
 }

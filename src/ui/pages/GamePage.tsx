@@ -1,16 +1,19 @@
 import { useEffect, useMemo } from "react";
 import type { ParsedChart } from "parsehero";
-import styled from "styled-components";
+import styled, { ThemeProvider } from "styled-components";
 import { Button } from "lcano-react-ui";
 import type { Difficulty, Song } from "../../types.js";
 import { loadTrack } from "../../engine/chartTrack.js";
 import { trackNameForDifficulty } from "../../engine/availableTracks.js";
-import { extractStarPowerPhrases } from "../../engine/starPower.js";
+import { extractStarPowerPhrases, synthesizeStarPowerPhrases } from "../../engine/starPower.js";
 import { computeStars } from "../../scoring/stars.js";
 import { useGamePlaythrough } from "../hooks/useGamePlaythrough.js";
+import { pipeHeroTheme, starPowerTheme } from "../theme.js";
 import GameCanvas from "../components/GameCanvas.js";
-import StarPowerBar from "../components/StarPowerBar.js";
+import ScoreBox from "../components/ScoreBox.js";
+import PowerGauge from "../components/PowerGauge.js";
 import ResultsOverlay from "../components/ResultsOverlay.js";
+import FailedOverlay from "../components/FailedOverlay.js";
 
 function submitScore(songId: string, difficulty: Difficulty, stars: number, fullCombo: boolean): void {
   fetch("/api/scores", {
@@ -35,8 +38,9 @@ export default function GamePage({
 
   const starPowerPhrases = useMemo(() => {
     const trackName = trackNameForDifficulty(difficulty);
-    return extractStarPowerPhrases(chart[trackName], chart.Song.resolution, chart.SyncTrack.bpms);
-  }, [chart, difficulty]);
+    const fromChart = extractStarPowerPhrases(chart[trackName], chart.Song.resolution, chart.SyncTrack.bpms);
+    return fromChart.length > 0 ? fromChart : synthesizeStarPowerPhrases(notes);
+  }, [chart, difficulty, notes]);
 
   const chartOffsetSeconds = chart.Song.offset ?? 0;
 
@@ -65,16 +69,19 @@ export default function GamePage({
         <GameCanvas canvasRef={canvasRef} />
 
         {phase === "playing" && (
-          <>
-            <ScoreOverlay>{hud.score}</ScoreOverlay>
-            <StarPowerOverlay>
-              <StarPowerBar meter={hud.starPowerMeter} active={hud.starPowerActive} />
-            </StarPowerOverlay>
+          <ThemeProvider theme={hud.starPowerActive ? starPowerTheme : pipeHeroTheme}>
+            <ScoreBoxOverlay>
+              <ScoreBox score={hud.score} combo={hud.combo} multiplier={hud.multiplier} starPowerActive={hud.starPowerActive} />
+            </ScoreBoxOverlay>
+            <PowerGaugeOverlay>
+              <PowerGauge rockMeter={hud.rockMeter} starPowerMeter={hud.starPowerMeter} starPowerActive={hud.starPowerActive} />
+            </PowerGaugeOverlay>
             {needsTapToStart && <TapToStartOverlay onClick={start}>Tap to start</TapToStartOverlay>}
-          </>
+          </ThemeProvider>
         )}
 
         {phase === "results" && results && <ResultsOverlay song={song} results={results} onBack={onBack} />}
+        {phase === "failed" && results && <FailedOverlay song={song} results={results} onBack={onBack} onRetry={start} />}
 
         <audio ref={audioRef} src={song.audioUrl ?? ""} preload="auto" />
       </CanvasArea>
@@ -116,22 +123,17 @@ const CanvasArea = styled.div`
   min-height: 0;
 `;
 
-const ScoreOverlay = styled.div`
+const ScoreBoxOverlay = styled.div`
   position: absolute;
   top: 16px;
   left: 20px;
-  font-size: 2.2em;
-  font-weight: bold;
-  color: ${({ theme }) => theme.colors.white};
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
   pointer-events: none;
 `;
 
-const StarPowerOverlay = styled.div`
+const PowerGaugeOverlay = styled.div`
   position: absolute;
-  top: 20px;
+  top: 16px;
   right: 20px;
-  width: min(260px, 32vw);
   pointer-events: none;
 `;
 

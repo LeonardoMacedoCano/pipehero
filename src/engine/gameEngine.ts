@@ -4,11 +4,25 @@ import { classifyTiming, DEFAULT_JUDGMENT_WINDOWS } from "./judge.js";
 const SCORE_BY_RATING = { perfect: 100, good: 50, miss: 0 };
 const SUSTAIN_HOLD_BONUS = 50;
 
+const MULTIPLIER_STREAK_STEP = 10;
+const MAX_BASE_MULTIPLIER = 4;
+
 const MAX_STAR_POWER_METER = 100;
 const STAR_POWER_ACTIVATION_THRESHOLD = 50;
-const STAR_POWER_DRAIN_SECONDS = 12;
+const STAR_POWER_METER_EPSILON = 1e-6;
+const STAR_POWER_DRAIN_SECONDS = 25;
 const STAR_POWER_DRAIN_PER_SECOND = MAX_STAR_POWER_METER / STAR_POWER_DRAIN_SECONDS;
 const STAR_POWER_SCORE_MULTIPLIER = 2;
+
+const MAX_ROCK_METER = 100;
+const ROCK_METER_START = 50;
+const ROCK_METER_PERFECT_GAIN = 3;
+const ROCK_METER_GOOD_GAIN = 1.5;
+const ROCK_METER_MISS_LOSS = 8;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
 
 export function createGameEngine(
   events: PlayableEvent[],
@@ -29,6 +43,8 @@ export function createGameEngine(
   let combo = 0;
   let maxCombo = 0;
   let score = 0;
+  let rockMeter = ROCK_METER_START;
+  let failed = false;
 
   const phraseTotals = starPowerPhrases.map(
     (_, index) => pending.filter((event) => event.starPowerPhraseIndex === index).length
@@ -43,7 +59,13 @@ export function createGameEngine(
   }
 
   function scoreMultiplier(): number {
-    return starPowerActive ? STAR_POWER_SCORE_MULTIPLIER : 1;
+    const baseMultiplier = Math.min(MAX_BASE_MULTIPLIER, 1 + Math.floor(combo / MULTIPLIER_STREAK_STEP));
+    return baseMultiplier * (starPowerActive ? STAR_POWER_SCORE_MULTIPLIER : 1);
+  }
+
+  function loseRockMeter(amount: number): void {
+    rockMeter = clamp(rockMeter - amount, 0, MAX_ROCK_METER);
+    if (rockMeter <= 0) failed = true;
   }
 
   function creditStarPower(event: GameEvent): void {
@@ -53,7 +75,7 @@ export function createGameEngine(
   }
 
   function activateStarPower(): boolean {
-    if (starPowerActive || starPowerMeter < STAR_POWER_ACTIVATION_THRESHOLD) return false;
+    if (starPowerActive || starPowerMeter < STAR_POWER_ACTIVATION_THRESHOLD - STAR_POWER_METER_EPSILON) return false;
     starPowerActive = true;
     return true;
   }
@@ -105,7 +127,10 @@ export function createGameEngine(
       combo += 1;
       maxCombo = Math.max(maxCombo, combo);
       score += Math.round(SCORE_BY_RATING[rating] * scoreMultiplier());
-      if (rating !== "miss") creditStarPower(event);
+      if (rating !== "miss") {
+        creditStarPower(event);
+        rockMeter = clamp(rockMeter + (rating === "perfect" ? ROCK_METER_PERFECT_GAIN : ROCK_METER_GOOD_GAIN), 0, MAX_ROCK_METER);
+      }
 
       if (event.duration > 0) {
         holdingEvents.add(event);
@@ -137,6 +162,7 @@ export function createGameEngine(
         misses.push(event);
         newlyMissed.push(event);
         combo = 0;
+        loseRockMeter(ROCK_METER_MISS_LOSS);
       }
     }
 
@@ -173,6 +199,9 @@ export function createGameEngine(
       totalNotes: events.length,
       starPowerMeter,
       starPowerActive,
+      multiplier: scoreMultiplier(),
+      rockMeter,
+      failed,
     };
   }
 
