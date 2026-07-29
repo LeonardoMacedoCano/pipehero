@@ -5,6 +5,8 @@ import { drawFrame, ABSORB_DURATION_SECONDS, OPEN_RESIDUE_FALL_SECONDS } from ".
 import { createRenderConfig, highwayBuildConfig, noteRenderKey } from "../../render/layout.js";
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
+import { playBooSound } from "../../audio/booSound.js";
+import { COLORS, STAR_POWER_COLORS } from "../../colors.js";
 import { fretForBinding, isStarPowerBinding, DEFAULT_ACTION_BINDINGS } from "../../game/keymap.js";
 import { getBindings, type ActionBindings } from "../../game/keymapStore.js";
 import { judgmentWindowsForDifficulty } from "../../engine/judge.js";
@@ -12,13 +14,23 @@ import { useGamepadPolling } from "./useGamepadPolling.js";
 
 interface Hud {
   score: number;
+  combo: number;
+  multiplier: number;
   starPowerMeter: number;
   starPowerActive: boolean;
+  rockMeter: number;
 }
 
-const INITIAL_HUD: Hud = { score: 0, starPowerMeter: 0, starPowerActive: false };
+const INITIAL_HUD: Hud = {
+  score: 0,
+  combo: 0,
+  multiplier: 1,
+  starPowerMeter: 0,
+  starPowerActive: false,
+  rockMeter: 50,
+};
 
-export type GamePhase = "playing" | "results";
+export type GamePhase = "playing" | "results" | "failed";
 
 const HIGHWAY_BUILD_INTRO_MS = 550;
 const HIGHWAY_BUILD_OUTRO_MS = 500;
@@ -56,6 +68,7 @@ export function useGamePlaythrough({
   const lastErrorAtRef = useRef<number | null>(null);
   const introStartRef = useRef<number | null>(null);
   const endedAtRef = useRef<number | null>(null);
+  const failedAtRef = useRef<number | null>(null);
   const resultsSnapshotRef = useRef<GameState | null>(null);
 
   const noteByKey = useMemo(() => {
@@ -115,6 +128,19 @@ export function useGamePlaythrough({
       return;
     }
 
+    if (failedAtRef.current !== null) {
+      const outroElapsed = performance.now() - failedAtRef.current;
+      const remaining = 1 - Math.min(1, outroElapsed / HIGHWAY_BUILD_OUTRO_MS);
+      drawFrame(ctx, [], 0, highwayBuildConfig(config, easeInCubic(remaining)));
+      if (outroElapsed < HIGHWAY_BUILD_OUTRO_MS) {
+        rafRef.current = requestAnimationFrame(loop);
+      } else {
+        setResults(resultsSnapshotRef.current);
+        setPhase("failed");
+      }
+      return;
+    }
+
     const { chartTime, newlyMissed } = playthrough.tick();
 
     for (const [key, judgedAt] of judgedHitsRef.current) {
@@ -141,6 +167,12 @@ export function useGamePlaythrough({
     }
 
     const state = playthrough.getState();
+    if (state.failed && failedAtRef.current === null) {
+      failedAtRef.current = performance.now();
+      resultsSnapshotRef.current = state;
+      audio.pause();
+      playBooSound();
+    }
     const previouslyHoldingKeys = holdingKeysRef.current;
     holdingKeysRef.current = new Set();
     for (const event of state.activeHolds) {
@@ -161,6 +193,8 @@ export function useGamePlaythrough({
         ? highwayBuildConfig(config, easeOutCubic(introElapsed / HIGHWAY_BUILD_INTRO_MS))
         : config;
 
+    const palette = state.starPowerActive ? STAR_POWER_COLORS : COLORS;
+
     drawFrame(
       ctx,
       notes,
@@ -171,12 +205,22 @@ export function useGamePlaythrough({
       missedKeysRef.current,
       errorClicksRef.current,
       lastErrorAtRef.current,
-      openHoldReleaseAtRef.current
+      openHoldReleaseAtRef.current,
+      palette,
+      state.starPowerActive,
+      starPowerPhrases ?? []
     );
 
-    setHud({ score: state.score, starPowerMeter: state.starPowerMeter, starPowerActive: state.starPowerActive });
+    setHud({
+      score: state.score,
+      combo: state.combo,
+      multiplier: state.multiplier,
+      starPowerMeter: state.starPowerMeter,
+      starPowerActive: state.starPowerActive,
+      rockMeter: state.rockMeter,
+    });
 
-    if (!audio.paused) {
+    if (!audio.paused || failedAtRef.current !== null) {
       rafRef.current = requestAnimationFrame(loop);
     }
   }, [notes, noteByKey]);
@@ -188,6 +232,7 @@ export function useGamePlaythrough({
     createFreshPlaythrough();
     audio.currentTime = 0;
     endedAtRef.current = null;
+    failedAtRef.current = null;
     resultsSnapshotRef.current = null;
     setResults(null);
     setPhase("playing");
@@ -213,6 +258,7 @@ export function useGamePlaythrough({
     openHoldReleaseAtRef.current.clear();
     lastErrorAtRef.current = null;
     endedAtRef.current = null;
+    failedAtRef.current = null;
     resultsSnapshotRef.current = null;
 
     const canvas = canvasRef.current;

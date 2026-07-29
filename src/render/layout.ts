@@ -1,5 +1,5 @@
 import type { Fret, Note } from "../types.js";
-import { COLORS } from "../colors.js";
+import { COLORS, type Palette } from "../colors.js";
 
 export interface RenderConfig {
   canvasWidth: number;
@@ -76,14 +76,18 @@ export function highwayBuildConfig(config: RenderConfig, buildProgress: number):
   };
 }
 
-export const LANE_COLORS: Record<Fret, string> = {
-  0: COLORS.laneGreen,
-  1: COLORS.laneRed,
-  2: COLORS.laneYellow,
-  3: COLORS.laneBlue,
-  4: COLORS.laneOrange,
-  7: COLORS.laneOpen,
-};
+export function laneColorsFor(palette: Palette): Record<Fret, string> {
+  return {
+    0: palette.laneGreen,
+    1: palette.laneRed,
+    2: palette.laneYellow,
+    3: palette.laneBlue,
+    4: palette.laneOrange,
+    7: palette.laneOpen,
+  };
+}
+
+export const LANE_COLORS: Record<Fret, string> = laneColorsFor(COLORS);
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));

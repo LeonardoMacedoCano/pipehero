@@ -21,6 +21,7 @@
     "test:integration:render-visual": "tsx test/integration/render-visual.ts",
     "test:integration:gameplay-simulation": "tsx test/integration/gameplay-simulation.ts",
     "test:integration:chords-and-sustains": "tsx test/integration/chords-and-sustains.ts",
+    "test:integration:star-power-timing": "tsx test/integration/star-power-timing.ts",
     "test:integration:song-server": "tsx test/integration/song-server.ts",
     "test:integration:auth-server": "tsx test/integration/auth-server.ts",
     "test:integration:menu-dom": "tsx test/integration/menu-dom.ts",

@@ -24,8 +24,19 @@ const lastEvent = events[events.length - 1];
 engine.update(lastEvent.time + lastEvent.duration + 1);
 
 const state = engine.getState();
-const expectedBaseScore = events.length * 100;
-const expectedSustainBonus = sustainEvents.length * 50;
+
+const MULTIPLIER_STREAK_STEP = 10;
+const MAX_BASE_MULTIPLIER = 4;
+function multiplierForCombo(combo: number): number {
+  return Math.min(MAX_BASE_MULTIPLIER, 1 + Math.floor(combo / MULTIPLIER_STREAK_STEP));
+}
+
+let expectedBaseScore = 0;
+for (let i = 1; i <= events.length; i++) {
+  expectedBaseScore += 100 * multiplierForCombo(i);
+}
+const finalMultiplier = multiplierForCombo(events.length);
+const expectedSustainBonus = sustainEvents.length * 50 * finalMultiplier;
 const expectedScore = expectedBaseScore + expectedSustainBonus;
 
 console.log("\n=== Scenario: perfect player (hits everything, holds sustains to the end) ===");

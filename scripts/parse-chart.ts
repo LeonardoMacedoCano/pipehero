@@ -7,8 +7,11 @@ if (!path) {
   process.exit(1);
 }
 
-const raw = readFileSync(path, "utf-8");
-const { chart, warnings } = parseChart(raw);
+const isMid = path.toLowerCase().endsWith(".mid");
+const fileBuffer = readFileSync(path);
+const { chart, warnings } = isMid
+  ? parseChart(fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength))
+  : parseChart(fileBuffer.toString("utf-8"));
 
 console.log("=== Song ===");
 console.log(chart.Song);
@@ -34,6 +37,15 @@ for (const trackName of trackNames) {
   console.log(
     `Summary: ${chords.length} chord notes, ${sustains.length} sustains, ${hopos.length} HOPOs`
   );
+
+  const starPowerEvents = (events as unknown as { type: string; tick: number; duration: number; assignedTime: number }[]).filter(
+    (e) => e.type === "starpower"
+  );
+  console.log(`Star Power phrases: ${starPowerEvents.length}`);
+  for (const sp of starPowerEvents) {
+    console.log(`  tick=${sp.tick}\tt=${sp.assignedTime.toFixed(4)}s\tduration=${sp.duration} ticks`);
+  }
+
   console.log("\nFull list (tick, time-s, fret, duration, chord, hopo, forced):");
   for (const n of notes) {
     console.log(

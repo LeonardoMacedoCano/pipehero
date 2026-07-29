@@ -56,6 +56,9 @@ export interface GameState {
   totalNotes: number;
   starPowerMeter: number;
   starPowerActive: boolean;
+  multiplier: number;
+  rockMeter: number;
+  failed: boolean;
 }
 
 export type KeyDownResult =

@@ -1,25 +1,30 @@
 import type { AppTheme } from "lcano-react-ui";
-import { COLORS } from "../colors.js";
+import { COLORS, STAR_POWER_COLORS, type Palette } from "../colors.js";
 
-export const pipeHeroTheme: AppTheme = {
-  title: "PipeHero",
-  colors: {
-    primary: COLORS.primary,
-    secondary: COLORS.secondary,
-    tertiary: COLORS.tertiary,
-    quaternary: COLORS.quaternary,
-    white: COLORS.white,
-    black: COLORS.black,
-    gray: COLORS.gray,
-    success: COLORS.success,
-    info: COLORS.info,
-    warning: COLORS.warning,
+function themeFromPalette(title: string, palette: Palette): AppTheme {
+  return {
+    title,
+    colors: {
+      primary: palette.primary,
+      secondary: palette.secondary,
+      tertiary: palette.tertiary,
+      quaternary: palette.quaternary,
+      white: palette.white,
+      black: palette.black,
+      gray: palette.gray,
+      success: palette.success,
+      info: palette.info,
+      warning: palette.warning,
 
-    laneGreen: COLORS.laneGreen,
-    laneRed: COLORS.laneRed,
-    laneYellow: COLORS.laneYellow,
-    laneBlue: COLORS.laneBlue,
-    laneOrange: COLORS.laneOrange,
-    laneOpen: COLORS.laneOpen,
-  },
-};
+      laneGreen: palette.laneGreen,
+      laneRed: palette.laneRed,
+      laneYellow: palette.laneYellow,
+      laneBlue: palette.laneBlue,
+      laneOrange: palette.laneOrange,
+      laneOpen: palette.laneOpen,
+    },
+  };
+}
+
+export const pipeHeroTheme: AppTheme = themeFromPalette("PipeHero", COLORS);
+export const starPowerTheme: AppTheme = themeFromPalette("PipeHero — Star Power", STAR_POWER_COLORS);
