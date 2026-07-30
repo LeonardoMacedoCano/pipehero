@@ -49,41 +49,46 @@ function rockGlowColor(tier: RockTier, theme: DefaultTheme): string {
   return theme.colors.success;
 }
 
-function Finger({
-  originX,
-  originY,
-  angleDeg,
-  width,
-  length,
-  color,
-}: {
-  originX: number;
-  originY: number;
-  angleDeg: number;
-  width: number;
-  length: number;
-  color: string;
-}) {
-  return (
-    <g transform={`translate(${originX}, ${originY}) rotate(${angleDeg})`}>
-      <rect x={-width / 2} y={-length} width={width} height={length + width / 2} rx={width / 2} fill={color} stroke={BONE_OUTLINE} strokeWidth={2.2} />
-    </g>
-  );
+function lobeD(x1: number, y1: number, r1: number, x2: number, y2: number, r2: number): string {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const dist = Math.hypot(dx, dy);
+  const cosBeta = Math.max(-1, Math.min(1, (r1 - r2) / dist));
+  const beta = Math.acos(cosBeta);
+  const axisAngle = Math.atan2(dy, dx);
+  const a1 = axisAngle + beta;
+  const a2 = axisAngle - beta;
+  const p1x = x1 + r1 * Math.cos(a1);
+  const p1y = y1 + r1 * Math.sin(a1);
+  const p2x = x2 + r2 * Math.cos(a1);
+  const p2y = y2 + r2 * Math.sin(a1);
+  const p3x = x2 + r2 * Math.cos(a2);
+  const p3y = y2 + r2 * Math.sin(a2);
+  const p4x = x1 + r1 * Math.cos(a2);
+  const p4y = y1 + r1 * Math.sin(a2);
+  return `M ${p1x} ${p1y} L ${p2x} ${p2y} A ${r2} ${r2} 0 0 0 ${p3x} ${p3y} L ${p4x} ${p4y} A ${r1} ${r1} 0 0 0 ${p1x} ${p1y} Z`;
+}
+
+function Lobe({ x1, y1, r1, x2, y2, r2, color }: { x1: number; y1: number; r1: number; x2: number; y2: number; r2: number; color: string }) {
+  return <path d={lobeD(x1, y1, r1, x2, y2, r2)} fill={color} />;
 }
 
 function Palm({ color }: { color: string }) {
-  return <rect x="22" y="58" width="56" height="34" rx="17" fill={color} stroke={BONE_OUTLINE} strokeWidth={2.2} />;
+  return <rect x="20" y="46" width="60" height="46" rx="22" fill={color} />;
+}
+
+function Wrist({ color }: { color: string }) {
+  return <rect x="36" y="86" width="28" height="18" rx="8" fill={color} />;
 }
 
 function RockHandGlyph({ color }: { color: string }) {
   return (
     <>
+      <Wrist color={color} />
       <Palm color={color} />
-      <Finger originX={37} originY={62} angleDeg={-12} width={17} length={52} color={color} />
-      <Finger originX={63} originY={60} angleDeg={9} width={16} length={58} color={color} />
-      <Finger originX={45} originY={60} angleDeg={0} width={10} length={26} color={color} />
-      <Finger originX={55} originY={62} angleDeg={0} width={10} length={22} color={color} />
-      <Finger originX={30} originY={68} angleDeg={-42} width={15} length={30} color={color} />
+      <Lobe x1={34} y1={48} r1={10} x2={26} y2={12} r2={7} color={color} />
+      <Lobe x1={66} y1={48} r1={9.5} x2={74} y2={16} r2={6.5} color={color} />
+      <Lobe x1={30} y1={64} r1={11} x2={11} y2={55} r2={7.5} color={color} />
     </>
   );
 }
@@ -100,6 +105,7 @@ export default function PowerGauge({
   const theme = useTheme();
   const boltClipId = useId();
   const boltGradientId = useId();
+  const handOutlineId = useId();
 
   const rockFill = clamp01to100(rockMeter);
   const rockTier = rockTierFor(rockFill);
@@ -114,13 +120,26 @@ export default function PowerGauge({
     <IronPipeFrame glow={starPowerActive}>
       <Layout>
         <HandWrapper $shake={rockShaking} style={{ color: rockGlow }}>
-          <svg viewBox="0 0 100 100" width="80" height="80" role="img" aria-label="Rock Meter">
-            <RockHandGlyph color={theme.colors.white} />
+          <svg viewBox="0 0 100 100" width="64" height="64" role="img" aria-label="Rock Meter">
+            <defs>
+              <filter id={handOutlineId} x="-30%" y="-30%" width="160%" height="160%">
+                <feMorphology in="SourceAlpha" operator="dilate" radius="2.2" result="dilated" />
+                <feFlood floodColor={BONE_OUTLINE} result="outlineColor" />
+                <feComposite in="outlineColor" in2="dilated" operator="in" result="outline" />
+                <feMerge>
+                  <feMergeNode in="outline" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            <g filter={`url(#${handOutlineId})`}>
+              <RockHandGlyph color={theme.colors.white} />
+            </g>
           </svg>
         </HandWrapper>
 
         <BoltWrapper $ready={starReady} $active={starPowerActive}>
-          <svg viewBox="0 0 100 100" width="80" height="80" role="img" aria-label="Star Power">
+          <svg viewBox="0 0 100 100" width="64" height="64" role="img" aria-label="Star Power">
             <defs>
               <linearGradient id={boltGradientId} x1="0" y1="1" x2="0" y2="0">
                 <stop offset="0%" stopColor={BOLT_COLOR} />
@@ -156,7 +175,7 @@ const shake = keyframes`
 const Layout = styled.div`
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
 `;
 
 const HandWrapper = styled.div<{ $shake: boolean }>`

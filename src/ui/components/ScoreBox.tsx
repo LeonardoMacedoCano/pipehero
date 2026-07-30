@@ -4,10 +4,10 @@ import IronPipeFrame from "./IronPipeFrame.js";
 const TIER_COLOR_KEYS = ["tertiary", "laneGreen", "laneYellow", "laneOrange"] as const;
 
 function scoreFontSize(digits: number): string {
-  if (digits <= 5) return "2.6em";
-  if (digits === 6) return "2.15em";
-  if (digits === 7) return "1.85em";
-  return "1.6em";
+  if (digits <= 5) return "2.2em";
+  if (digits === 6) return "1.85em";
+  if (digits === 7) return "1.55em";
+  return "1.2em";
 }
 
 export default function ScoreBox({
@@ -52,12 +52,12 @@ const Grille = styled.div`
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  padding: 8px 16px;
+  padding: 6px 14px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 8px;
   overflow: hidden;
   background-color: ${({ theme }) => theme.colors.black};
   background-image:
@@ -93,13 +93,13 @@ const Score = styled.div<{ $fontSize: string }>`
 const MultiplierBadge = styled.div<{ $colorKey: (typeof TIER_COLOR_KEYS)[number]; $pulse: boolean }>`
   display: inline-block;
   flex-shrink: 0;
-  padding: 3px 9px;
-  border-radius: 9px;
-  font-size: 1.8em;
+  padding: 2px 6px;
+  border-radius: 7px;
+  font-size: 1.3em;
   font-weight: bold;
   line-height: 1.3;
   color: ${({ theme, $colorKey }) => theme.colors[$colorKey]};
   background: rgba(0, 0, 0, 0.4);
-  border: 2px solid ${({ theme, $colorKey }) => theme.colors[$colorKey]};
+  border: 1.5px solid ${({ theme, $colorKey }) => theme.colors[$colorKey]};
   animation: ${({ $pulse }) => ($pulse ? pulse : "none")} 1s ease-in-out infinite;
 `;
