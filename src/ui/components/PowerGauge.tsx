@@ -1,5 +1,6 @@
 import styled, { keyframes, useTheme } from "styled-components";
 import IronPipeFrame from "./IronPipeFrame.js";
+import { rockTierFor } from "../../engine/rockMeter.js";
 
 const DIAL_CX = 100;
 const DIAL_CY = 95;
@@ -42,6 +43,7 @@ export default function PowerGauge({
   const needleRad = (needleAngleDeg * Math.PI) / 180;
   const needleX = DIAL_CX + NEEDLE_LENGTH * Math.cos(needleRad);
   const needleY = DIAL_CY - NEEDLE_LENGTH * Math.sin(needleRad);
+  const isCritical = rockTierFor(clamp01to100(rockMeter)) === "critical";
 
   const capsule1Fill = Math.min(100, (starPowerMeter / 50) * 100);
   const capsule2Fill = Math.max(0, Math.min(100, ((starPowerMeter - 50) / 50) * 100));
@@ -49,7 +51,7 @@ export default function PowerGauge({
   return (
     <IronPipeFrame glow={starPowerActive}>
       <Layout>
-        <DialWrapper>
+        <DialWrapper $critical={isCritical}>
           <Label>Rock Meter</Label>
           <svg viewBox="0 0 200 100" width="110" height="55">
             <polygon points={RED_WEDGE} fill={theme.colors.warning} />
@@ -84,6 +86,11 @@ const flicker = keyframes`
   50% { box-shadow: 0 0 4px 1px currentColor; opacity: 1; }
 `;
 
+const criticalFlash = keyframes`
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(232, 68, 60, 0.9)); }
+  50% { filter: drop-shadow(0 0 1px rgba(232, 68, 60, 0)); }
+`;
+
 const Label = styled.div`
   font-size: 0.7em;
   letter-spacing: 0.05em;
@@ -98,8 +105,9 @@ const Layout = styled.div`
   gap: 14px;
 `;
 
-const DialWrapper = styled.div`
+const DialWrapper = styled.div<{ $critical: boolean }>`
   width: 110px;
+  animation: ${({ $critical }) => ($critical ? criticalFlash : "none")} 0.4s ease-in-out infinite;
 `;
 
 const Capsules = styled.div`

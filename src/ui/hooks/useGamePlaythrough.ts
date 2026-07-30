@@ -6,6 +6,8 @@ import { createRenderConfig, highwayBuildConfig, noteRenderKey } from "../../ren
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
 import { playBooSound } from "../../audio/booSound.js";
+import { setCrowdAmbience, type CrowdAmbience } from "../../audio/crowdAmbience.js";
+import { rockTierFor } from "../../engine/rockMeter.js";
 import { COLORS, STAR_POWER_COLORS } from "../../colors.js";
 import { fretForBinding, isStarPowerBinding, DEFAULT_ACTION_BINDINGS } from "../../game/keymap.js";
 import { getBindings, type ActionBindings } from "../../game/keymapStore.js";
@@ -43,6 +45,13 @@ function easeOutCubic(t: number): number {
 function easeInCubic(t: number): number {
   const clamped = Math.min(1, Math.max(0, t));
   return clamped * clamped * clamped;
+}
+
+function crowdAmbienceForRockMeter(rockMeter: number): CrowdAmbience {
+  const tier = rockTierFor(rockMeter);
+  if (tier === "critical" || tier === "red") return "boo";
+  if (tier === "yellow") return "cheer";
+  return "loud-cheer";
 }
 
 export function useGamePlaythrough({
@@ -86,6 +95,7 @@ export function useGamePlaythrough({
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
     audioRef.current?.pause();
+    setCrowdAmbience("silent");
   }, []);
 
   const createFreshPlaythrough = useCallback(() => {
@@ -115,6 +125,7 @@ export function useGamePlaythrough({
       if (endedAtRef.current === null) {
         endedAtRef.current = performance.now();
         resultsSnapshotRef.current = playthrough.getState();
+        setCrowdAmbience("silent");
       }
       const outroElapsed = performance.now() - endedAtRef.current;
       const remaining = 1 - Math.min(1, outroElapsed / HIGHWAY_BUILD_OUTRO_MS);
@@ -171,7 +182,10 @@ export function useGamePlaythrough({
       failedAtRef.current = performance.now();
       resultsSnapshotRef.current = state;
       audio.pause();
+      setCrowdAmbience("silent");
       playBooSound();
+    } else {
+      setCrowdAmbience(crowdAmbienceForRockMeter(state.rockMeter));
     }
     const previouslyHoldingKeys = holdingKeysRef.current;
     holdingKeysRef.current = new Set();

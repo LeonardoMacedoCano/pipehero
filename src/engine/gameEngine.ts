@@ -1,5 +1,6 @@
 import type { Fret, GameEngine, GameEvent, JudgmentWindows, KeyDownResult, PlayableEvent, StarPowerPhrase } from "../types.js";
 import { classifyTiming, DEFAULT_JUDGMENT_WINDOWS } from "./judge.js";
+import { rockTierFor } from "./rockMeter.js";
 
 const SCORE_BY_RATING = { perfect: 100, good: 50, miss: 0 };
 const SUSTAIN_HOLD_BONUS = 50;
@@ -16,9 +17,9 @@ const STAR_POWER_SCORE_MULTIPLIER = 2;
 
 const MAX_ROCK_METER = 100;
 const ROCK_METER_START = 50;
-const ROCK_METER_PERFECT_GAIN = 3;
-const ROCK_METER_GOOD_GAIN = 1.5;
-const ROCK_METER_MISS_LOSS = 8;
+const ROCK_METER_HIT_GAIN = 3;
+const ROCK_METER_MISS_LOSS = ROCK_METER_HIT_GAIN * 3;
+const ROCK_METER_STAR_POWER_RESCUE_MULTIPLIER = 4;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -129,7 +130,9 @@ export function createGameEngine(
       score += Math.round(SCORE_BY_RATING[rating] * scoreMultiplier());
       if (rating !== "miss") {
         creditStarPower(event);
-        rockMeter = clamp(rockMeter + (rating === "perfect" ? ROCK_METER_PERFECT_GAIN : ROCK_METER_GOOD_GAIN), 0, MAX_ROCK_METER);
+        const rescued = starPowerActive && rockTierFor(rockMeter) === "critical";
+        const gain = ROCK_METER_HIT_GAIN * (rescued ? ROCK_METER_STAR_POWER_RESCUE_MULTIPLIER : 1);
+        rockMeter = clamp(rockMeter + gain, 0, MAX_ROCK_METER);
       }
 
       if (event.duration > 0) {
@@ -142,7 +145,9 @@ export function createGameEngine(
       return { type: "judged", event, rating };
     }
 
-    return { type: "unmatched", fret, time, awaitingChord: isAwaitingChord(fret, time) };
+    const awaitingChord = isAwaitingChord(fret, time);
+    if (!awaitingChord) loseRockMeter(ROCK_METER_MISS_LOSS);
+    return { type: "unmatched", fret, time, awaitingChord };
   }
 
   function handleKeyUp(fret: Fret, time: number): void {
