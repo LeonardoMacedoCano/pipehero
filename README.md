@@ -1,5 +1,7 @@
 # PipeHero
 
+<img src="./public/pipehero-icon.png" alt="PipeHero rock-hand icon" width="120" />
+
 ![Tests](https://github.com/LeonardoMacedoCano/pipehero/actions/workflows/test.yml/badge.svg)
 ![License](https://img.shields.io/github/license/LeonardoMacedoCano/pipehero)
 
