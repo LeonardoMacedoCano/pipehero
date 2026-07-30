@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import type { ParsedChart } from "parsehero";
-import styled, { ThemeProvider } from "styled-components";
+import styled, { ThemeProvider, css } from "styled-components";
 import { Button } from "lcano-react-ui";
 import type { Difficulty, Song } from "../../types.js";
 import { loadTrack } from "../../engine/chartTrack.js";
@@ -14,6 +14,7 @@ import ScoreBox from "../components/ScoreBox.js";
 import PowerGauge from "../components/PowerGauge.js";
 import ResultsOverlay from "../components/ResultsOverlay.js";
 import FailedOverlay from "../components/FailedOverlay.js";
+import { FRAME_WIDTH, cylinderGradientVertical } from "../components/IronPipeFrame.js";
 
 function submitScore(songId: string, difficulty: Difficulty, stars: number, fullCombo: boolean): void {
   fetch("/api/scores", {
@@ -97,15 +98,54 @@ const Screen = styled.div`
   background: ${({ theme }) => theme.colors.black};
 `;
 
+const HUD_OVERLAY_MARGIN = 20;
+const HUD_OVERLAY_GAP = 20;
+const TABLET_BREAKPOINT = 700;
+const MOBILE_BREAKPOINT = 480;
+const MIN_SUPPORTED_VIEWPORT_WIDTH = 360;
+
+function hudScaleForViewport(viewportWidth: number): number {
+  const available = viewportWidth - HUD_OVERLAY_MARGIN * 2 - HUD_OVERLAY_GAP;
+  return Math.min(1, available / (2 * FRAME_WIDTH));
+}
+
+const TABLET_HUD_SCALE = hudScaleForViewport(MOBILE_BREAKPOINT + 1);
+const MOBILE_HUD_SCALE = hudScaleForViewport(MIN_SUPPORTED_VIEWPORT_WIDTH);
+
+const hudResponsiveScale = css`
+  @media (max-width: ${TABLET_BREAKPOINT}px) {
+    transform: scale(${TABLET_HUD_SCALE});
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}px) {
+    transform: scale(${MOBILE_HUD_SCALE});
+  }
+`;
+
 const TopBar = styled.div`
+  position: relative;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 20px;
+  padding: 10px 20px 15px;
   background: ${({ theme }) => theme.colors.primary};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.gray};
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 5px;
+    background: ${({ theme }) => cylinderGradientVertical(theme)};
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  }
+
+  @media (max-width: 480px) {
+    padding: 8px 12px 13px;
+  }
 `;
 
 const Title = styled.h1`
@@ -115,6 +155,10 @@ const Title = styled.h1`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  @media (max-width: 480px) {
+    font-size: 0.9em;
+  }
 `;
 
 const CanvasArea = styled.div`
@@ -125,16 +169,20 @@ const CanvasArea = styled.div`
 
 const ScoreBoxOverlay = styled.div`
   position: absolute;
-  top: 16px;
-  left: 20px;
+  top: 0;
+  left: ${HUD_OVERLAY_MARGIN}px;
   pointer-events: none;
+  transform-origin: top left;
+  ${hudResponsiveScale}
 `;
 
 const PowerGaugeOverlay = styled.div`
   position: absolute;
-  top: 16px;
-  right: 20px;
+  top: 0;
+  right: ${HUD_OVERLAY_MARGIN}px;
   pointer-events: none;
+  transform-origin: top right;
+  ${hudResponsiveScale}
 `;
 
 const TapToStartOverlay = styled.button`

@@ -69,20 +69,128 @@ function pipeHalfWidthAt(progress: number, config: RenderConfig): number {
 
 const GRID_LINE_SPACING_SECONDS = 0.16;
 
-function drawFretboardGrid(ctx: CanvasLike2D, config: RenderConfig, currentTime: number, palette: Palette): void {
+interface FrameInvariantStyles {
+  key: string;
+  stageGlowGradient: CanvasGradientLike;
+  laneBeamGradients: Map<Fret, CanvasGradientLike>;
+  laneGridStrokeColors: Map<Fret, string>;
+  gridLineStrokeColor: string;
+}
+
+const frameInvariantStylesByCtx = new WeakMap<CanvasLike2D, FrameInvariantStyles>();
+
+function frameInvariantStylesKey(config: RenderConfig, palette: Palette): string {
+  return [
+    config.canvasWidth,
+    config.canvasHeight,
+    config.hitLineY,
+    config.highwayCenterX,
+    config.highwayTopWidth,
+    config.highwayBottomWidth,
+    palette.canvasBackground,
+    palette.info,
+    palette.secondary,
+    palette.tertiary,
+    palette.quaternary,
+  ].join("|");
+}
+
+function getFrameInvariantStyles(
+  ctx: CanvasLike2D,
+  config: RenderConfig,
+  palette: Palette,
+  laneColors: Record<Fret, string>
+): FrameInvariantStyles {
+  const key = frameInvariantStylesKey(config, palette);
+  const cached = frameInvariantStylesByCtx.get(ctx);
+  if (cached && cached.key === key) return cached;
+
+  const stageGlowGradient = ctx.createRadialGradient(
+    config.highwayCenterX,
+    config.hitLineY,
+    0,
+    config.highwayCenterX,
+    config.hitLineY,
+    config.canvasHeight * 0.85
+  );
+  stageGlowGradient.addColorStop(0, mix(palette.canvasBackground, palette.info, 0.28));
+  stageGlowGradient.addColorStop(0.45, mix(palette.canvasBackground, palette.secondary, 0.55));
+  stageGlowGradient.addColorStop(1, palette.canvasBackground);
+
+  const laneBeamGradients = new Map<Fret, CanvasGradientLike>();
+  const laneGridStrokeColors = new Map<Fret, string>();
+  for (const fret of config.laneOrder) {
+    const baseColor = laneColors[fret] ?? palette.noteFallback;
+    const beamGradient = ctx.createLinearGradient(0, 0, 0, config.hitLineY);
+    beamGradient.addColorStop(0, "rgba(0, 0, 0, 0)");
+    beamGradient.addColorStop(0.55, mix(palette.canvasBackground, baseColor, 0.3));
+    beamGradient.addColorStop(1, mix(palette.canvasBackground, baseColor, 0.7));
+    laneBeamGradients.set(fret, beamGradient);
+
+    const laneColor = laneColors[fret] ?? palette.tertiary;
+    laneGridStrokeColors.set(fret, mix(palette.tertiary, laneColor, 0.45));
+  }
+
+  const styles: FrameInvariantStyles = {
+    key,
+    stageGlowGradient,
+    laneBeamGradients,
+    laneGridStrokeColors,
+    gridLineStrokeColor: mix(palette.tertiary, palette.quaternary, 0.35),
+  };
+  frameInvariantStylesByCtx.set(ctx, styles);
+  return styles;
+}
+
+function drawStageGlow(ctx: CanvasLike2D, config: RenderConfig, gradient: CanvasGradientLike): void {
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, config.canvasWidth, config.canvasHeight);
+}
+
+function drawLaneBeams(ctx: CanvasLike2D, config: RenderConfig, laneBeamGradients: Map<Fret, CanvasGradientLike>): void {
+  for (const fret of config.laneOrder) {
+    const beamGradient = laneBeamGradients.get(fret);
+    if (!beamGradient) continue;
+    const topX = laneX(fret, 0, config);
+    const bottomX = laneX(fret, 1, config);
+    const topHalf = pipeHalfWidthAt(0, config) * 0.85;
+    const bottomHalf = pipeHalfWidthAt(1, config) * 0.85;
+
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = beamGradient;
+    ctx.beginPath();
+    ctx.moveTo(topX - topHalf, 0);
+    ctx.lineTo(topX + topHalf, 0);
+    ctx.lineTo(bottomX + bottomHalf, config.hitLineY);
+    ctx.lineTo(bottomX - bottomHalf, config.hitLineY);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawFretboardGrid(
+  ctx: CanvasLike2D,
+  config: RenderConfig,
+  currentTime: number,
+  laneGridStrokeColors: Map<Fret, string>,
+  gridLineStrokeColor: string
+): void {
   const lastFret = config.laneOrder[config.laneOrder.length - 1];
   const firstFret = config.laneOrder[0];
 
-  ctx.strokeStyle = palette.tertiary;
   ctx.lineWidth = 2;
-
+  ctx.globalAlpha = 0.75;
   for (const fret of config.laneOrder) {
+    ctx.strokeStyle = laneGridStrokeColors.get(fret) ?? gridLineStrokeColor;
     ctx.beginPath();
     ctx.moveTo(laneX(fret, 0, config), 0);
     ctx.lineTo(laneX(fret, 1, config), config.hitLineY);
     ctx.stroke();
   }
+  ctx.globalAlpha = 1;
 
+  ctx.strokeStyle = gridLineStrokeColor;
   const firstLineTime = Math.ceil(currentTime / GRID_LINE_SPACING_SECONDS) * GRID_LINE_SPACING_SECONDS;
   for (let t = firstLineTime; t <= currentTime + config.approachTime; t += GRID_LINE_SPACING_SECONDS) {
     const progress = visualProgress(progressFor(t, currentTime, config), config);
@@ -581,14 +689,17 @@ export function drawFrame(
 ): VisibleNote[] {
   const laneColors = laneColorsFor(palette);
   const intensity = intense ? 1.6 : 1;
+  const frameStyles = getFrameInvariantStyles(ctx, config, palette, laneColors);
 
   ctx.fillStyle = palette.canvasBackground;
   ctx.fillRect(0, 0, config.canvasWidth, config.canvasHeight);
+  drawStageGlow(ctx, config, frameStyles.stageGlowGradient);
 
   const railMissIntensity =
     lastErrorAt === null ? 0 : 1 - clamp01((currentTime - lastErrorAt) / RAIL_MISS_FADE_SECONDS);
 
-  drawFretboardGrid(ctx, config, currentTime, palette);
+  drawLaneBeams(ctx, config, frameStyles.laneBeamGradients);
+  drawFretboardGrid(ctx, config, currentTime, frameStyles.laneGridStrokeColors, frameStyles.gridLineStrokeColor);
   drawEdgeRail(ctx, -1, config, railMissIntensity, palette);
   drawEdgeRail(ctx, 1, config, railMissIntensity, palette);
   for (const fret of config.laneOrder) {
