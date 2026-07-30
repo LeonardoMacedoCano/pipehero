@@ -1,19 +1,36 @@
-import { createGameEngine } from "../../src/engine/gameEngine.js";
+import {
+  createGameEngine,
+  MAX_STAR_POWER_METER,
+  STAR_POWER_CHARGE_MULTIPLIER,
+  STAR_POWER_DRAIN_SECONDS,
+} from "../../src/engine/gameEngine.js";
 import type { PlayableEvent } from "../../src/types.js";
 
 const FRAME_STEP = 1 / 60;
 const TOLERANCE_SECONDS = FRAME_STEP * 2;
+const PHRASE_COUNT = 2;
+const NOTES_PER_RUN = 4;
+const METER_PER_PHRASE = (MAX_STAR_POWER_METER * STAR_POWER_CHARGE_MULTIPLIER) / PHRASE_COUNT;
+const HALF_METER = (METER_PER_PHRASE / NOTES_PER_RUN) * 2;
+const FULL_METER = (METER_PER_PHRASE / NOTES_PER_RUN) * NOTES_PER_RUN;
+const HALF_DURATION_SECONDS = (HALF_METER / MAX_STAR_POWER_METER) * STAR_POWER_DRAIN_SECONDS;
+const FULL_DURATION_SECONDS = (FULL_METER / MAX_STAR_POWER_METER) * STAR_POWER_DRAIN_SECONDS;
 
 function baseEvents(): PlayableEvent[] {
   return [
     { time: 1.0, frets: [0], duration: 0, isChord: false, isHOPO: false },
     { time: 1.1, frets: [1], duration: 0, isChord: false, isHOPO: false },
+    { time: 1.2, frets: [2], duration: 0, isChord: false, isHOPO: false },
+    { time: 1.3, frets: [3], duration: 0, isChord: false, isHOPO: false },
   ];
 }
 
 function measureDuration(notesToHit: number): { meterAtActivation: number; durationSeconds: number } {
   const events = baseEvents();
-  const starPowerPhrases = [{ startTime: 0, endTime: 2.0 }];
+  const starPowerPhrases = [
+    { startTime: 0, endTime: 2.0 },
+    { startTime: 2.0, endTime: 4.0 },
+  ];
   const engine = createGameEngine(events, { starPowerPhrases });
 
   let time = 0;
@@ -42,18 +59,18 @@ function measureDuration(notesToHit: number): { meterAtActivation: number; durat
 
 console.log("=== Star Power duration: half meter vs. full meter ===\n");
 
-const half = measureDuration(1);
-console.log(`Half meter (${half.meterAtActivation}%): active for ${half.durationSeconds.toFixed(3)}s (expected ~12.5s)`);
+const half = measureDuration(2);
+console.log(`Half meter (${half.meterAtActivation}%): active for ${half.durationSeconds.toFixed(3)}s (expected ~${HALF_DURATION_SECONDS}s)`);
 
-const full = measureDuration(2);
-console.log(`Full meter (${full.meterAtActivation}%): active for ${full.durationSeconds.toFixed(3)}s (expected ~25.0s)`);
+const full = measureDuration(4);
+console.log(`Full meter (${full.meterAtActivation}%): active for ${full.durationSeconds.toFixed(3)}s (expected ~${FULL_DURATION_SECONDS}s)`);
 
-const halfOk = half.meterAtActivation === 50 && Math.abs(half.durationSeconds - 12.5) <= TOLERANCE_SECONDS;
-const fullOk = full.meterAtActivation === 100 && Math.abs(full.durationSeconds - 25.0) <= TOLERANCE_SECONDS;
+const halfOk = half.meterAtActivation === HALF_METER && Math.abs(half.durationSeconds - HALF_DURATION_SECONDS) <= TOLERANCE_SECONDS;
+const fullOk = full.meterAtActivation === FULL_METER && Math.abs(full.durationSeconds - FULL_DURATION_SECONDS) <= TOLERANCE_SECONDS;
 const proportionOk = Math.abs(full.durationSeconds - half.durationSeconds * 2) <= TOLERANCE_SECONDS * 2;
 
-console.log(`\nHalf meter ≈ 12.5s: ${halfOk ? "OK ✔" : "FAILED ✘"}`);
-console.log(`Full meter ≈ 25.0s: ${fullOk ? "OK ✔" : "FAILED ✘"}`);
+console.log(`\nHalf meter ≈ ${HALF_DURATION_SECONDS}s: ${halfOk ? "OK ✔" : "FAILED ✘"}`);
+console.log(`Full meter ≈ ${FULL_DURATION_SECONDS}s: ${fullOk ? "OK ✔" : "FAILED ✘"}`);
 console.log(`Full duration is exactly double the half duration: ${proportionOk ? "OK ✔" : "FAILED ✘"}`);
 
 const allOk = halfOk && fullOk && proportionOk;
