@@ -88,7 +88,7 @@ test("overstrum: pressing wrong-then-correct still scores the correct note, but 
   assert.equal(correct.type, "judged");
   assert.equal(engine.getState().score, 100);
   assert.equal(engine.getState().combo, 1);
-  assert.equal(engine.getState().rockMeter, afterWrong + 3);
+  assert.equal(engine.getState().rockMeter, afterWrong + 1);
 });
 
 test("overstrum: releasing the wrong fret before pressing the correct one doesn't avoid the penalty — each key press is judged on its own", () => {
@@ -465,14 +465,14 @@ test("multiplier: star power doubles the current tier, up to 8x", () => {
 });
 
 test("rock meter: starts at 50, rises on hits, falls on misses, and clamps at 100", () => {
-  const events = Array.from({ length: 20 }, (_, i) => event({ time: i + 1, frets: [0] }));
+  const events = Array.from({ length: 60 }, (_, i) => event({ time: i + 1, frets: [0] }));
   const engine = createGameEngine(events);
   assert.equal(engine.getState().rockMeter, 50);
 
   engine.handleKeyDown(0, 1);
   assert.ok(engine.getState().rockMeter > 50);
 
-  for (let i = 1; i < 20; i++) engine.handleKeyDown(0, i + 1);
+  for (let i = 1; i < 60; i++) engine.handleKeyDown(0, i + 1);
   assert.equal(engine.getState().rockMeter, 100);
 });
 
@@ -491,7 +491,7 @@ test("rock meter: a dropped sustain doesn't drain it — only a real miss does",
 });
 
 test("rock meter: hitting zero sets failed to true and clamps at zero", () => {
-  const events = Array.from({ length: 10 }, (_, i) => event({ time: i + 1, frets: [0] }));
+  const events = Array.from({ length: 20 }, (_, i) => event({ time: i + 1, frets: [0] }));
   const engine = createGameEngine(events);
   for (let i = 0; i < events.length; i++) engine.update(events[i].time + 0.2);
   assert.equal(engine.getState().rockMeter, 0);
@@ -521,8 +521,8 @@ test("rock meter: miss loss is exactly 3x the hit gain (matches Guitar Hero III'
 
 test("rock meter: Star Power drastically boosts the gain per hit while critical (near-fail rescue)", () => {
   const hitEvents = Array.from({ length: 10 }, (_, i) => event({ time: i + 1, frets: [0] }));
-  const missEvents = Array.from({ length: 8 }, (_, i) => event({ time: 11 + i, frets: [1] }));
-  const rescueEvent = event({ time: 19, frets: [0] });
+  const missEvents = Array.from({ length: 17 }, (_, i) => event({ time: 11 + i, frets: [1] }));
+  const rescueEvent = event({ time: 28, frets: [0] });
   const starPowerPhrases = [{ startTime: 0, endTime: 20 }];
   const engine = createGameEngine([...hitEvents, ...missEvents, rescueEvent], { starPowerPhrases });
 
@@ -530,13 +530,13 @@ test("rock meter: Star Power drastically boosts the gain per hit while critical 
   engine.activateStarPower();
   assert.equal(engine.getState().starPowerActive, true);
 
-  for (let i = 0; i < 8; i++) engine.update(11 + i + 0.2);
+  for (let i = 0; i < 17; i++) engine.update(11 + i + 0.2);
   const critical = engine.getState().rockMeter;
   assert.ok(critical < 10);
   assert.equal(engine.getState().starPowerActive, true);
 
-  engine.handleKeyDown(0, 19);
-  assert.equal(engine.getState().rockMeter, critical + 12);
+  engine.handleKeyDown(0, 28);
+  assert.equal(engine.getState().rockMeter, critical + 4);
 });
 
 test("windows (parameter omitted) uses the default Expert window — a 200ms difference is a miss", () => {
