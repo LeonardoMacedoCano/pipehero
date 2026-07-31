@@ -37,6 +37,7 @@ function measureDuration(notesToHit: number): { meterAtActivation: number; durat
   for (let i = 0; i < notesToHit; i++) {
     time = events[i].time;
     engine.handleKeyDown(events[i].frets[0], time);
+    engine.handleKeyUp(events[i].frets[0], time);
   }
 
   const meterAtActivation = engine.getState().starPowerMeter;

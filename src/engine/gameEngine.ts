@@ -20,6 +20,7 @@ const MAX_ROCK_METER = 100;
 const ROCK_METER_START = 50;
 const ROCK_METER_HIT_GAIN = 3;
 const ROCK_METER_MISS_LOSS = ROCK_METER_HIT_GAIN * 3;
+const ROCK_METER_STRAY_PRESS_LOSS = ROCK_METER_HIT_GAIN;
 const ROCK_METER_STAR_POWER_RESCUE_MULTIPLIER = 4;
 
 function clamp(value: number, min: number, max: number): number {
@@ -105,6 +106,10 @@ export function createGameEngine(
     );
   }
 
+  function hasNearbyNote(time: number): boolean {
+    return pending.some((event) => event.state === "pending" && Math.abs(event.time - time) <= windows.good);
+  }
+
   function finalizeSustain(event: GameEvent, dropped: boolean): void {
     if (!holdingEvents.has(event)) return;
     holdingEvents.delete(event);
@@ -147,14 +152,19 @@ export function createGameEngine(
       return { type: "judged", event, rating };
     }
 
-    return { type: "unmatched", fret, time, awaitingChord: isAwaitingChord(fret, time) };
+    const awaitingChord = isAwaitingChord(fret, time);
+    if (!awaitingChord) {
+      combo = 0;
+      loseRockMeter(hasNearbyNote(time) ? ROCK_METER_MISS_LOSS : ROCK_METER_STRAY_PRESS_LOSS);
+    }
+    return { type: "unmatched", fret, time, awaitingChord };
   }
 
   function handleKeyUp(fret: Fret, time: number): void {
     heldFrets.delete(fret);
     const event = sustainOwnerByFret.get(fret);
-    if (event && time < event.time + event.duration) {
-      finalizeSustain(event, true);
+    if (event) {
+      finalizeSustain(event, time < event.time + event.duration);
     }
   }
 

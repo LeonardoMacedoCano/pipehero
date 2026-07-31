@@ -43,6 +43,77 @@ test("wrong fret isn't confused with another fret's note", () => {
   assert.equal(result.type, "unmatched");
 });
 
+test("overstrum: a stray press with no note anywhere nearby resets combo and drains the rock meter, but by a smaller amount than missing a real note", () => {
+  const engine = createGameEngine([event({ time: 5.0, frets: [0] })]);
+  const before = engine.getState().rockMeter;
+  const result = engine.handleKeyDown(1, 1.0);
+  assert.equal(result.type, "unmatched");
+  assert.equal(result.type === "unmatched" && result.awaitingChord, false);
+  assert.equal(engine.getState().combo, 0);
+  const strayLoss = before - engine.getState().rockMeter;
+  assert.ok(strayLoss > 0);
+
+  const missEngine = createGameEngine([event({ time: 1.0, frets: [0] })]);
+  const beforeMiss = missEngine.getState().rockMeter;
+  missEngine.update(1.2);
+  const realMissLoss = beforeMiss - missEngine.getState().rockMeter;
+
+  assert.ok(strayLoss < realMissLoss);
+});
+
+test("overstrum: a wrong fret pressed while a real note is due right there costs the full miss penalty, not the smaller stray one", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0] })]);
+  const before = engine.getState().rockMeter;
+  const result = engine.handleKeyDown(4, 1.0);
+  assert.equal(result.type, "unmatched");
+
+  const missEngine = createGameEngine([event({ time: 1.0, frets: [0] })]);
+  const beforeMiss = missEngine.getState().rockMeter;
+  missEngine.update(1.2);
+
+  assert.equal(engine.getState().rockMeter, before - (beforeMiss - missEngine.getState().rockMeter));
+});
+
+test("overstrum: pressing wrong-then-correct still scores the correct note, but the wrong press already broke combo/rock meter on its own", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0] })]);
+  const before = engine.getState().rockMeter;
+
+  const wrong = engine.handleKeyDown(4, 1.0);
+  assert.equal(wrong.type, "unmatched");
+  assert.equal(engine.getState().combo, 0);
+  assert.ok(engine.getState().rockMeter < before);
+  const afterWrong = engine.getState().rockMeter;
+
+  const correct = engine.handleKeyDown(0, 1.0);
+  assert.equal(correct.type, "judged");
+  assert.equal(engine.getState().score, 100);
+  assert.equal(engine.getState().combo, 1);
+  assert.equal(engine.getState().rockMeter, afterWrong + 3);
+});
+
+test("overstrum: releasing the wrong fret before pressing the correct one doesn't avoid the penalty — each key press is judged on its own", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0] })]);
+  const before = engine.getState().rockMeter;
+
+  engine.handleKeyDown(4, 1.0);
+  engine.handleKeyUp(4, 1.0);
+  assert.ok(engine.getState().rockMeter < before);
+
+  const result = engine.handleKeyDown(0, 1.0);
+  assert.equal(result.type, "judged");
+  assert.equal(engine.getState().score, 100);
+});
+
+test("overstrum: pressing one fret of a pending chord is legitimate anticipation, not penalized", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0, 2], isChord: true })]);
+  const before = engine.getState().rockMeter;
+  const result = engine.handleKeyDown(0, 1.0);
+  assert.equal(result.type, "unmatched");
+  assert.equal(result.type === "unmatched" && result.awaitingChord, true);
+  assert.equal(engine.getState().combo, 0);
+  assert.equal(engine.getState().rockMeter, before);
+});
+
 test("a note not played within the window becomes an automatic miss via update()", () => {
   const engine = createGameEngine([event({ time: 1.0, frets: [0] })]);
   const missed = engine.update(1.2);
@@ -65,6 +136,7 @@ test("combo increments on hits and resets after a miss", () => {
     event({ time: 3.0, frets: [2] }),
   ]);
   engine.handleKeyDown(0, 1.0);
+  engine.handleKeyUp(0, 1.0);
   engine.update(1.0);
   assert.equal(engine.getState().combo, 1);
 
@@ -82,6 +154,7 @@ test("scoring: perfect is worth more than good, miss is worth zero", () => {
     event({ time: 2.0, frets: [1] }),
   ]);
   engine.handleKeyDown(0, 1.0);
+  engine.handleKeyUp(0, 1.0);
   engine.handleKeyDown(1, 2.07);
   const state = engine.getState();
   assert.equal(state.score, 150);
@@ -230,11 +303,14 @@ test("star power: hitting notes within a phrase fills the meter", () => {
   const perNoteCredit = meterPerPhrase(starPowerPhrases.length) / events.length;
 
   engine.handleKeyDown(0, 1.0);
+  engine.handleKeyUp(0, 1.0);
   assert.equal(engine.getState().starPowerMeter, perNoteCredit);
   assert.ok(engine.getState().starPowerMeter > 0 && engine.getState().starPowerMeter < MAX_STAR_POWER_METER);
 
   engine.handleKeyDown(1, 1.5);
+  engine.handleKeyUp(1, 1.5);
   engine.handleKeyDown(2, 2.0);
+  engine.handleKeyUp(2, 2.0);
   engine.handleKeyDown(3, 2.5);
   assert.equal(engine.getState().starPowerMeter, MAX_STAR_POWER_METER);
 });
@@ -280,7 +356,10 @@ test("star power: activates at exactly 50%, even when floating-point addition la
   const engine = createGameEngine(events, { starPowerPhrases });
 
   assert.equal(meterPerPhrase(starPowerPhrases.length), STAR_POWER_ACTIVATION_THRESHOLD);
-  for (const e of events) engine.handleKeyDown(e.frets[0], e.time);
+  for (const e of events) {
+    engine.handleKeyDown(e.frets[0], e.time);
+    engine.handleKeyUp(e.frets[0], e.time);
+  }
 
   assert.ok(engine.getState().starPowerMeter < STAR_POWER_ACTIVATION_THRESHOLD);
   assert.equal(engine.activateStarPower(), true);
@@ -293,6 +372,7 @@ test("star power: activating doubles the score of following hits", () => {
   const engine = createGameEngine(events, { starPowerPhrases });
 
   engine.handleKeyDown(0, 1.0);
+  engine.handleKeyUp(0, 1.0);
   const activated = engine.activateStarPower();
   assert.equal(activated, true);
 
@@ -416,13 +496,6 @@ test("rock meter: hitting zero sets failed to true and clamps at zero", () => {
   for (let i = 0; i < events.length; i++) engine.update(events[i].time + 0.2);
   assert.equal(engine.getState().rockMeter, 0);
   assert.equal(engine.getState().failed, true);
-});
-
-test("rock meter: pressing a wrong fret with no nearby note doesn't penalize — only a real miss does", () => {
-  const engine = createGameEngine([event({ time: 1, frets: [0] })]);
-  const before = engine.getState().rockMeter;
-  engine.handleKeyDown(4, 1);
-  assert.equal(engine.getState().rockMeter, before);
 });
 
 test("rock meter: pressing a fret that's legitimately awaited by a pending chord doesn't penalize", () => {
