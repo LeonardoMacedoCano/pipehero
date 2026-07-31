@@ -7,10 +7,11 @@ const SUSTAIN_HOLD_BONUS = 50;
 const MULTIPLIER_STREAK_STEP = 10;
 const MAX_BASE_MULTIPLIER = 4;
 
-const MAX_STAR_POWER_METER = 100;
-const STAR_POWER_ACTIVATION_THRESHOLD = 50;
-const STAR_POWER_METER_EPSILON = 1e-6;
-const STAR_POWER_DRAIN_SECONDS = 25;
+export const MAX_STAR_POWER_METER = 100;
+export const STAR_POWER_CHARGE_MULTIPLIER = 2;
+export const STAR_POWER_ACTIVATION_THRESHOLD = 50;
+export const STAR_POWER_METER_EPSILON = 1e-6;
+export const STAR_POWER_DRAIN_SECONDS = 25;
 const STAR_POWER_DRAIN_PER_SECOND = MAX_STAR_POWER_METER / STAR_POWER_DRAIN_SECONDS;
 const STAR_POWER_SCORE_MULTIPLIER = 2;
 
@@ -49,7 +50,8 @@ export function createGameEngine(
   const phraseTotals = starPowerPhrases.map(
     (_, index) => pending.filter((event) => event.starPowerPhraseIndex === index).length
   );
-  const meterPerPhrase = starPowerPhrases.length > 0 ? 100 / starPowerPhrases.length : 0;
+  const meterPerPhrase =
+    starPowerPhrases.length > 0 ? (MAX_STAR_POWER_METER * STAR_POWER_CHARGE_MULTIPLIER) / starPowerPhrases.length : 0;
   let starPowerMeter = 0;
   let starPowerActive = false;
   let lastUpdateTime: number | null = null;

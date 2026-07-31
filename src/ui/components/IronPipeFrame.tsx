@@ -5,6 +5,9 @@ export default function IronPipeFrame({ glow, children }: { glow: boolean; child
   return (
     <Frame $glow={glow}>
       <Stem />
+      <CeilingMount />
+      <CeilingMountBolt $side="left" />
+      <CeilingMountBolt $side="right" />
       <Crossbar />
       <Elbow $side="left" />
       <Elbow $side="right" />
@@ -23,11 +26,17 @@ const PIPE_THICKNESS = 10;
 const ELBOW_SIZE = 26;
 const SIDE_INSET = "-1px";
 const BOTTOM_OVERSHOOT = "16px";
+const FRAME_HORIZONTAL_PADDING = 20;
+const PANEL_WIDTH = 220;
+const PANEL_HEIGHT = 84;
+const STEM_HEIGHT = 48;
+
+export const FRAME_WIDTH = PANEL_WIDTH + FRAME_HORIZONTAL_PADDING * 2;
 
 const Frame = styled.div<{ $glow: boolean }>`
   position: relative;
-  margin-top: 22px;
-  padding: ${ELBOW_SIZE + 4}px 20px calc(${BOTTOM_OVERSHOOT} + 4px);
+  margin-top: ${STEM_HEIGHT}px;
+  padding: ${ELBOW_SIZE + 4}px ${FRAME_HORIZONTAL_PADDING}px calc(${BOTTOM_OVERSHOOT} + 4px);
   filter: ${({ $glow, theme }) => ($glow ? `drop-shadow(0 0 16px ${theme.colors.info})` : "none")};
   transition: filter 0.3s ease;
 `;
@@ -41,7 +50,7 @@ const cylinderGradientHorizontal = (theme: DefaultTheme) => `linear-gradient(
   ${theme.colors.black} 100%
 )`;
 
-const cylinderGradientVertical = (theme: DefaultTheme) => `linear-gradient(
+export const cylinderGradientVertical = (theme: DefaultTheme) => `linear-gradient(
   180deg,
   ${theme.colors.black} 0%,
   ${theme.colors.quaternary} 22%,
@@ -54,13 +63,39 @@ const pipeShadow = "0 1px 4px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(0, 0, 0,
 
 const Stem = styled.div`
   position: absolute;
-  top: -22px;
+  top: -${STEM_HEIGHT}px;
   left: 50%;
   transform: translateX(-50%);
   width: ${PIPE_THICKNESS}px;
-  height: 23px;
+  height: ${STEM_HEIGHT + 1}px;
   background: ${({ theme }) => cylinderGradientHorizontal(theme)};
   box-shadow: ${pipeShadow};
+`;
+
+const CEILING_MOUNT_WIDTH = 26;
+
+const CeilingMount = styled.div`
+  position: absolute;
+  top: -${STEM_HEIGHT}px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: ${CEILING_MOUNT_WIDTH}px;
+  height: 8px;
+  border-radius: 2px;
+  background: ${({ theme }) => cylinderGradientHorizontal(theme)};
+  box-shadow: ${pipeShadow};
+`;
+
+const CeilingMountBolt = styled.div<{ $side: "left" | "right" }>`
+  position: absolute;
+  top: -${STEM_HEIGHT - 2}px;
+  left: 50%;
+  transform: translateX(${({ $side }) => ($side === "left" ? `-${CEILING_MOUNT_WIDTH / 2 + 1}px` : `${CEILING_MOUNT_WIDTH / 2 - 3}px`)});
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, ${({ theme }) => theme.colors.white}, ${({ theme }) => theme.colors.quaternary} 60%, ${({ theme }) => theme.colors.black} 100%);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
 `;
 
 const Crossbar = styled.div`
@@ -130,7 +165,14 @@ const PipeMouth = styled.div<{ $side: "left" | "right" }>`
 
 const Panel = styled.div`
   position: relative;
-  padding: 10px 6px 8px;
+  width: ${PANEL_WIDTH}px;
+  height: ${PANEL_HEIGHT}px;
+  box-sizing: border-box;
+  padding: 6px;
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
+
