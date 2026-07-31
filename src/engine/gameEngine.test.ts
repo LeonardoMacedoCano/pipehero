@@ -418,6 +418,54 @@ test("rock meter: hitting zero sets failed to true and clamps at zero", () => {
   assert.equal(engine.getState().failed, true);
 });
 
+test("rock meter: pressing a wrong fret with no nearby note doesn't penalize — only a real miss does", () => {
+  const engine = createGameEngine([event({ time: 1, frets: [0] })]);
+  const before = engine.getState().rockMeter;
+  engine.handleKeyDown(4, 1);
+  assert.equal(engine.getState().rockMeter, before);
+});
+
+test("rock meter: pressing a fret that's legitimately awaited by a pending chord doesn't penalize", () => {
+  const engine = createGameEngine([event({ time: 1, frets: [0, 1] })]);
+  const before = engine.getState().rockMeter;
+  const result = engine.handleKeyDown(0, 1);
+  assert.equal(result.type, "unmatched");
+  assert.equal(result.type === "unmatched" && result.awaitingChord, true);
+  assert.equal(engine.getState().rockMeter, before);
+});
+
+test("rock meter: miss loss is exactly 3x the hit gain (matches Guitar Hero III's ratio)", () => {
+  const hitEngine = createGameEngine([event({ time: 1, frets: [0] })]);
+  hitEngine.handleKeyDown(0, 1);
+  const gain = hitEngine.getState().rockMeter - 50;
+
+  const missEngine = createGameEngine([event({ time: 1, frets: [0] })]);
+  missEngine.update(1.2);
+  const loss = 50 - missEngine.getState().rockMeter;
+
+  assert.equal(loss, gain * 3);
+});
+
+test("rock meter: Star Power drastically boosts the gain per hit while critical (near-fail rescue)", () => {
+  const hitEvents = Array.from({ length: 10 }, (_, i) => event({ time: i + 1, frets: [0] }));
+  const missEvents = Array.from({ length: 8 }, (_, i) => event({ time: 11 + i, frets: [1] }));
+  const rescueEvent = event({ time: 19, frets: [0] });
+  const starPowerPhrases = [{ startTime: 0, endTime: 20 }];
+  const engine = createGameEngine([...hitEvents, ...missEvents, rescueEvent], { starPowerPhrases });
+
+  for (let i = 0; i < 10; i++) engine.handleKeyDown(0, i + 1);
+  engine.activateStarPower();
+  assert.equal(engine.getState().starPowerActive, true);
+
+  for (let i = 0; i < 8; i++) engine.update(11 + i + 0.2);
+  const critical = engine.getState().rockMeter;
+  assert.ok(critical < 10);
+  assert.equal(engine.getState().starPowerActive, true);
+
+  engine.handleKeyDown(0, 19);
+  assert.equal(engine.getState().rockMeter, critical + 12);
+});
+
 test("windows (parameter omitted) uses the default Expert window — a 200ms difference is a miss", () => {
   const engine = createGameEngine([event({ time: 1.0, frets: [0] })]);
   const result = engine.handleKeyDown(0, 1.2);

@@ -2,6 +2,7 @@ import { useId } from "react";
 import styled, { css, keyframes, useTheme, type DefaultTheme } from "styled-components";
 import IronPipeFrame from "./IronPipeFrame.js";
 import { STAR_POWER_ACTIVATION_THRESHOLD, STAR_POWER_METER_EPSILON } from "../../engine/gameEngine.js";
+import { rockTierFor, type RockTier } from "../../engine/rockMeter.js";
 
 interface Shape {
   points: string;
@@ -35,16 +36,8 @@ function clamp01to100(value: number): number {
   return Math.max(0, Math.min(100, value));
 }
 
-type RockTier = "red" | "yellow" | "green";
-
-function rockTierFor(rockFill: number): RockTier {
-  if (rockFill < 33) return "red";
-  if (rockFill < 66) return "yellow";
-  return "green";
-}
-
 function rockGlowColor(tier: RockTier, theme: DefaultTheme): string {
-  if (tier === "red") return theme.colors.warning;
+  if (tier === "critical" || tier === "red") return theme.colors.warning;
   if (tier === "yellow") return theme.colors.laneYellow;
   return theme.colors.success;
 }
@@ -111,6 +104,7 @@ export default function PowerGauge({
   const rockTier = rockTierFor(rockFill);
   const rockGlow = rockGlowColor(rockTier, theme);
   const rockShaking = rockTier !== "yellow";
+  const rockCritical = rockTier === "critical";
 
   const starFill = clamp01to100(starPowerMeter);
   const starReady = starFill >= STAR_POWER_ACTIVATION_THRESHOLD - STAR_POWER_METER_EPSILON;
@@ -119,7 +113,7 @@ export default function PowerGauge({
   return (
     <IronPipeFrame glow={starPowerActive}>
       <Layout>
-        <HandWrapper $shake={rockShaking} style={{ color: rockGlow }}>
+        <HandWrapper $shake={rockShaking} $critical={rockCritical} style={{ color: rockGlow }}>
           <svg viewBox="0 0 100 100" width="64" height="64" role="img" aria-label="Rock Meter">
             <defs>
               <filter id={handOutlineId} x="-30%" y="-30%" width="160%" height="160%">
@@ -172,16 +166,26 @@ const shake = keyframes`
   80% { transform: rotate(-3deg); }
 `;
 
+const criticalFlash = keyframes`
+  0%, 100% { filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 9px currentColor); }
+  50% { filter: drop-shadow(0 0 10px currentColor) drop-shadow(0 0 20px currentColor); }
+`;
+
 const Layout = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
 `;
 
-const HandWrapper = styled.div<{ $shake: boolean }>`
+const HandWrapper = styled.div<{ $shake: boolean; $critical: boolean }>`
   filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 9px currentColor);
   transform-origin: 50% 85%;
-  animation: ${({ $shake }) => ($shake ? shake : "none")} 0.45s ease-in-out infinite;
+  animation: ${({ $shake }) => ($shake ? shake : "none")} 0.45s ease-in-out infinite${({ $critical }) =>
+    $critical
+      ? css`
+          , ${criticalFlash} 0.4s ease-in-out infinite
+        `
+      : ""};
 `;
 
 const BoltWrapper = styled.div<{ $ready: boolean; $active: boolean }>`
