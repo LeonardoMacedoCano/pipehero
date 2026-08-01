@@ -32,11 +32,12 @@ function multiplierForCombo(combo: number): number {
 }
 
 let expectedBaseScore = 0;
-for (let i = 1; i <= events.length; i++) {
-  expectedBaseScore += 100 * multiplierForCombo(i);
+let expectedSustainBonus = 0;
+for (let i = 0; i < events.length; i++) {
+  const comboAfterHit = i + 1;
+  expectedBaseScore += 100 * multiplierForCombo(comboAfterHit);
+  if (events[i].duration > 0) expectedSustainBonus += 50 * multiplierForCombo(comboAfterHit);
 }
-const finalMultiplier = multiplierForCombo(events.length);
-const expectedSustainBonus = sustainEvents.length * 50 * finalMultiplier;
 const expectedScore = expectedBaseScore + expectedSustainBonus;
 
 console.log("\n=== Scenario: perfect player (hits everything, holds sustains to the end) ===");

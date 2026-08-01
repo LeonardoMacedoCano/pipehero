@@ -65,9 +65,12 @@ export type KeyDownResult =
   | { type: "unmatched"; fret: Fret; time: number; awaitingChord: boolean }
   | { type: "judged"; event: GameEvent; rating: Rating };
 
+export type StrumResult = { type: "judged"; event: GameEvent; rating: Rating } | { type: "whiffed"; time: number };
+
 export interface GameEngine {
   handleKeyDown(fret: Fret, time: number): KeyDownResult;
   handleKeyUp(fret: Fret, time: number): void;
+  strum(time: number): StrumResult;
   update(currentTime: number): GameEvent[];
   getState(): GameState;
   activateStarPower(): boolean;
@@ -77,6 +80,7 @@ export interface Playthrough {
   tick(): { chartTime: number; newlyMissed: GameEvent[] };
   pressFret(fret: Fret): KeyDownResult;
   releaseFret(fret: Fret): void;
+  strum(): StrumResult;
   getState(): GameState;
   currentChartTime(): number;
   activateStarPower(): boolean;

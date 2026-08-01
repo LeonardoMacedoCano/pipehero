@@ -24,12 +24,28 @@ Default bindings:
 | `J` | 3 | 🟡 Yellow |
 | `K` | 4 | 🔵 Blue |
 | `L` | 5 | 🟠 Orange |
-| `Space` | Open note | ⚪ White (bar across the whole track) |
 | `Left Shift` | Activate Star Power | — |
 
 Every action can be remapped to a different keyboard key **or** to a
 gamepad/joystick button (e.g. a PC guitar that the OS sees as a
 controller) from **Options → Controls**.
+
+### Input mode: Tap vs. Strum bar
+
+Also in **Options → Controls**, a toggle switches how notes register:
+
+- **Tap** (default): pressing the right fret key by itself hits the
+  note — no strumming needed. Has a dedicated `Space` key for the
+  **Open** note (no fret held).
+- **Strum bar**: holding a fret key does nothing by itself — you also
+  need to strum, `↑`/`↓` by default (remappable, direction doesn't
+  matter). Closer to how a real guitar controller works: hold the
+  right fret(s), then strum to register the hit. There's no separate
+  Open key here — an Open note is hit by strumming while **no**
+  colored fret is held, same as on real hardware.
+
+The Controls list only shows the bindings that apply to the mode
+you're in.
 
 ## Goal
 
@@ -61,14 +77,48 @@ fades away — no extra penalty, it just doesn't score).
   — releasing before the end still guarantees the partial bonus
   already earned.
 
+## Rock Meter
+
+A meter from **0 to 100** (starts at 50) tracks how the crowd feels
+about your playing:
+
+| Action | Rock Meter |
+|---|---|
+| Hit a note | +1 |
+| Miss a note (nothing pressed in time) | -3 |
+| Wrong key while a note is actually due | -3 — same as missing it |
+| Wrong key with nothing due nearby | -1 — still costs you, just less |
+
+Any miss or wrong press also resets your combo streak.
+
+Four zones, mostly visual — except the bottom one:
+
+| Zone | Range |
+|---|---|
+| Critical | 0–9 |
+| Red | 10–32 |
+| Yellow | 33–65 (song starts here) |
+| Green | 66–100 |
+
+**Activate Star Power while in the critical zone and every hit is
+worth 4x** (+4 instead of +1) — a genuine last-second comeback tool,
+same as in Guitar Hero III.
+
+**Reach 0 and the song ends immediately** — same as running out of
+health in Guitar Hero/Rock Band, no continuing from where you left
+off.
+
 ## Star Power
 
 - Certain stretches of a song are **Star Power** phrases — hitting
   notes within them fills the meter (top-right corner).
 - With the meter at **50% or more**, press **Left Shift** (or
   whatever it's remapped to) to activate.
-- While active, score **doubles**. The meter drains on its own after
-  about **12 seconds** of use.
+- While active, score **doubles**. The meter drains on its own —
+  about **12.5 seconds** if activated right at 50%, up to **25
+  seconds** if you wait for a full 100% charge.
+- Also boosts the **Rock Meter** while it's in the critical zone (see
+  above) — worth saving for a near-fail moment.
 
 ## Latency calibration
 

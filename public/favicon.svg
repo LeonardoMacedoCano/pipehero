@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <filter id="pipehero-hand-outline" x="-30%" y="-30%" width="160%" height="160%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="2.6" result="dilated" />
+      <feFlood flood-color="#9c6dff" result="outlineColor" />
+      <feComposite in="outlineColor" in2="dilated" operator="in" result="outline" />
+      <feMerge>
+        <feMergeNode in="outline" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <filter id="pipehero-hand-glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="0" stdDeviation="1.6" flood-color="#9c6dff" flood-opacity="0.9" />
+      <feDropShadow dx="0" dy="0" stdDeviation="4.5" flood-color="#9c6dff" flood-opacity="0.6" />
+    </filter>
+  </defs>
+  <g filter="url(#pipehero-hand-glow)">
+    <g filter="url(#pipehero-hand-outline)">
+      <rect x="36" y="86" width="28" height="18" rx="8" fill="#eeeeee" />
+      <rect x="20" y="46" width="60" height="46" rx="22" fill="#eeeeee" />
+      <path d="M 43.553 45.044 L 32.687 9.931 A 7 7 0 0 0 19.066 12.958 L 24.094 49.368 A 10 10 0 0 0 43.553 45.044 Z" fill="#eeeeee" />
+      <path d="M 75.388 49.456 L 80.423 16.996 A 6.5 6.5 0 0 0 67.864 13.857 L 57.031 44.867 A 9.5 9.5 0 0 0 75.388 49.456 Z" fill="#eeeeee" />
+      <path d="M 32.988 53.414 L 13.037 47.782 A 7.5 7.5 0 0 0 6.706 61.149 L 23.702 73.018 A 11 11 0 0 0 32.988 53.414 Z" fill="#eeeeee" />
+    </g>
+  </g>
+</svg>

@@ -58,6 +58,7 @@ test("full simulation: advance the clock and press each note at the right time",
     const result = playthrough.pressFret(n.fret);
     assert.equal(result.type, "judged");
     assert.equal(result.type === "judged" && result.rating, "perfect");
+    playthrough.releaseFret(n.fret);
   }
 
   const state = playthrough.getState();

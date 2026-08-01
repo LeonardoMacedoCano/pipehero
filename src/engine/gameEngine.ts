@@ -1,5 +1,6 @@
-import type { Fret, GameEngine, GameEvent, JudgmentWindows, KeyDownResult, PlayableEvent, StarPowerPhrase } from "../types.js";
+import type { Fret, GameEngine, GameEvent, JudgmentWindows, KeyDownResult, PlayableEvent, Rating, StarPowerPhrase, StrumResult } from "../types.js";
 import { classifyTiming, DEFAULT_JUDGMENT_WINDOWS } from "./judge.js";
+import { rockTierFor } from "./rockMeter.js";
 
 const SCORE_BY_RATING = { perfect: 100, good: 50, miss: 0 };
 const SUSTAIN_HOLD_BONUS = 50;
@@ -17,9 +18,12 @@ const STAR_POWER_SCORE_MULTIPLIER = 2;
 
 const MAX_ROCK_METER = 100;
 const ROCK_METER_START = 50;
-const ROCK_METER_PERFECT_GAIN = 3;
-const ROCK_METER_GOOD_GAIN = 1.5;
-const ROCK_METER_MISS_LOSS = 8;
+const ROCK_METER_HIT_GAIN = 1;
+const ROCK_METER_MISS_LOSS = ROCK_METER_HIT_GAIN * 3;
+const ROCK_METER_STRAY_PRESS_LOSS = ROCK_METER_HIT_GAIN;
+const ROCK_METER_STAR_POWER_RESCUE_MULTIPLIER = 4;
+
+const FRET_RANK: Partial<Record<Fret, number>> = { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4 };
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -27,7 +31,11 @@ function clamp(value: number, min: number, max: number): number {
 
 export function createGameEngine(
   events: PlayableEvent[],
-  { starPowerPhrases = [], windows = DEFAULT_JUDGMENT_WINDOWS }: { starPowerPhrases?: StarPowerPhrase[]; windows?: JudgmentWindows } = {}
+  {
+    starPowerPhrases = [],
+    windows = DEFAULT_JUDGMENT_WINDOWS,
+    strumMode = false,
+  }: { starPowerPhrases?: StarPowerPhrase[]; windows?: JudgmentWindows; strumMode?: boolean } = {}
 ): GameEngine {
   const pending: GameEvent[] = events.map((event) => ({
     ...event,
@@ -82,26 +90,56 @@ export function createGameEngine(
     return true;
   }
 
-  function findCompletableEvent(time: number): GameEvent | null {
+  function findNearestPending(time: number, matches: (event: GameEvent) => boolean): GameEvent | null {
     let closest: GameEvent | null = null;
     let closestDelta = Infinity;
     for (const event of pending) {
       if (event.state !== "pending") continue;
-      const isComplete = event.frets.every((fret) => heldFrets.has(fret));
-      if (!isComplete) continue;
       const delta = Math.abs(event.time - time);
-      if (delta <= windows.good && delta < closestDelta) {
-        closest = event;
-        closestDelta = delta;
-      }
+      if (delta > windows.good || delta >= closestDelta) continue;
+      if (!matches(event)) continue;
+      closest = event;
+      closestDelta = delta;
     }
     return closest;
+  }
+
+  function findCompletableEvent(time: number): GameEvent | null {
+    return findNearestPending(time, (event) => event.frets.every((fret) => heldFrets.has(fret)));
   }
 
   function isAwaitingChord(fret: Fret, time: number): boolean {
     return pending.some(
       (event) => event.state === "pending" && event.frets.includes(fret) && Math.abs(event.time - time) <= windows.good
     );
+  }
+
+  function hasNearbyNote(time: number): boolean {
+    return pending.some((event) => event.state === "pending" && Math.abs(event.time - time) <= windows.good);
+  }
+
+  function isHighestForTarget(target: Fret): boolean {
+    if (!heldFrets.has(target)) return false;
+    const targetRank = FRET_RANK[target];
+    for (const fret of heldFrets) {
+      if (fret === target || sustainOwnerByFret.has(fret)) continue;
+      const rank = FRET_RANK[fret];
+      if (rank !== undefined && (targetRank === undefined || rank > targetRank)) return false;
+    }
+    return true;
+  }
+
+  function noColorFretHeld(): boolean {
+    return [0, 1, 2, 3, 4].every((fret) => !heldFrets.has(fret as Fret));
+  }
+
+  function findStrumMatch(time: number): GameEvent | null {
+    const openReady = noColorFretHeld();
+    return findNearestPending(time, (event) => {
+      if (event.frets.length === 1 && event.frets[0] === 7) return openReady;
+      if (!event.frets.every((fret) => heldFrets.has(fret))) return false;
+      return event.frets.length === 1 ? isHighestForTarget(event.frets[0]) : true;
+    });
   }
 
   function finalizeSustain(event: GameEvent, dropped: boolean): void {
@@ -117,41 +155,69 @@ export function createGameEngine(
     }
   }
 
+  function applyHit(event: GameEvent, time: number): Rating {
+    const rating = classifyTiming(event.time - time, windows);
+    event.state = "hit";
+    event.rating = rating;
+    hits.push(event);
+    combo += 1;
+    maxCombo = Math.max(maxCombo, combo);
+    score += Math.round(SCORE_BY_RATING[rating] * scoreMultiplier());
+    if (rating !== "miss") {
+      creditStarPower(event);
+      const rescued = starPowerActive && rockTierFor(rockMeter) === "critical";
+      const gain = ROCK_METER_HIT_GAIN * (rescued ? ROCK_METER_STAR_POWER_RESCUE_MULTIPLIER : 1);
+      rockMeter = clamp(rockMeter + gain, 0, MAX_ROCK_METER);
+    }
+
+    if (event.duration > 0) {
+      holdingEvents.add(event);
+      for (const eventFret of event.frets) {
+        sustainOwnerByFret.set(eventFret, event);
+      }
+    }
+
+    return rating;
+  }
+
+  function applyWrongInput(time: number): void {
+    combo = 0;
+    loseRockMeter(hasNearbyNote(time) ? ROCK_METER_MISS_LOSS : ROCK_METER_STRAY_PRESS_LOSS);
+  }
+
   function handleKeyDown(fret: Fret, time: number): KeyDownResult {
     heldFrets.add(fret);
 
+    if (strumMode) {
+      return { type: "unmatched", fret, time, awaitingChord: isAwaitingChord(fret, time) };
+    }
+
     const event = findCompletableEvent(time);
     if (event) {
-      const rating = classifyTiming(event.time - time, windows);
-      event.state = "hit";
-      event.rating = rating;
-      hits.push(event);
-      combo += 1;
-      maxCombo = Math.max(maxCombo, combo);
-      score += Math.round(SCORE_BY_RATING[rating] * scoreMultiplier());
-      if (rating !== "miss") {
-        creditStarPower(event);
-        rockMeter = clamp(rockMeter + (rating === "perfect" ? ROCK_METER_PERFECT_GAIN : ROCK_METER_GOOD_GAIN), 0, MAX_ROCK_METER);
-      }
-
-      if (event.duration > 0) {
-        holdingEvents.add(event);
-        for (const eventFret of event.frets) {
-          sustainOwnerByFret.set(eventFret, event);
-        }
-      }
-
+      const rating = applyHit(event, time);
       return { type: "judged", event, rating };
     }
 
-    return { type: "unmatched", fret, time, awaitingChord: isAwaitingChord(fret, time) };
+    const awaitingChord = isAwaitingChord(fret, time);
+    if (!awaitingChord) applyWrongInput(time);
+    return { type: "unmatched", fret, time, awaitingChord };
+  }
+
+  function strum(time: number): StrumResult {
+    const event = findStrumMatch(time);
+    if (event) {
+      const rating = applyHit(event, time);
+      return { type: "judged", event, rating };
+    }
+    applyWrongInput(time);
+    return { type: "whiffed", time };
   }
 
   function handleKeyUp(fret: Fret, time: number): void {
     heldFrets.delete(fret);
     const event = sustainOwnerByFret.get(fret);
-    if (event && time < event.time + event.duration) {
-      finalizeSustain(event, true);
+    if (event) {
+      finalizeSustain(event, time < event.time + event.duration);
     }
   }
 
@@ -207,5 +273,5 @@ export function createGameEngine(
     };
   }
 
-  return { handleKeyDown, handleKeyUp, update, getState, activateStarPower };
+  return { handleKeyDown, handleKeyUp, strum, update, getState, activateStarPower };
 }
