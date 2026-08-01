@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Difficulty, Fret, GameState, Note, StarPowerPhrase } from "../../types.js";
+import type { Difficulty, Fret, GameEvent, GameState, Note, StarPowerPhrase } from "../../types.js";
 import { createPlaythrough } from "../../game/gamePlaythrough.js";
 import { drawFrame, ABSORB_DURATION_SECONDS, OPEN_RESIDUE_FALL_SECONDS } from "../../render/draw.js";
 import { createRenderConfig, highwayBuildConfig, noteRenderKey } from "../../render/layout.js";
@@ -7,8 +7,17 @@ import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
 import { playBooSound } from "../../audio/booSound.js";
 import { COLORS, STAR_POWER_COLORS } from "../../colors.js";
-import { fretForBinding, isStarPowerBinding, DEFAULT_ACTION_BINDINGS } from "../../game/keymap.js";
+import {
+  fretForBinding,
+  isStarPowerBinding,
+  isStrumBinding,
+  isBindingActiveInMode,
+  DEFAULT_ACTION_BINDINGS,
+  type InputBinding,
+  type InputMode,
+} from "../../game/keymap.js";
 import { getBindings, type ActionBindings } from "../../game/keymapStore.js";
+import { getStrumModeEnabled } from "../../game/strumModeStore.js";
 import { judgmentWindowsForDifficulty } from "../../engine/judge.js";
 import { useGamepadPolling } from "./useGamepadPolling.js";
 
@@ -97,6 +106,7 @@ export function useGamePlaythrough({
       getAudioTime: () => audio.currentTime,
       starPowerPhrases: starPowerPhrases ?? [],
       windows: judgmentWindowsForDifficulty(difficulty),
+      strumMode: getStrumModeEnabled(),
     });
     return playthroughRef.current;
   }, [notes, chartOffsetSeconds, starPowerPhrases, difficulty]);
@@ -272,22 +282,28 @@ export function useGamePlaythrough({
 
   useEffect(() => stop, [stop]);
 
-  const pressFret = useCallback((fret: Fret) => {
-    const playthrough = playthroughRef.current;
-    if (!playthrough) return undefined;
-    const result = playthrough.pressFret(fret);
-    if (result.type === "judged") {
-      const judgedAt = playthrough.currentChartTime();
-      for (const f of result.event.frets) {
-        judgedHitsRef.current.set(noteRenderKey(f, result.event.time), judgedAt);
-      }
-    } else if (!result.awaitingChord) {
-      const pressedAt = playthrough.currentChartTime();
-      errorClicksRef.current.set(fret, pressedAt);
-      lastErrorAtRef.current = pressedAt;
+  const recordJudgedHit = useCallback((event: GameEvent, judgedAt: number) => {
+    for (const f of event.frets) {
+      judgedHitsRef.current.set(noteRenderKey(f, event.time), judgedAt);
     }
-    return result;
   }, []);
+
+  const pressFret = useCallback(
+    (fret: Fret) => {
+      const playthrough = playthroughRef.current;
+      if (!playthrough) return undefined;
+      const result = playthrough.pressFret(fret);
+      if (result.type === "judged") {
+        recordJudgedHit(result.event, playthrough.currentChartTime());
+      } else if (!result.awaitingChord && !getStrumModeEnabled()) {
+        const pressedAt = playthrough.currentChartTime();
+        errorClicksRef.current.set(fret, pressedAt);
+        lastErrorAtRef.current = pressedAt;
+      }
+      return result;
+    },
+    [recordJudgedHit]
+  );
 
   const releaseFret = useCallback(
     (fret: Fret) => {
@@ -310,25 +326,62 @@ export function useGamePlaythrough({
     playthroughRef.current?.activateStarPower();
   }, []);
 
+  const strum = useCallback(
+    () => {
+      const playthrough = playthroughRef.current;
+      if (!playthrough) return undefined;
+      const result = playthrough.strum();
+      if (result.type === "judged") {
+        recordJudgedHit(result.event, playthrough.currentChartTime());
+      } else {
+        lastErrorAtRef.current = playthrough.currentChartTime();
+      }
+      return result;
+    },
+    [recordJudgedHit]
+  );
+
   const bindingsRef = useRef<ActionBindings>(DEFAULT_ACTION_BINDINGS);
+
+  const routeInput = useCallback(
+    (binding: InputBinding) => {
+      if (isStrumBinding(binding, bindingsRef.current)) {
+        if (getStrumModeEnabled()) strum();
+        return;
+      }
+      const mode: InputMode = getStrumModeEnabled() ? "strum" : "tap";
+      if (!isBindingActiveInMode(binding, bindingsRef.current, mode)) return;
+      const fret = fretForBinding(binding, bindingsRef.current);
+      if (fret !== null) pressFret(fret);
+    },
+    [pressFret, strum]
+  );
+
+  const routeRelease = useCallback(
+    (binding: InputBinding) => {
+      const mode: InputMode = getStrumModeEnabled() ? "strum" : "tap";
+      if (!isBindingActiveInMode(binding, bindingsRef.current, mode)) return;
+      const fret = fretForBinding(binding, bindingsRef.current);
+      if (fret !== null) releaseFret(fret);
+    },
+    [releaseFret]
+  );
 
   useEffect(() => {
     bindingsRef.current = getBindings();
 
     function handleKeyDown(event: KeyboardEvent) {
-      const binding = { source: "keyboard" as const, code: event.code };
+      const binding: InputBinding = { source: "keyboard", code: event.code };
       if (isStarPowerBinding(binding, bindingsRef.current)) {
         activateStarPower();
         return;
       }
       if (event.repeat) return;
-      const fret = fretForBinding(binding, bindingsRef.current);
-      if (fret !== null) pressFret(fret);
+      routeInput(binding);
     }
 
     function handleKeyUp(event: KeyboardEvent) {
-      const fret = fretForBinding({ source: "keyboard", code: event.code }, bindingsRef.current);
-      if (fret !== null) releaseFret(fret);
+      routeRelease({ source: "keyboard", code: event.code });
     }
 
     document.addEventListener("keydown", handleKeyDown);
@@ -337,25 +390,20 @@ export function useGamePlaythrough({
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("keyup", handleKeyUp);
     };
-  }, [pressFret, releaseFret, activateStarPower]);
+  }, [routeInput, routeRelease, activateStarPower]);
 
   useGamepadPolling(
     (edges) => {
       for (const edge of edges.pressed) {
-        const binding = { source: "gamepad" as const, deviceId: edge.deviceId, button: edge.button };
+        const binding: InputBinding = { source: "gamepad", deviceId: edge.deviceId, button: edge.button };
         if (isStarPowerBinding(binding, bindingsRef.current)) {
           activateStarPower();
           continue;
         }
-        const fret = fretForBinding(binding, bindingsRef.current);
-        if (fret !== null) pressFret(fret);
+        routeInput(binding);
       }
       for (const edge of edges.released) {
-        const fret = fretForBinding(
-          { source: "gamepad", deviceId: edge.deviceId, button: edge.button },
-          bindingsRef.current
-        );
-        if (fret !== null) releaseFret(fret);
+        routeRelease({ source: "gamepad", deviceId: edge.deviceId, button: edge.button });
       }
     },
     true

@@ -1,4 +1,5 @@
 import { bindingsEqual, DEFAULT_ACTION_BINDINGS, type ControlAction, type InputBinding } from "./keymap.js";
+import { readLocalStorage, writeLocalStorage } from "../localStorage.js";
 
 const STORAGE_KEY = "pipehero:keyBindings";
 
@@ -13,8 +14,7 @@ function isValidBinding(value: unknown): value is InputBinding {
 }
 
 export function getBindings(): ActionBindings {
-  if (typeof localStorage === "undefined") return { ...DEFAULT_ACTION_BINDINGS };
-  const raw = localStorage.getItem(STORAGE_KEY);
+  const raw = readLocalStorage(STORAGE_KEY);
   if (!raw) return { ...DEFAULT_ACTION_BINDINGS };
   try {
     const parsed = JSON.parse(raw) as Partial<Record<ControlAction, unknown>>;
@@ -31,8 +31,7 @@ export function getBindings(): ActionBindings {
 }
 
 function saveBindings(bindings: ActionBindings): void {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(bindings));
+  writeLocalStorage(STORAGE_KEY, JSON.stringify(bindings));
 }
 
 export function setBinding(action: ControlAction, binding: InputBinding): ActionBindings {

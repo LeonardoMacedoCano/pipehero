@@ -9,14 +9,16 @@ export function createPlaythrough({
   getAudioTime,
   starPowerPhrases = [],
   windows,
+  strumMode,
 }: {
   notes: Note[];
   offsetSeconds?: number;
   getAudioTime: () => number;
   starPowerPhrases?: StarPowerPhrase[];
   windows?: JudgmentWindows;
+  strumMode?: boolean;
 }): Playthrough {
-  const engine = createGameEngine(groupIntoPlayableEvents(notes), { starPowerPhrases, windows });
+  const engine = createGameEngine(groupIntoPlayableEvents(notes), { starPowerPhrases, windows, strumMode });
 
   function currentChartTime(): number {
     return toChartTime(getAudioTime(), offsetSeconds);
@@ -38,9 +40,21 @@ export function createPlaythrough({
     engine.handleKeyUp(fret, chartTime);
   }
 
+  function strum(): ReturnType<typeof engine.strum> {
+    return engine.strum(currentChartTime());
+  }
+
   function getState() {
     return engine.getState();
   }
 
-  return { tick, pressFret, releaseFret, getState, currentChartTime, activateStarPower: engine.activateStarPower };
+  return {
+    tick,
+    pressFret,
+    releaseFret,
+    strum,
+    getState,
+    currentChartTime,
+    activateStarPower: engine.activateStarPower,
+  };
 }

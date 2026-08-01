@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { Button } from "lcano-react-ui";
-import { CONTROL_ACTIONS, bindingsEqual, describeBinding, type ControlAction, type InputBinding } from "../../game/keymap.js";
+import { Button, ToggleSwitch } from "lcano-react-ui";
+import {
+  CONTROL_ACTIONS,
+  bindingsEqual,
+  describeBinding,
+  type ControlAction,
+  type InputBinding,
+  type InputMode,
+} from "../../game/keymap.js";
 import { getBindings, setBinding, resetToDefaults, type ActionBindings } from "../../game/keymapStore.js";
+import { getStrumModeEnabled, setStrumModeEnabled } from "../../game/strumModeStore.js";
 import { useGamepadPolling } from "../hooks/useGamepadPolling.js";
 
 export default function ControlsMappingPanel() {
@@ -10,6 +18,12 @@ export default function ControlsMappingPanel() {
   const [listeningAction, setListeningAction] = useState<ControlAction | null>(null);
   const [capturedBinding, setCapturedBinding] = useState<InputBinding | null>(null);
   const [conflictNote, setConflictNote] = useState<string | null>(null);
+  const [inputMode, setInputMode] = useState<InputMode>(() => (getStrumModeEnabled() ? "strum" : "tap"));
+
+  function changeInputMode(mode: InputMode) {
+    setStrumModeEnabled(mode === "strum");
+    setInputMode(mode);
+  }
 
   useEffect(() => {
     if (!listeningAction || capturedBinding) return;
@@ -68,8 +82,18 @@ export default function ControlsMappingPanel() {
 
   return (
     <Wrapper>
+      <ModeRow>
+        <Label>Input mode</Label>
+        <ToggleSwitch<InputMode>
+          optionA={{ label: "Tap", value: "tap" }}
+          optionB={{ label: "Strum bar", value: "strum" }}
+          value={inputMode}
+          onChange={changeInputMode}
+        />
+      </ModeRow>
+
       <List>
-        {CONTROL_ACTIONS.map((action) => {
+        {CONTROL_ACTIONS.filter((action) => action.modes.includes(inputMode)).map((action) => {
           const isListening = listeningAction === action.id;
           const isCapturing = isListening && capturedBinding !== null;
 
@@ -113,6 +137,17 @@ const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
+`;
+
+const ModeRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid ${({ theme }) => theme.colors.gray};
+  border-radius: 8px;
+  background-color: ${({ theme }) => theme.colors.secondary};
 `;
 
 const List = styled.div`

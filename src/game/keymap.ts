@@ -8,25 +8,32 @@ export type ControlAction =
   | "fretBlue"
   | "fretOrange"
   | "fretOpen"
-  | "fretOpenAlt"
+  | "strumUp"
+  | "strumDown"
   | "starPower";
+
+export type InputMode = "tap" | "strum";
+
+const BOTH_MODES: InputMode[] = ["tap", "strum"];
 
 export interface ControlActionInfo {
   id: ControlAction;
   label: string;
   color: string;
   fret?: Fret;
+  modes: InputMode[];
 }
 
 export const CONTROL_ACTIONS: ControlActionInfo[] = [
-  { id: "fretGreen", label: "Green", color: COLORS.laneGreen, fret: 0 },
-  { id: "fretRed", label: "Red", color: COLORS.laneRed, fret: 1 },
-  { id: "fretYellow", label: "Yellow", color: COLORS.laneYellow, fret: 2 },
-  { id: "fretBlue", label: "Blue", color: COLORS.laneBlue, fret: 3 },
-  { id: "fretOrange", label: "Orange", color: COLORS.laneOrange, fret: 4 },
-  { id: "fretOpen", label: "Open", color: COLORS.laneOpen, fret: 7 },
-  { id: "fretOpenAlt", label: "Open (2nd strum)", color: COLORS.laneOpen, fret: 7 },
-  { id: "starPower", label: "Star Power", color: COLORS.info },
+  { id: "fretGreen", label: "Green", color: COLORS.laneGreen, fret: 0, modes: BOTH_MODES },
+  { id: "fretRed", label: "Red", color: COLORS.laneRed, fret: 1, modes: BOTH_MODES },
+  { id: "fretYellow", label: "Yellow", color: COLORS.laneYellow, fret: 2, modes: BOTH_MODES },
+  { id: "fretBlue", label: "Blue", color: COLORS.laneBlue, fret: 3, modes: BOTH_MODES },
+  { id: "fretOrange", label: "Orange", color: COLORS.laneOrange, fret: 4, modes: BOTH_MODES },
+  { id: "fretOpen", label: "Open", color: COLORS.laneOpen, fret: 7, modes: ["tap"] },
+  { id: "strumUp", label: "Strum Up", color: COLORS.tertiary, modes: ["strum"] },
+  { id: "strumDown", label: "Strum Down", color: COLORS.tertiary, modes: ["strum"] },
+  { id: "starPower", label: "Star Power", color: COLORS.info, modes: BOTH_MODES },
 ];
 
 export type InputBinding =
@@ -40,7 +47,8 @@ export const DEFAULT_ACTION_BINDINGS: Record<ControlAction, InputBinding> = {
   fretBlue: { source: "keyboard", code: "KeyK" },
   fretOrange: { source: "keyboard", code: "KeyL" },
   fretOpen: { source: "keyboard", code: "Space" },
-  fretOpenAlt: { source: "keyboard", code: "Enter" },
+  strumUp: { source: "keyboard", code: "ArrowUp" },
+  strumDown: { source: "keyboard", code: "ArrowDown" },
   starPower: { source: "keyboard", code: "ShiftLeft" },
 };
 
@@ -71,6 +79,21 @@ export function fretForBinding(binding: InputBinding, bindings: Record<ControlAc
 
 export function isStarPowerBinding(binding: InputBinding, bindings: Record<ControlAction, InputBinding | null>): boolean {
   return actionForBinding(binding, bindings) === "starPower";
+}
+
+export function isStrumBinding(binding: InputBinding, bindings: Record<ControlAction, InputBinding | null>): boolean {
+  const action = actionForBinding(binding, bindings);
+  return action === "strumUp" || action === "strumDown";
+}
+
+export function isBindingActiveInMode(
+  binding: InputBinding,
+  bindings: Record<ControlAction, InputBinding | null>,
+  mode: InputMode
+): boolean {
+  const action = actionForBinding(binding, bindings);
+  const info = action && CONTROL_ACTIONS.find((a) => a.id === action);
+  return info ? info.modes.includes(mode) : false;
 }
 
 const KEY_CODE_LABELS: Record<string, string> = {

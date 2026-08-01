@@ -562,3 +562,136 @@ test("custom windows (Easy) also widens the automatic miss via update()", () => 
   assert.equal(missed.length, 0);
   assert.equal(engine.getState().pendingCount, 1);
 });
+
+test("strum mode: holding the correct fret alone doesn't score anything by itself — only strum() judges", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0] })], { strumMode: true });
+  const result = engine.handleKeyDown(0, 1.0);
+  assert.equal(result.type, "unmatched");
+  assert.equal(engine.getState().score, 0);
+  assert.equal(engine.getState().pendingCount, 1);
+});
+
+test("strum mode: strumming with the correct fret held hits the note", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0] })], { strumMode: true });
+  engine.handleKeyDown(0, 1.0);
+  const result = engine.strum(1.0);
+  assert.equal(result.type, "judged");
+  assert.equal(result.type === "judged" && result.rating, "perfect");
+  assert.equal(engine.getState().score, 100);
+});
+
+test("strum mode: strumming with nothing held doesn't kill the note — it can still be hit before the window closes", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0] })], { strumMode: true });
+  const whiff = engine.strum(0.95);
+  assert.equal(whiff.type, "whiffed");
+  assert.equal(engine.getState().pendingCount, 1);
+
+  engine.handleKeyDown(0, 1.0);
+  const result = engine.strum(1.0);
+  assert.equal(result.type, "judged");
+});
+
+test("strum mode: chords require the exact combination at the moment of the strum", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0, 2] })], { strumMode: true });
+  engine.handleKeyDown(0, 1.0);
+  const incomplete = engine.strum(1.0);
+  assert.equal(incomplete.type, "whiffed");
+
+  engine.handleKeyDown(2, 1.0);
+  const complete = engine.strum(1.0);
+  assert.equal(complete.type, "judged");
+});
+
+test("strum mode: highest fret wins — holding an extra higher fret blocks a single note, regardless of press order", () => {
+  const engineHigherFirst = createGameEngine([event({ time: 1.0, frets: [0] })], { strumMode: true });
+  engineHigherFirst.handleKeyDown(4, 0.9);
+  engineHigherFirst.handleKeyDown(0, 1.0);
+  assert.equal(engineHigherFirst.strum(1.0).type, "whiffed");
+
+  const engineLowerFirst = createGameEngine([event({ time: 1.0, frets: [0] })], { strumMode: true });
+  engineLowerFirst.handleKeyDown(0, 1.0);
+  engineLowerFirst.handleKeyDown(4, 1.0);
+  assert.equal(engineLowerFirst.strum(1.0).type, "whiffed");
+});
+
+test("strum mode: holding a lower fret as an anchor doesn't block the correct higher note", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [3] })], { strumMode: true });
+  engine.handleKeyDown(0, 0.9);
+  engine.handleKeyDown(3, 1.0);
+  assert.equal(engine.strum(1.0).type, "judged");
+});
+
+test("strum mode: sustaining a higher fret doesn't block strumming a lower single note on another fret", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [4], duration: 1.0 }), event({ time: 1.5, frets: [0] })], {
+    strumMode: true,
+  });
+  engine.handleKeyDown(4, 1.0);
+  engine.strum(1.0);
+  assert.equal(engine.getState().holdingCount, 1);
+
+  engine.handleKeyDown(0, 1.5);
+  assert.equal(engine.strum(1.5).type, "judged");
+});
+
+test("strum mode: re-strumming a discrete note on the same fret as its own active sustain hits normally", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [2], duration: 1.0 }), event({ time: 1.5, frets: [2] })], {
+    strumMode: true,
+  });
+  engine.handleKeyDown(2, 1.0);
+  assert.equal(engine.strum(1.0).type, "judged");
+  assert.equal(engine.getState().holdingCount, 1);
+
+  const result = engine.strum(1.5);
+  assert.equal(result.type, "judged");
+  assert.equal(engine.getState().combo, 2);
+});
+
+test("strum mode: a whiffed strum still drains the rock meter and resets combo, tiered the same as tap mode", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0] })], { strumMode: true });
+  const before = engine.getState().rockMeter;
+  engine.handleKeyDown(4, 1.0);
+  engine.strum(1.0);
+  assert.equal(engine.getState().combo, 0);
+  assert.ok(engine.getState().rockMeter < before);
+});
+
+test("strum mode: releasing frets and pressing new ones only counts what's held at the moment of the strum", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0] })], { strumMode: true });
+  engine.handleKeyDown(4, 0.5);
+  engine.handleKeyUp(4, 0.6);
+  engine.handleKeyDown(0, 1.0);
+  const result = engine.strum(1.0);
+  assert.equal(result.type, "judged");
+});
+
+test("strum mode: an open note hits when strummed with no colored fret held", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [7] })], { strumMode: true });
+  const result = engine.strum(1.0);
+  assert.equal(result.type, "judged");
+});
+
+test("strum mode: an open note doesn't hit if a colored fret is held during the strum", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [7] })], { strumMode: true });
+  engine.handleKeyDown(2, 1.0);
+  const result = engine.strum(1.0);
+  assert.equal(result.type, "whiffed");
+});
+
+test("strum mode: an active sustain on a colored fret also blocks an open note — hand is physically occupied", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [2], duration: 1.0 }), event({ time: 1.5, frets: [7] })], {
+    strumMode: true,
+  });
+  engine.handleKeyDown(2, 1.0);
+  engine.strum(1.0);
+  assert.equal(engine.getState().holdingCount, 1);
+
+  const result = engine.strum(1.5);
+  assert.equal(result.type, "whiffed");
+});
+
+test("strum mode: a colored note is unaffected by the open-note matching rule", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [2] })], { strumMode: true });
+  engine.handleKeyDown(2, 1.0);
+  const result = engine.strum(1.0);
+  assert.equal(result.type, "judged");
+});
