@@ -2,7 +2,6 @@ import type { Fret, Note, StarPowerPhrase } from "../types.js";
 import {
   RENDER_CONFIG,
   LANE_COLORS,
-  laneColorsFor,
   laneX,
   highwayEdgeX,
   getVisibleNotes,
@@ -85,7 +84,13 @@ interface FrameInvariantStyles {
 
 const frameInvariantStylesByCtx = new WeakMap<CanvasLike2D, FrameInvariantStyles>();
 
-function frameInvariantStylesKey(config: RenderConfig, palette: Palette): string {
+const STAR_POWER_TINT_AMOUNT = 0.22;
+
+function trackTint(hex: string, intense: boolean): string {
+  return intense ? mix(hex, STAR_POWER_BOLT_GLOW_COLOR, STAR_POWER_TINT_AMOUNT) : hex;
+}
+
+function frameInvariantStylesKey(config: RenderConfig, palette: Palette, intense: boolean): string {
   return [
     config.canvasWidth,
     config.canvasHeight,
@@ -98,6 +103,7 @@ function frameInvariantStylesKey(config: RenderConfig, palette: Palette): string
     palette.secondary,
     palette.tertiary,
     palette.quaternary,
+    intense,
   ].join("|");
 }
 
@@ -105,11 +111,14 @@ function getFrameInvariantStyles(
   ctx: CanvasLike2D,
   config: RenderConfig,
   palette: Palette,
-  laneColors: Record<Fret, string>
+  laneColors: Record<Fret, string>,
+  intense: boolean
 ): FrameInvariantStyles {
-  const key = frameInvariantStylesKey(config, palette);
+  const key = frameInvariantStylesKey(config, palette, intense);
   const cached = frameInvariantStylesByCtx.get(ctx);
   if (cached && cached.key === key) return cached;
+
+  const backgroundColor = trackTint(palette.canvasBackground, intense);
 
   const stageGlowGradient = ctx.createRadialGradient(
     config.highwayCenterX,
@@ -119,9 +128,12 @@ function getFrameInvariantStyles(
     config.hitLineY,
     config.canvasHeight * 0.85
   );
-  stageGlowGradient.addColorStop(0, mix(palette.canvasBackground, palette.info, 0.28));
-  stageGlowGradient.addColorStop(0.45, mix(palette.canvasBackground, palette.secondary, 0.55));
-  stageGlowGradient.addColorStop(1, palette.canvasBackground);
+  stageGlowGradient.addColorStop(0, mix(backgroundColor, trackTint(palette.info, intense), 0.28));
+  stageGlowGradient.addColorStop(0.45, mix(backgroundColor, trackTint(palette.secondary, intense), 0.55));
+  stageGlowGradient.addColorStop(1, backgroundColor);
+
+  const tertiary = trackTint(palette.tertiary, intense);
+  const quaternary = trackTint(palette.quaternary, intense);
 
   const laneBeamGradients = new Map<Fret, CanvasGradientLike>();
   const laneGridStrokeColors = new Map<Fret, string>();
@@ -129,12 +141,12 @@ function getFrameInvariantStyles(
     const baseColor = laneColors[fret] ?? palette.noteFallback;
     const beamGradient = ctx.createLinearGradient(0, 0, 0, config.hitLineY);
     beamGradient.addColorStop(0, "rgba(0, 0, 0, 0)");
-    beamGradient.addColorStop(0.55, mix(palette.canvasBackground, baseColor, 0.3));
-    beamGradient.addColorStop(1, mix(palette.canvasBackground, baseColor, 0.7));
+    beamGradient.addColorStop(0.55, mix(backgroundColor, baseColor, 0.3));
+    beamGradient.addColorStop(1, mix(backgroundColor, baseColor, 0.7));
     laneBeamGradients.set(fret, beamGradient);
 
-    const laneColor = laneColors[fret] ?? palette.tertiary;
-    laneGridStrokeColors.set(fret, mix(palette.tertiary, laneColor, 0.45));
+    const laneColor = laneColors[fret] ?? tertiary;
+    laneGridStrokeColors.set(fret, mix(tertiary, laneColor, 0.45));
   }
 
   const styles: FrameInvariantStyles = {
@@ -142,7 +154,7 @@ function getFrameInvariantStyles(
     stageGlowGradient,
     laneBeamGradients,
     laneGridStrokeColors,
-    gridLineStrokeColor: mix(palette.tertiary, palette.quaternary, 0.35),
+    gridLineStrokeColor: mix(tertiary, quaternary, 0.35),
   };
   frameInvariantStylesByCtx.set(ctx, styles);
   return styles;
@@ -461,10 +473,10 @@ const STAR_POWER_GLOW_PULSE_HZ = 3.2;
 
 function drawStarPowerDropAura(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number): void {
   const pulse = 0.7 + 0.3 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2);
-  const auraRadius = radius * 2.4;
+  const auraRadius = radius * 1.9;
   const aura = ctx.createRadialGradient(x, y, 0, x, y, auraRadius);
-  aura.addColorStop(0, `rgba(${STAR_POWER_DROP_GLOW_RGB}, ${0.5 * pulse})`);
-  aura.addColorStop(0.55, `rgba(${STAR_POWER_DROP_GLOW_RGB}, ${0.2 * pulse})`);
+  aura.addColorStop(0, `rgba(${STAR_POWER_DROP_GLOW_RGB}, ${0.32 * pulse})`);
+  aura.addColorStop(0.55, `rgba(${STAR_POWER_DROP_GLOW_RGB}, ${0.13 * pulse})`);
   aura.addColorStop(1, `rgba(${STAR_POWER_DROP_GLOW_RGB}, 0)`);
   ctx.globalAlpha = 1;
   ctx.fillStyle = aura;
@@ -475,11 +487,11 @@ function drawStarPowerDropAura(ctx: CanvasLike2D, x: number, y: number, radius: 
 
 function drawStarPowerDropRim(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number): void {
   const pulse = 0.7 + 0.3 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2 + 1.5);
-  ctx.shadowBlur = radius * 0.7;
+  ctx.shadowBlur = radius * 0.4;
   ctx.shadowColor = STAR_POWER_BOLT_GLOW_COLOR;
   ctx.strokeStyle = STAR_POWER_BOLT_CORE_COLOR;
-  ctx.lineWidth = Math.max(1, radius * 0.1);
-  ctx.globalAlpha = 0.35 + 0.45 * pulse;
+  ctx.lineWidth = Math.max(1, radius * 0.07);
+  ctx.globalAlpha = 0.2 + 0.25 * pulse;
   dropPath(ctx, x, y, radius);
   ctx.stroke();
   ctx.shadowBlur = 0;
@@ -848,17 +860,16 @@ function drawClickFlash(
   ctx.globalAlpha = 1;
 }
 
-const LIGHTNING_BOLT_COUNT = 3;
-const LIGHTNING_SEGMENT_COUNT = 6;
-const LIGHTNING_FLICKER_HZ = 9;
-
 function pseudoRandom(seed: number): number {
   const x = Math.sin(seed * 12.9898) * 43758.5453;
   return x - Math.floor(x);
 }
 
-function drawLightningBolt(ctx: CanvasLike2D, config: RenderConfig, index: number, currentTime: number, palette: Palette): void {
-  const flickerFrame = Math.floor(currentTime * LIGHTNING_FLICKER_HZ);
+const AMBIENT_LIGHTNING_BOLT_COUNT = 3;
+const AMBIENT_LIGHTNING_FLICKER_HZ = 9;
+
+function drawAmbientLightningBolt(ctx: CanvasLike2D, config: RenderConfig, index: number, currentTime: number): void {
+  const flickerFrame = Math.floor(currentTime * AMBIENT_LIGHTNING_FLICKER_HZ);
   const flicker = pseudoRandom(flickerFrame + index * 97.3);
   if (flicker < 0.55) return;
 
@@ -867,28 +878,62 @@ function drawLightningBolt(ctx: CanvasLike2D, config: RenderConfig, index: numbe
   const startY = config.canvasHeight * (0.05 + pseudoRandom(index * 3.1) * 0.1);
   const endX = highwayEdgeX(side, 1, config) + side * config.noteMaxRadius * 2;
   const endY = config.hitLineY * (0.7 + pseudoRandom(index * 5.7) * 0.3);
+  const angle = Math.atan2(endY - startY, endX - startX);
+  const length = Math.hypot(endX - startX, endY - startY);
+  const seed = index * 53.7 + flickerFrame * 2.9;
+  const alpha = 0.55 + pseudoRandom(index * 7.3 + flickerFrame) * 0.35;
 
-  ctx.strokeStyle = lighten(palette.laneBlue, 0.6);
-  ctx.lineWidth = Math.max(2, config.noteMaxRadius * 0.12);
-  ctx.globalAlpha = 0.55 + pseudoRandom(index * 7.3 + flickerFrame) * 0.35;
-  ctx.beginPath();
-  ctx.moveTo(startX, startY);
-  for (let i = 1; i <= LIGHTNING_SEGMENT_COUNT; i++) {
-    const t = i / LIGHTNING_SEGMENT_COUNT;
-    const baseX = startX + (endX - startX) * t;
-    const baseY = startY + (endY - startY) * t;
-    const jitterSeed = index * 13.7 + i * 4.1 + flickerFrame * 1.9;
-    const jitter = (pseudoRandom(jitterSeed) - 0.5) * config.noteMaxRadius * 1.4;
-    ctx.lineTo(baseX + jitter, baseY);
+  const points = jaggedBoltPath(startX, startY, angle, length, seed, 0.14, 4);
+  strokeBoltPath(
+    ctx,
+    points,
+    Math.max(3, config.noteMaxRadius * 0.22),
+    Math.max(1.5, config.noteMaxRadius * 0.1),
+    Math.max(0.6, config.noteMaxRadius * 0.035),
+    config.noteMaxRadius * 0.8,
+    alpha,
+    0.6
+  );
+}
+
+function drawAmbientLightningBolts(ctx: CanvasLike2D, config: RenderConfig, currentTime: number): void {
+  for (let i = 0; i < AMBIENT_LIGHTNING_BOLT_COUNT; i++) {
+    drawAmbientLightningBolt(ctx, config, i, currentTime);
   }
-  ctx.stroke();
+  ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
 }
 
-function drawLightningBolts(ctx: CanvasLike2D, config: RenderConfig, currentTime: number, palette: Palette): void {
-  for (let i = 0; i < LIGHTNING_BOLT_COUNT; i++) {
-    drawLightningBolt(ctx, config, i, currentTime, palette);
+const STAR_POWER_HIT_BOLT_DURATION_SECONDS = 0.22;
+const STAR_POWER_HIT_BOLT_COUNT: number = 5;
+
+function drawStarPowerHitBolt(ctx: CanvasLike2D, fret: Fret, config: RenderConfig, elapsedSeconds: number): void {
+  const t = clamp01(elapsedSeconds / STAR_POWER_HIT_BOLT_DURATION_SECONDS);
+  if (elapsedSeconds < 0 || t >= 1) return;
+  const x = laneX(fret, 1, config);
+  const y = config.hitLineY;
+  const alpha = (1 - t) * 0.9;
+
+  for (let i = 0; i < STAR_POWER_HIT_BOLT_COUNT; i++) {
+    const seed = fret * 13.7 + i * 29.3;
+    const spread = STAR_POWER_HIT_BOLT_COUNT === 1 ? 0 : (i / (STAR_POWER_HIT_BOLT_COUNT - 1)) * 2 - 1;
+    const angle = -Math.PI / 2 + spread * 0.8 + (pseudoRandom(seed) - 0.5) * 0.4;
+    const length = config.noteMaxRadius * (2.3 + pseudoRandom(seed + 3) * 1.1) * (1 - t * 0.2);
+
+    const points = jaggedBoltPath(x, y, angle, length, seed, 0.26, 3);
+    strokeBoltPath(
+      ctx,
+      points,
+      Math.max(1.5, config.noteMaxRadius * 0.13),
+      Math.max(0.8, config.noteMaxRadius * 0.065),
+      Math.max(0.35, config.noteMaxRadius * 0.024),
+      config.noteMaxRadius * 0.65,
+      alpha,
+      0.6
+    );
   }
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
 }
 
 export function drawFrame(
@@ -908,11 +953,11 @@ export function drawFrame(
   starPowerPhraseBroken: readonly boolean[] = EMPTY_STAR_POWER_PHRASE_BROKEN,
   starPowerCollectAt: ReadonlyMap<string, number> = EMPTY_STAR_POWER_COLLECT_AT
 ): VisibleNote[] {
-  const laneColors = laneColorsFor(palette);
+  const laneColors = LANE_COLORS;
   const intensity = intense ? 1.6 : 1;
-  const frameStyles = getFrameInvariantStyles(ctx, config, palette, laneColors);
+  const frameStyles = getFrameInvariantStyles(ctx, config, palette, laneColors, intense);
 
-  ctx.fillStyle = palette.canvasBackground;
+  ctx.fillStyle = trackTint(palette.canvasBackground, intense);
   ctx.fillRect(0, 0, config.canvasWidth, config.canvasHeight);
   drawStageGlow(ctx, config, frameStyles.stageGlowGradient);
 
@@ -941,7 +986,7 @@ export function drawFrame(
 
   for (const note of visible) {
     if (note.fret !== 7 || note.sustainDrops.length === 0) continue;
-    const baseColor = laneColors[note.fret] ?? palette.noteFallback;
+    const baseColor = intense ? STAR_POWER_BOLT_GLOW_COLOR : laneColors[note.fret] ?? palette.noteFallback;
     for (const drop of note.sustainDrops) {
       drawSustainDrop(ctx, drop.x, drop.y, drop.radius, baseColor, 0.75);
     }
@@ -968,7 +1013,8 @@ export function drawFrame(
 
       if (elapsed >= 0 && elapsed <= ABSORB_DURATION_SECONDS) {
         for (const flashFret of flashFrets) {
-          drawClickFlash(ctx, flashFret, config, elapsed, note.time, true, !isHeldOpen, laneColors, palette, intensity);
+          drawClickFlash(ctx, flashFret, config, elapsed, note.time, true, !isHeldOpen && !intense, laneColors, palette, intensity);
+          if (intense) drawStarPowerHitBolt(ctx, flashFret, config, elapsed);
         }
       }
 
@@ -1003,13 +1049,14 @@ export function drawFrame(
     const notePhraseIndex = phraseIndexAt(starPowerPhrases, note.time);
     const inActiveStarPowerPhrase =
       judgedAt === undefined && !isMissed && notePhraseIndex !== -1 && !starPowerPhraseBroken[notePhraseIndex];
+    const noteGlowing = judgedAt === undefined && !isMissed && (intense || inActiveStarPowerPhrase);
     const sparkOriginY = note.y + note.radius * 0.1;
 
-    if (inActiveStarPowerPhrase) drawStarPowerDropAura(ctx, note.x, note.y, note.radius, currentTime);
+    if (noteGlowing) drawStarPowerDropAura(ctx, note.x, note.y, note.radius, currentTime);
 
     const isSustain = note.fret !== 7 && note.duration > 0;
     if (isSustain) {
-      const baseColor = laneColors[note.fret] ?? palette.noteFallback;
+      const baseColor = intense ? STAR_POWER_BOLT_GLOW_COLOR : laneColors[note.fret] ?? palette.noteFallback;
       const color = isMissed ? desaturate(baseColor, MISS_DESATURATION_AMOUNT) : baseColor;
       drawSustainTrail(ctx, note, config, currentTime, color, !isMissed && holdingKeys.has(key));
       if (inActiveStarPowerPhrase) drawStarPowerSparks(ctx, note.x, sparkOriginY, note.radius, currentTime, note.time);
@@ -1021,7 +1068,7 @@ export function drawFrame(
     const progress = note.y / config.hitLineY;
     const fadeEnd = 1 + config.despawnAfter / config.approachTime;
     const alpha = progress <= 1 ? 1 : 1 - clamp01((progress - 1) / (fadeEnd - 1));
-    const baseColor = laneColors[note.fret] ?? palette.noteFallback;
+    const baseColor = intense ? STAR_POWER_BOLT_GLOW_COLOR : laneColors[note.fret] ?? palette.noteFallback;
     const color = isMissed ? desaturate(baseColor, MISS_DESATURATION_AMOUNT) : baseColor;
 
     if (note.fret === 7) {
@@ -1031,12 +1078,12 @@ export function drawFrame(
       drawOpenNoteBar(ctx, note.x, note.y, halfWidth, note.radius * 0.7, color, alpha);
     } else {
       drawDrop(ctx, note.x, note.y, note.radius, color, alpha);
-      if (inActiveStarPowerPhrase) drawStarPowerDropRim(ctx, note.x, note.y, note.radius, currentTime);
+      if (noteGlowing) drawStarPowerDropRim(ctx, note.x, note.y, note.radius, currentTime);
     }
     if (inActiveStarPowerPhrase) drawStarPowerSparks(ctx, note.x, sparkOriginY, note.radius, currentTime, note.time);
   }
 
-  if (intense) drawLightningBolts(ctx, config, currentTime, palette);
+  if (intense) drawAmbientLightningBolts(ctx, config, currentTime);
 
   return visible;
 }

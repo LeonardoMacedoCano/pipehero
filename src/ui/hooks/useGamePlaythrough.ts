@@ -6,7 +6,7 @@ import { createRenderConfig, highwayBuildConfig, noteRenderKey } from "../../ren
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
 import { playBooSound } from "../../audio/booSound.js";
-import { COLORS, STAR_POWER_COLORS } from "../../colors.js";
+import { COLORS } from "../../colors.js";
 import {
   fretForBinding,
   isStarPowerBinding,
@@ -213,8 +213,6 @@ export function useGamePlaythrough({
         ? highwayBuildConfig(config, easeOutCubic(introElapsed / HIGHWAY_BUILD_INTRO_MS))
         : config;
 
-    const palette = state.starPowerActive ? STAR_POWER_COLORS : COLORS;
-
     drawFrame(
       ctx,
       notes,
@@ -226,7 +224,7 @@ export function useGamePlaythrough({
       errorClicksRef.current,
       lastErrorAtRef.current,
       openHoldReleaseAtRef.current,
-      palette,
+      COLORS,
       state.starPowerActive,
       starPowerPhrases ?? [],
       state.starPowerPhraseBroken,
