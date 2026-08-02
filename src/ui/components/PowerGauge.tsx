@@ -90,10 +90,12 @@ export default function PowerGauge({
   rockMeter,
   starPowerMeter,
   starPowerActive,
+  starPowerGainNonce,
 }: {
   rockMeter: number;
   starPowerMeter: number;
   starPowerActive: boolean;
+  starPowerGainNonce: number;
 }) {
   const theme = useTheme();
   const boltClipId = useId();
@@ -132,22 +134,24 @@ export default function PowerGauge({
           </svg>
         </HandWrapper>
 
-        <BoltWrapper $ready={starReady} $active={starPowerActive}>
-          <svg viewBox="0 0 100 100" width="64" height="64" role="img" aria-label="Star Power">
-            <defs>
-              <linearGradient id={boltGradientId} x1="0" y1="1" x2="0" y2="0">
-                <stop offset="0%" stopColor={BOLT_COLOR} />
-                <stop offset="100%" stopColor={BOLT_COLOR_LIGHT} />
-              </linearGradient>
-              <clipPath id={boltClipId}>
-                <rect x="0" y={boltClipY} width="100" height={120} />
-              </clipPath>
-            </defs>
-            <polygon points={BOLT.points} fill="rgba(255, 255, 255, 0.05)" stroke="rgba(255, 255, 255, 0.25)" strokeWidth={3} strokeLinejoin="round" />
-            <polygon points={BOLT.points} fill={`url(#${boltGradientId})`} clipPath={`url(#${boltClipId})`} strokeLinejoin="round" />
-            <polygon points={BOLT.points} fill="none" stroke="rgba(255, 255, 255, 0.5)" strokeWidth={1.5} strokeLinejoin="round" />
-          </svg>
-        </BoltWrapper>
+        <BoltBump key={starPowerGainNonce} $pulse={starPowerGainNonce > 0}>
+          <BoltWrapper $ready={starReady} $active={starPowerActive}>
+            <svg viewBox="0 0 100 100" width="64" height="64" role="img" aria-label="Star Power">
+              <defs>
+                <linearGradient id={boltGradientId} x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor={BOLT_COLOR} />
+                  <stop offset="100%" stopColor={BOLT_COLOR_LIGHT} />
+                </linearGradient>
+                <clipPath id={boltClipId}>
+                  <rect x="0" y={boltClipY} width="100" height={120} />
+                </clipPath>
+              </defs>
+              <polygon points={BOLT.points} fill="rgba(255, 255, 255, 0.05)" stroke="rgba(255, 255, 255, 0.25)" strokeWidth={3} strokeLinejoin="round" />
+              <polygon points={BOLT.points} fill={`url(#${boltGradientId})`} clipPath={`url(#${boltClipId})`} strokeLinejoin="round" />
+              <polygon points={BOLT.points} fill="none" stroke="rgba(255, 255, 255, 0.5)" strokeWidth={1.5} strokeLinejoin="round" />
+            </svg>
+          </BoltWrapper>
+        </BoltBump>
       </Layout>
     </IronPipeFrame>
   );
@@ -171,6 +175,12 @@ const criticalFlash = keyframes`
   50% { filter: drop-shadow(0 0 10px currentColor) drop-shadow(0 0 20px currentColor); }
 `;
 
+const bump = keyframes`
+  0% { transform: scale(1); }
+  35% { transform: scale(1.3); filter: drop-shadow(0 0 16px ${BOLT_COLOR_LIGHT}); }
+  100% { transform: scale(1); }
+`;
+
 const Layout = styled.div`
   display: flex;
   align-items: center;
@@ -186,6 +196,10 @@ const HandWrapper = styled.div<{ $shake: boolean; $critical: boolean }>`
           , ${criticalFlash} 0.4s ease-in-out infinite
         `
       : ""};
+`;
+
+const BoltBump = styled.div<{ $pulse: boolean }>`
+  animation: ${({ $pulse }) => ($pulse ? css`${bump} 0.35s ease-out` : "none")};
 `;
 
 const BoltWrapper = styled.div<{ $ready: boolean; $active: boolean }>`

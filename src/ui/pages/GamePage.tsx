@@ -75,7 +75,12 @@ export default function GamePage({
               <ScoreBox score={hud.score} combo={hud.combo} multiplier={hud.multiplier} starPowerActive={hud.starPowerActive} />
             </ScoreBoxOverlay>
             <PowerGaugeOverlay>
-              <PowerGauge rockMeter={hud.rockMeter} starPowerMeter={hud.starPowerMeter} starPowerActive={hud.starPowerActive} />
+              <PowerGauge
+                rockMeter={hud.rockMeter}
+                starPowerMeter={hud.starPowerMeter}
+                starPowerActive={hud.starPowerActive}
+                starPowerGainNonce={hud.starPowerGainNonce}
+              />
             </PowerGaugeOverlay>
             {needsTapToStart && <TapToStartOverlay onClick={start}>Tap to start</TapToStartOverlay>}
           </ThemeProvider>
