@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import type { Bpm, StarPowerEvent, Timed } from "parsehero";
-import { extractStarPowerPhrases, isWithinStarPowerPhrase, synthesizeStarPowerPhrases } from "./starPower.js";
+import { extractStarPowerPhrases, isWithinStarPowerPhrase, phraseIndexAt, synthesizeStarPowerPhrases } from "./starPower.js";
 
 const RESOLUTION = 192;
 const BPMS: Timed<Bpm>[] = [{ tick: 0, bpm: 120, assignedTime: 0, type: "bpm" }];
@@ -53,6 +53,17 @@ test("isWithinStarPowerPhrase: inside the [start, end) interval counts as within
 
 test("isWithinStarPowerPhrase with an empty list always returns false", () => {
   assert.equal(isWithinStarPowerPhrase([], 5.0), false);
+});
+
+test("phraseIndexAt returns the index of the containing phrase, or -1 outside every phrase", () => {
+  const phrases = [
+    { startTime: 0, endTime: 1 },
+    { startTime: 2, endTime: 3 },
+  ];
+  assert.equal(phraseIndexAt(phrases, 0.5), 0);
+  assert.equal(phraseIndexAt(phrases, 2.5), 1);
+  assert.equal(phraseIndexAt(phrases, 1.5), -1);
+  assert.equal(phraseIndexAt([], 0.5), -1);
 });
 
 test("synthesizeStarPowerPhrases: returns nothing for an empty chart", () => {

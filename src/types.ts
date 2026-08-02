@@ -56,6 +56,7 @@ export interface GameState {
   totalNotes: number;
   starPowerMeter: number;
   starPowerActive: boolean;
+  starPowerPhraseBroken: boolean[];
   multiplier: number;
   rockMeter: number;
   failed: boolean;
@@ -63,9 +64,11 @@ export interface GameState {
 
 export type KeyDownResult =
   | { type: "unmatched"; fret: Fret; time: number; awaitingChord: boolean }
-  | { type: "judged"; event: GameEvent; rating: Rating };
+  | { type: "judged"; event: GameEvent; rating: Rating; starPowerPhraseCompleted: boolean };
 
-export type StrumResult = { type: "judged"; event: GameEvent; rating: Rating } | { type: "whiffed"; time: number };
+export type StrumResult =
+  | { type: "judged"; event: GameEvent; rating: Rating; starPowerPhraseCompleted: boolean }
+  | { type: "whiffed"; time: number };
 
 export interface GameEngine {
   handleKeyDown(fret: Fret, time: number): KeyDownResult;
