@@ -18,8 +18,12 @@ export function extractStarPowerPhrases(
     .sort((a, b) => a.startTime - b.startTime);
 }
 
+export function phraseIndexAt(phrases: StarPowerPhrase[], time: number): number {
+  return phrases.findIndex((phrase) => time >= phrase.startTime && time < phrase.endTime);
+}
+
 export function isWithinStarPowerPhrase(phrases: StarPowerPhrase[], time: number): boolean {
-  return phrases.some((phrase) => time >= phrase.startTime && time < phrase.endTime);
+  return phraseIndexAt(phrases, time) !== -1;
 }
 
 const SYNTHETIC_PHRASE_COUNT = 5;

@@ -14,8 +14,8 @@ import {
   type VisibleNote,
 } from "./layout.js";
 import { lighten, desaturate, mix } from "./colorUtils.js";
-import { COLORS, type Palette } from "../colors.js";
-import { isWithinStarPowerPhrase } from "../engine/starPower.js";
+import { COLORS, STAR_POWER_COLORS, type Palette } from "../colors.js";
+import { phraseIndexAt } from "../engine/starPower.js";
 
 interface CanvasGradientLike {
   addColorStop(offset: number, color: string): void;
@@ -25,7 +25,11 @@ export interface CanvasLike2D {
   fillStyle: unknown;
   strokeStyle: unknown;
   lineWidth: number;
+  lineCap: string;
+  lineJoin: string;
   globalAlpha: number;
+  shadowBlur: number;
+  shadowColor: string;
   createLinearGradient(x0: number, y0: number, x1: number, y1: number): CanvasGradientLike;
   createRadialGradient(x0: number, y0: number, r0: number, x1: number, y1: number, r1: number): CanvasGradientLike;
   fillRect(x: number, y: number, w: number, h: number): void;
@@ -50,6 +54,8 @@ const EMPTY_MISSED_KEYS: ReadonlySet<string> = new Set();
 const EMPTY_ERROR_CLICKS: ReadonlyMap<Fret, number> = new Map();
 const EMPTY_OPEN_HOLD_RELEASE: ReadonlyMap<string, number> = new Map();
 const EMPTY_STAR_POWER_PHRASES: StarPowerPhrase[] = [];
+const EMPTY_STAR_POWER_PHRASE_BROKEN: readonly boolean[] = [];
+const EMPTY_STAR_POWER_COLLECT_AT: ReadonlyMap<string, number> = new Map();
 
 const RAIL_MISS_FADE_SECONDS = 0.5;
 
@@ -361,16 +367,229 @@ function sustainTrailPath(
   ctx.closePath();
 }
 
-const STAR_POWER_HALO_PULSE_HZ = 2.2;
+const STAR_POWER_BOLT_GLOW_COLOR = STAR_POWER_COLORS.info;
+const STAR_POWER_BOLT_CORE_COLOR = "#f6efff";
 
-function drawStarPowerHalo(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number, palette: Palette): void {
-  const pulse = 0.55 + 0.45 * Math.sin(currentTime * STAR_POWER_HALO_PULSE_HZ * Math.PI * 2);
-  ctx.globalAlpha = pulse;
-  ctx.strokeStyle = lighten(palette.laneYellow, 0.5);
-  ctx.lineWidth = Math.max(2, radius * 0.22);
+interface BoltPoint {
+  x: number;
+  y: number;
+}
+
+function midpointDisplace(
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  displacement: number,
+  seed: number,
+  depth: number,
+  out: BoltPoint[]
+): void {
+  if (depth <= 0) {
+    out.push({ x: x1, y: y1 });
+    return;
+  }
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy) || 1;
+  const normalX = -dy / len;
+  const normalY = dx / len;
+  const offset = (pseudoRandom(seed) - 0.5) * 2 * displacement;
+  const midX = (x0 + x1) / 2 + normalX * offset;
+  const midY = (y0 + y1) / 2 + normalY * offset;
+  midpointDisplace(x0, y0, midX, midY, displacement * 0.55, seed * 2.13 + 1.7, depth - 1, out);
+  midpointDisplace(midX, midY, x1, y1, displacement * 0.55, seed * 2.13 + 5.9, depth - 1, out);
+}
+
+function jaggedBoltPath(
+  x: number,
+  y: number,
+  angle: number,
+  length: number,
+  seed: number,
+  displacementRatio: number,
+  depth: number = 3
+): BoltPoint[] {
+  const tipX = x + Math.cos(angle) * length;
+  const tipY = y + Math.sin(angle) * length;
+  const points: BoltPoint[] = [{ x, y }];
+  midpointDisplace(x, y, tipX, tipY, length * displacementRatio, seed, depth, points);
+  return points;
+}
+
+function strokePolyline(ctx: CanvasLike2D, points: BoltPoint[]): void {
   ctx.beginPath();
-  ctx.arc(x, y, radius * 1.35, 0, Math.PI * 2);
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
   ctx.stroke();
+}
+
+function strokeBoltPath(
+  ctx: CanvasLike2D,
+  points: BoltPoint[],
+  glowWidth: number,
+  coreWidthBase: number,
+  coreWidthTip: number,
+  glowBlur: number,
+  alpha: number,
+  glowAlphaScale: number = 0.5
+): void {
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.shadowBlur = glowBlur;
+  ctx.shadowColor = STAR_POWER_BOLT_GLOW_COLOR;
+  ctx.strokeStyle = STAR_POWER_BOLT_GLOW_COLOR;
+  ctx.lineWidth = glowWidth;
+  ctx.globalAlpha = alpha * glowAlphaScale;
+  strokePolyline(ctx, points);
+
+  ctx.lineCap = "butt";
+  ctx.lineJoin = "miter";
+  ctx.shadowBlur = glowBlur * 0.35;
+  ctx.strokeStyle = STAR_POWER_BOLT_CORE_COLOR;
+  ctx.globalAlpha = alpha;
+  ctx.lineWidth = coreWidthTip;
+  strokePolyline(ctx, points);
+
+  const baseCount = Math.max(2, Math.ceil(points.length * 0.5));
+  ctx.lineWidth = coreWidthBase;
+  strokePolyline(ctx, points.slice(0, baseCount));
+}
+
+const STAR_POWER_DROP_GLOW_RGB = "156, 109, 255";
+const STAR_POWER_GLOW_PULSE_HZ = 3.2;
+
+function drawStarPowerDropAura(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number): void {
+  const pulse = 0.7 + 0.3 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2);
+  const auraRadius = radius * 2.4;
+  const aura = ctx.createRadialGradient(x, y, 0, x, y, auraRadius);
+  aura.addColorStop(0, `rgba(${STAR_POWER_DROP_GLOW_RGB}, ${0.5 * pulse})`);
+  aura.addColorStop(0.55, `rgba(${STAR_POWER_DROP_GLOW_RGB}, ${0.2 * pulse})`);
+  aura.addColorStop(1, `rgba(${STAR_POWER_DROP_GLOW_RGB}, 0)`);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = aura;
+  ctx.beginPath();
+  ctx.arc(x, y, auraRadius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawStarPowerDropRim(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number): void {
+  const pulse = 0.7 + 0.3 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2 + 1.5);
+  ctx.shadowBlur = radius * 0.7;
+  ctx.shadowColor = STAR_POWER_BOLT_GLOW_COLOR;
+  ctx.strokeStyle = STAR_POWER_BOLT_CORE_COLOR;
+  ctx.lineWidth = Math.max(1, radius * 0.1);
+  ctx.globalAlpha = 0.35 + 0.45 * pulse;
+  dropPath(ctx, x, y, radius);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+}
+
+const STAR_POWER_SPARK_COUNT = 3;
+const STAR_POWER_SPARK_FLICKER_HZ = 15;
+const STAR_POWER_SPARK_ANGLE_SPREAD = Math.PI * 1.7;
+const STAR_POWER_SPARK_FORK_CHANCE = 0.6;
+
+function drawStarPowerSparks(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number, seed: number): void {
+  const flickerFrame = Math.floor(currentTime * STAR_POWER_SPARK_FLICKER_HZ);
+  for (let i = 0; i < STAR_POWER_SPARK_COUNT; i++) {
+    const boltSeed = seed * 17.3 + i * 91.7;
+    const baseAngle = -Math.PI / 2 + (pseudoRandom(boltSeed) - 0.5) * STAR_POWER_SPARK_ANGLE_SPREAD;
+    const length = radius * (1.15 + pseudoRandom(boltSeed + 3.1) * 0.85);
+    const displacementRatio = 0.3 + pseudoRandom(boltSeed + 6.6) * 0.2;
+    const alpha = 0.6 + pseudoRandom(boltSeed + flickerFrame * 1.3) * 0.35;
+
+    const points = jaggedBoltPath(x, y, baseAngle, length, boltSeed + flickerFrame * 2.3, displacementRatio, 3);
+    strokeBoltPath(ctx, points, Math.max(2, radius * 0.18), Math.max(1, radius * 0.09), Math.max(0.5, radius * 0.035), radius * 0.85, alpha);
+
+    if (pseudoRandom(boltSeed + flickerFrame * 0.6 + 9.7) > STAR_POWER_SPARK_FORK_CHANCE) {
+      const forkOrigin = points[Math.min(2 + Math.floor(pseudoRandom(boltSeed + 15) * 2), points.length - 2)];
+      const forkAngle = baseAngle + (pseudoRandom(boltSeed + 21.3) - 0.5) * 1.9;
+      const forkPoints = jaggedBoltPath(
+        forkOrigin.x,
+        forkOrigin.y,
+        forkAngle,
+        length * 0.45,
+        boltSeed + flickerFrame * 2.3 + 50,
+        0.3,
+        2
+      );
+      strokeBoltPath(
+        ctx,
+        forkPoints,
+        Math.max(1.5, radius * 0.09),
+        Math.max(0.6, radius * 0.05),
+        Math.max(0.4, radius * 0.02),
+        radius * 0.45,
+        alpha * 0.8
+      );
+    }
+  }
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+}
+
+export const STAR_POWER_COLLECT_DURATION_SECONDS = 0.5;
+const STAR_POWER_COLLECT_BOLT_COUNT: number = 5;
+const STAR_POWER_COLLECT_FLASH_DURATION_SECONDS = 0.16;
+
+function drawStarPowerCollectBurst(ctx: CanvasLike2D, x: number, y: number, config: RenderConfig, elapsedSeconds: number): void {
+  const t = clamp01(elapsedSeconds / STAR_POWER_COLLECT_DURATION_SECONDS);
+  const growT = 1 - (1 - t) * (1 - t);
+  const fadeT = t * t * t;
+  const travel = config.noteMaxRadius * 6.5;
+
+  const flashT = clamp01(elapsedSeconds / STAR_POWER_COLLECT_FLASH_DURATION_SECONDS);
+  if (flashT < 1) {
+    ctx.shadowBlur = config.noteMaxRadius * 0.9;
+    ctx.shadowColor = STAR_POWER_BOLT_GLOW_COLOR;
+    ctx.fillStyle = STAR_POWER_BOLT_CORE_COLOR;
+    ctx.globalAlpha = (1 - flashT) * 0.85;
+    ctx.beginPath();
+    ctx.arc(x, y, config.noteMaxRadius * lerp(0.35, 1.4, flashT), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  for (let i = 0; i < STAR_POWER_COLLECT_BOLT_COUNT; i++) {
+    const seed = i * 41.3;
+    const spread = STAR_POWER_COLLECT_BOLT_COUNT === 1 ? 0 : (i / (STAR_POWER_COLLECT_BOLT_COUNT - 1)) * 2 - 1;
+    const startX = x + spread * config.noteMaxRadius * 1.2;
+    const baseAngle = -Math.PI / 2 + spread * 0.4 + (pseudoRandom(seed + 5) - 0.5) * 0.3;
+    const length = travel * growT * (0.85 + pseudoRandom(seed + 8.2) * 0.3);
+    const displacementRatio = 0.2 + pseudoRandom(seed + 12) * 0.1;
+    const alpha = (1 - fadeT) * 0.95;
+
+    const points = jaggedBoltPath(startX, y, baseAngle, length, seed, displacementRatio, 4);
+    strokeBoltPath(
+      ctx,
+      points,
+      Math.max(1.5, config.noteMaxRadius * 0.13),
+      Math.max(1, config.noteMaxRadius * 0.075),
+      Math.max(0.4, config.noteMaxRadius * 0.025),
+      config.noteMaxRadius * 1.0,
+      alpha,
+      0.7
+    );
+
+    if (pseudoRandom(seed + 13.1) > 0.4 && points.length > 2) {
+      const forkOrigin = points[Math.floor(points.length / 2)];
+      const forkAngle = baseAngle + (pseudoRandom(seed + 27.4) - 0.5) * 1.6;
+      const forkPoints = jaggedBoltPath(forkOrigin.x, forkOrigin.y, forkAngle, length * 0.4, seed + 60, 0.22, 3);
+      strokeBoltPath(
+        ctx,
+        forkPoints,
+        Math.max(1, config.noteMaxRadius * 0.07),
+        Math.max(0.6, config.noteMaxRadius * 0.045),
+        Math.max(0.35, config.noteMaxRadius * 0.018),
+        config.noteMaxRadius * 0.55,
+        alpha * 0.75,
+        0.7
+      );
+    }
+  }
+  ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
 }
 
@@ -685,7 +904,9 @@ export function drawFrame(
   openHoldReleaseAt: ReadonlyMap<string, number> = EMPTY_OPEN_HOLD_RELEASE,
   palette: Palette = COLORS,
   intense: boolean = false,
-  starPowerPhrases: StarPowerPhrase[] = EMPTY_STAR_POWER_PHRASES
+  starPowerPhrases: StarPowerPhrase[] = EMPTY_STAR_POWER_PHRASES,
+  starPowerPhraseBroken: readonly boolean[] = EMPTY_STAR_POWER_PHRASE_BROKEN,
+  starPowerCollectAt: ReadonlyMap<string, number> = EMPTY_STAR_POWER_COLLECT_AT
 ): VisibleNote[] {
   const laneColors = laneColorsFor(palette);
   const intensity = intense ? 1.6 : 1;
@@ -732,6 +953,14 @@ export function drawFrame(
 
     const judgedAt = judgedHits.get(key);
 
+    const collectAt = starPowerCollectAt.get(key);
+    if (collectAt !== undefined) {
+      const collectElapsed = currentTime - collectAt;
+      if (collectElapsed >= 0 && collectElapsed <= STAR_POWER_COLLECT_DURATION_SECONDS) {
+        drawStarPowerCollectBurst(ctx, laneX(note.fret, 1, config), config.hitLineY, config, collectElapsed);
+      }
+    }
+
     if (judgedAt !== undefined) {
       const isHeldOpen = note.fret === 7 && note.duration > 0;
       const elapsed = currentTime - judgedAt;
@@ -771,20 +1000,19 @@ export function drawFrame(
       }
     }
 
-    const inStarPowerPhrase =
-      judgedAt === undefined &&
-      !isMissed &&
-      starPowerPhrases.length > 0 &&
-      isWithinStarPowerPhrase(starPowerPhrases, note.time);
-    if (inStarPowerPhrase) {
-      drawStarPowerHalo(ctx, note.x, note.y, note.radius, currentTime, palette);
-    }
+    const notePhraseIndex = phraseIndexAt(starPowerPhrases, note.time);
+    const inActiveStarPowerPhrase =
+      judgedAt === undefined && !isMissed && notePhraseIndex !== -1 && !starPowerPhraseBroken[notePhraseIndex];
+    const sparkOriginY = note.y + note.radius * 0.1;
+
+    if (inActiveStarPowerPhrase) drawStarPowerDropAura(ctx, note.x, note.y, note.radius, currentTime);
 
     const isSustain = note.fret !== 7 && note.duration > 0;
     if (isSustain) {
       const baseColor = laneColors[note.fret] ?? palette.noteFallback;
       const color = isMissed ? desaturate(baseColor, MISS_DESATURATION_AMOUNT) : baseColor;
       drawSustainTrail(ctx, note, config, currentTime, color, !isMissed && holdingKeys.has(key));
+      if (inActiveStarPowerPhrase) drawStarPowerSparks(ctx, note.x, sparkOriginY, note.radius, currentTime, note.time);
       continue;
     }
 
@@ -803,7 +1031,9 @@ export function drawFrame(
       drawOpenNoteBar(ctx, note.x, note.y, halfWidth, note.radius * 0.7, color, alpha);
     } else {
       drawDrop(ctx, note.x, note.y, note.radius, color, alpha);
+      if (inActiveStarPowerPhrase) drawStarPowerDropRim(ctx, note.x, note.y, note.radius, currentTime);
     }
+    if (inActiveStarPowerPhrase) drawStarPowerSparks(ctx, note.x, sparkOriginY, note.radius, currentTime, note.time);
   }
 
   if (intense) drawLightningBolts(ctx, config, currentTime, palette);

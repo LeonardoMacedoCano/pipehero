@@ -1,6 +1,7 @@
 import type { Fret, GameEngine, GameEvent, JudgmentWindows, KeyDownResult, PlayableEvent, Rating, StarPowerPhrase, StrumResult } from "../types.js";
 import { classifyTiming, DEFAULT_JUDGMENT_WINDOWS } from "./judge.js";
 import { rockTierFor } from "./rockMeter.js";
+import { phraseIndexAt } from "./starPower.js";
 
 const SCORE_BY_RATING = { perfect: 100, good: 50, miss: 0 };
 const SUSTAIN_HOLD_BONUS = 50;
@@ -41,7 +42,7 @@ export function createGameEngine(
     ...event,
     state: "pending",
     rating: null,
-    starPowerPhraseIndex: findPhraseIndex(starPowerPhrases, event.time),
+    starPowerPhraseIndex: phraseIndexAt(starPowerPhrases, event.time),
   }));
   const hits: GameEvent[] = [];
   const misses: GameEvent[] = [];
@@ -60,13 +61,11 @@ export function createGameEngine(
   );
   const meterPerPhrase =
     starPowerPhrases.length > 0 ? (MAX_STAR_POWER_METER * STAR_POWER_CHARGE_MULTIPLIER) / starPowerPhrases.length : 0;
+  const phraseHitCounts = starPowerPhrases.map(() => 0);
+  const phraseBroken = starPowerPhrases.map(() => false);
   let starPowerMeter = 0;
   let starPowerActive = false;
   let lastUpdateTime: number | null = null;
-
-  function findPhraseIndex(phrases: StarPowerPhrase[], time: number): number {
-    return phrases.findIndex((phrase) => time >= phrase.startTime && time < phrase.endTime);
-  }
 
   function scoreMultiplier(): number {
     const baseMultiplier = Math.min(MAX_BASE_MULTIPLIER, 1 + Math.floor(combo / MULTIPLIER_STREAK_STEP));
@@ -78,10 +77,18 @@ export function createGameEngine(
     if (rockMeter <= 0) failed = true;
   }
 
-  function creditStarPower(event: GameEvent): void {
+  function breakStarPowerPhrase(phraseIndex: number): void {
+    if (phraseIndex < 0 || phraseIndex >= phraseBroken.length) return;
+    phraseBroken[phraseIndex] = true;
+  }
+
+  function registerStarPowerHit(event: GameEvent): boolean {
     const phraseIndex = event.starPowerPhraseIndex;
-    if (phraseIndex < 0 || !phraseTotals[phraseIndex]) return;
-    starPowerMeter = Math.min(MAX_STAR_POWER_METER, starPowerMeter + meterPerPhrase / phraseTotals[phraseIndex]);
+    if (phraseIndex < 0 || !phraseTotals[phraseIndex] || phraseBroken[phraseIndex]) return false;
+    phraseHitCounts[phraseIndex] += 1;
+    if (phraseHitCounts[phraseIndex] < phraseTotals[phraseIndex]) return false;
+    starPowerMeter = Math.min(MAX_STAR_POWER_METER, starPowerMeter + meterPerPhrase);
+    return true;
   }
 
   function activateStarPower(): boolean {
@@ -155,7 +162,7 @@ export function createGameEngine(
     }
   }
 
-  function applyHit(event: GameEvent, time: number): Rating {
+  function applyHit(event: GameEvent, time: number): { rating: Rating; starPowerPhraseCompleted: boolean } {
     const rating = classifyTiming(event.time - time, windows);
     event.state = "hit";
     event.rating = rating;
@@ -163,11 +170,15 @@ export function createGameEngine(
     combo += 1;
     maxCombo = Math.max(maxCombo, combo);
     score += Math.round(SCORE_BY_RATING[rating] * scoreMultiplier());
+
+    let starPowerPhraseCompleted = false;
     if (rating !== "miss") {
-      creditStarPower(event);
+      starPowerPhraseCompleted = registerStarPowerHit(event);
       const rescued = starPowerActive && rockTierFor(rockMeter) === "critical";
       const gain = ROCK_METER_HIT_GAIN * (rescued ? ROCK_METER_STAR_POWER_RESCUE_MULTIPLIER : 1);
       rockMeter = clamp(rockMeter + gain, 0, MAX_ROCK_METER);
+    } else {
+      breakStarPowerPhrase(event.starPowerPhraseIndex);
     }
 
     if (event.duration > 0) {
@@ -177,7 +188,7 @@ export function createGameEngine(
       }
     }
 
-    return rating;
+    return { rating, starPowerPhraseCompleted };
   }
 
   function applyWrongInput(time: number): void {
@@ -194,8 +205,8 @@ export function createGameEngine(
 
     const event = findCompletableEvent(time);
     if (event) {
-      const rating = applyHit(event, time);
-      return { type: "judged", event, rating };
+      const { rating, starPowerPhraseCompleted } = applyHit(event, time);
+      return { type: "judged", event, rating, starPowerPhraseCompleted };
     }
 
     const awaitingChord = isAwaitingChord(fret, time);
@@ -206,8 +217,8 @@ export function createGameEngine(
   function strum(time: number): StrumResult {
     const event = findStrumMatch(time);
     if (event) {
-      const rating = applyHit(event, time);
-      return { type: "judged", event, rating };
+      const { rating, starPowerPhraseCompleted } = applyHit(event, time);
+      return { type: "judged", event, rating, starPowerPhraseCompleted };
     }
     applyWrongInput(time);
     return { type: "whiffed", time };
@@ -231,6 +242,7 @@ export function createGameEngine(
         newlyMissed.push(event);
         combo = 0;
         loseRockMeter(ROCK_METER_MISS_LOSS);
+        breakStarPowerPhrase(event.starPowerPhraseIndex);
       }
     }
 
@@ -267,6 +279,7 @@ export function createGameEngine(
       totalNotes: events.length,
       starPowerMeter,
       starPowerActive,
+      starPowerPhraseBroken: [...phraseBroken],
       multiplier: scoreMultiplier(),
       rockMeter,
       failed,

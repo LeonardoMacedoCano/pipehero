@@ -291,7 +291,7 @@ test("activeHolds reflects events currently being held", () => {
   assert.equal(engine.getState().activeHolds.length, 0);
 });
 
-test("star power: hitting notes within a phrase fills the meter", () => {
+test("star power: charges the phrase only after every note in it has been hit — no partial credit", () => {
   const events = [
     event({ time: 1.0, frets: [0] }),
     event({ time: 1.5, frets: [1] }),
@@ -300,18 +300,59 @@ test("star power: hitting notes within a phrase fills the meter", () => {
   ];
   const starPowerPhrases = [{ startTime: 0.5, endTime: 3.0 }];
   const engine = createGameEngine(events, { starPowerPhrases });
-  const perNoteCredit = meterPerPhrase(starPowerPhrases.length) / events.length;
 
   engine.handleKeyDown(0, 1.0);
   engine.handleKeyUp(0, 1.0);
-  assert.equal(engine.getState().starPowerMeter, perNoteCredit);
-  assert.ok(engine.getState().starPowerMeter > 0 && engine.getState().starPowerMeter < MAX_STAR_POWER_METER);
+  assert.equal(engine.getState().starPowerMeter, 0);
 
   engine.handleKeyDown(1, 1.5);
   engine.handleKeyUp(1, 1.5);
   engine.handleKeyDown(2, 2.0);
   engine.handleKeyUp(2, 2.0);
-  engine.handleKeyDown(3, 2.5);
+  assert.equal(engine.getState().starPowerMeter, 0);
+
+  const result = engine.handleKeyDown(3, 2.5);
+  assert.equal(result.type === "judged" && result.starPowerPhraseCompleted, true);
+  assert.equal(engine.getState().starPowerMeter, MAX_STAR_POWER_METER);
+});
+
+test("star power: missing one note in an otherwise-perfect phrase awards zero credit, and it stays zero", () => {
+  const events = [
+    event({ time: 1.0, frets: [0] }),
+    event({ time: 1.5, frets: [1] }),
+    event({ time: 2.0, frets: [2] }),
+    event({ time: 2.5, frets: [3] }),
+  ];
+  const starPowerPhrases = [{ startTime: 0.5, endTime: 3.0 }];
+  const engine = createGameEngine(events, { starPowerPhrases });
+
+  engine.handleKeyDown(0, 1.0);
+  engine.handleKeyUp(0, 1.0);
+  engine.handleKeyDown(1, 1.5);
+  engine.handleKeyUp(1, 1.5);
+  engine.update(2.2);
+  assert.equal(engine.getState().misses.length, 1);
+  assert.equal(engine.getState().starPowerPhraseBroken[0], true);
+
+  const result = engine.handleKeyDown(3, 2.5);
+  assert.equal(result.type === "judged" && result.starPowerPhraseCompleted, false);
+  assert.equal(engine.getState().starPowerMeter, 0);
+});
+
+test("star power: completing a chord that ends a phrase credits the lump sum exactly once", () => {
+  const events = [event({ time: 1.0, frets: [0] }), event({ time: 1.5, frets: [1, 2], isChord: true })];
+  const starPowerPhrases = [{ startTime: 0.5, endTime: 2.0 }];
+  const engine = createGameEngine(events, { starPowerPhrases });
+
+  engine.handleKeyDown(0, 1.0);
+  engine.handleKeyUp(0, 1.0);
+
+  const first = engine.handleKeyDown(1, 1.5);
+  assert.equal(first.type, "unmatched");
+  assert.equal(engine.getState().starPowerMeter, 0);
+
+  const second = engine.handleKeyDown(2, 1.5);
+  assert.equal(second.type === "judged" && second.starPowerPhraseCompleted, true);
   assert.equal(engine.getState().starPowerMeter, MAX_STAR_POWER_METER);
 });
 
@@ -325,38 +366,22 @@ test("star power: notes outside a phrase don't fill the meter", () => {
 });
 
 test("star power: doesn't activate if the meter is below the threshold (50%)", () => {
-  const events = [
-    event({ time: 1.0, frets: [0] }),
-    event({ time: 2.0, frets: [1] }),
-    event({ time: 3.0, frets: [2] }),
-    event({ time: 4.0, frets: [3] }),
-    event({ time: 5.0, frets: [4] }),
-    event({ time: 6.0, frets: [0] }),
-    event({ time: 7.0, frets: [1] }),
-    event({ time: 8.0, frets: [2] }),
-  ];
-  const starPowerPhrases = [{ startTime: 0, endTime: 9 }];
+  const starPowerPhrases = Array.from({ length: 5 }, (_, i) => ({ startTime: i, endTime: i + 1 }));
+  const events = starPowerPhrases.map((phrase, i) => event({ time: phrase.startTime + 0.5, frets: [(i % 5) as Fret] }));
   const engine = createGameEngine(events, { starPowerPhrases });
-  const perNoteCredit = meterPerPhrase(starPowerPhrases.length) / events.length;
-  assert.ok(perNoteCredit < STAR_POWER_ACTIVATION_THRESHOLD);
+  assert.ok(meterPerPhrase(starPowerPhrases.length) < STAR_POWER_ACTIVATION_THRESHOLD);
 
-  engine.handleKeyDown(0, 1.0);
+  engine.handleKeyDown(events[0].frets[0], events[0].time);
   assert.equal(engine.activateStarPower(), false);
   assert.equal(engine.getState().starPowerActive, false);
 });
 
 test("star power: activates at exactly 50%, even when floating-point addition lands a hair under it", () => {
-  const starPowerPhrases = [
-    { startTime: 0, endTime: 3 },
-    { startTime: 3, endTime: 6 },
-    { startTime: 6, endTime: 9 },
-    { startTime: 9, endTime: 12 },
-  ];
-  const events = Array.from({ length: 12 }, (_, i) => event({ time: 1 + i * 0.15, frets: [(i % 5) as Fret] }));
+  const starPowerPhrases = Array.from({ length: 48 }, (_, i) => ({ startTime: i, endTime: i + 1 }));
+  const events = starPowerPhrases.map((phrase, i) => event({ time: phrase.startTime + 0.5, frets: [(i % 5) as Fret] }));
   const engine = createGameEngine(events, { starPowerPhrases });
 
-  assert.equal(meterPerPhrase(starPowerPhrases.length), STAR_POWER_ACTIVATION_THRESHOLD);
-  for (const e of events) {
+  for (const e of events.slice(0, 12)) {
     engine.handleKeyDown(e.frets[0], e.time);
     engine.handleKeyUp(e.frets[0], e.time);
   }
@@ -367,18 +392,23 @@ test("star power: activates at exactly 50%, even when floating-point addition la
 });
 
 test("star power: activating doubles the score of following hits", () => {
-  const events = [event({ time: 1.0, frets: [0] }), event({ time: 2.0, frets: [1] })];
-  const starPowerPhrases = [{ startTime: 0, endTime: 3 }];
+  const events = [
+    event({ time: 1.0, frets: [0] }),
+    event({ time: 1.5, frets: [1] }),
+    event({ time: 3.0, frets: [2] }),
+  ];
+  const starPowerPhrases = [{ startTime: 0, endTime: 2 }];
   const engine = createGameEngine(events, { starPowerPhrases });
 
   engine.handleKeyDown(0, 1.0);
   engine.handleKeyUp(0, 1.0);
+  engine.handleKeyDown(1, 1.5);
   const activated = engine.activateStarPower();
   assert.equal(activated, true);
 
-  const scoreBeforeSecondHit = engine.getState().score;
-  engine.handleKeyDown(1, 2.0);
-  assert.equal(engine.getState().score - scoreBeforeSecondHit, 200);
+  const scoreBeforeThirdHit = engine.getState().score;
+  engine.handleKeyDown(2, 3.0);
+  assert.equal(engine.getState().score - scoreBeforeThirdHit, 200);
 });
 
 test("star power: drains over time while active, via update()", () => {
@@ -451,7 +481,7 @@ test("multiplier: a dropped sustain loses the hold bonus but doesn't break the s
 
 test("multiplier: star power doubles the current tier, up to 8x", () => {
   const events = Array.from({ length: 11 }, (_, i) => event({ time: i + 1, frets: [0] }));
-  const starPowerPhrases = [{ startTime: 0, endTime: 20 }];
+  const starPowerPhrases = [{ startTime: 0, endTime: 10.5 }];
   const engine = createGameEngine(events, { starPowerPhrases });
 
   for (let i = 0; i < 10; i++) engine.handleKeyDown(0, i + 1);
@@ -523,7 +553,7 @@ test("rock meter: Star Power drastically boosts the gain per hit while critical 
   const hitEvents = Array.from({ length: 10 }, (_, i) => event({ time: i + 1, frets: [0] }));
   const missEvents = Array.from({ length: 17 }, (_, i) => event({ time: 11 + i, frets: [1] }));
   const rescueEvent = event({ time: 28, frets: [0] });
-  const starPowerPhrases = [{ startTime: 0, endTime: 20 }];
+  const starPowerPhrases = [{ startTime: 0, endTime: 10.5 }];
   const engine = createGameEngine([...hitEvents, ...missEvents, rescueEvent], { starPowerPhrases });
 
   for (let i = 0; i < 10; i++) engine.handleKeyDown(0, i + 1);

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Difficulty, Fret, GameEvent, GameState, Note, StarPowerPhrase } from "../../types.js";
 import { createPlaythrough } from "../../game/gamePlaythrough.js";
-import { drawFrame, ABSORB_DURATION_SECONDS, OPEN_RESIDUE_FALL_SECONDS } from "../../render/draw.js";
+import { drawFrame, ABSORB_DURATION_SECONDS, OPEN_RESIDUE_FALL_SECONDS, STAR_POWER_COLLECT_DURATION_SECONDS } from "../../render/draw.js";
 import { createRenderConfig, highwayBuildConfig, noteRenderKey } from "../../render/layout.js";
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
@@ -27,6 +27,7 @@ interface Hud {
   multiplier: number;
   starPowerMeter: number;
   starPowerActive: boolean;
+  starPowerGainNonce: number;
   rockMeter: number;
 }
 
@@ -36,6 +37,7 @@ const INITIAL_HUD: Hud = {
   multiplier: 1,
   starPowerMeter: 0,
   starPowerActive: false,
+  starPowerGainNonce: 0,
   rockMeter: 50,
 };
 
@@ -74,6 +76,8 @@ export function useGamePlaythrough({
   const missedKeysRef = useRef<Set<string>>(new Set());
   const errorClicksRef = useRef<Map<Fret, number>>(new Map());
   const openHoldReleaseAtRef = useRef<Map<string, number>>(new Map());
+  const starPowerCollectAtRef = useRef<Map<string, number>>(new Map());
+  const starPowerGainNonceRef = useRef<number>(0);
   const lastErrorAtRef = useRef<number | null>(null);
   const introStartRef = useRef<number | null>(null);
   const endedAtRef = useRef<number | null>(null);
@@ -166,6 +170,12 @@ export function useGamePlaythrough({
       }
     }
 
+    for (const [key, collectedAt] of starPowerCollectAtRef.current) {
+      if (chartTime > collectedAt + STAR_POWER_COLLECT_DURATION_SECONDS) {
+        starPowerCollectAtRef.current.delete(key);
+      }
+    }
+
     if (newlyMissed.length > 0) {
       playMissClank();
       lastErrorAtRef.current = chartTime;
@@ -218,7 +228,9 @@ export function useGamePlaythrough({
       openHoldReleaseAtRef.current,
       palette,
       state.starPowerActive,
-      starPowerPhrases ?? []
+      starPowerPhrases ?? [],
+      state.starPowerPhraseBroken,
+      starPowerCollectAtRef.current
     );
 
     setHud({
@@ -227,6 +239,7 @@ export function useGamePlaythrough({
       multiplier: state.multiplier,
       starPowerMeter: state.starPowerMeter,
       starPowerActive: state.starPowerActive,
+      starPowerGainNonce: starPowerGainNonceRef.current,
       rockMeter: state.rockMeter,
     });
 
@@ -266,6 +279,8 @@ export function useGamePlaythrough({
     missedKeysRef.current.clear();
     errorClicksRef.current.clear();
     openHoldReleaseAtRef.current.clear();
+    starPowerCollectAtRef.current.clear();
+    starPowerGainNonceRef.current = 0;
     lastErrorAtRef.current = null;
     endedAtRef.current = null;
     failedAtRef.current = null;
@@ -288,13 +303,22 @@ export function useGamePlaythrough({
     }
   }, []);
 
+  const recordStarPowerCollect = useCallback((event: GameEvent, collectedAt: number) => {
+    for (const f of event.frets) {
+      starPowerCollectAtRef.current.set(noteRenderKey(f, event.time), collectedAt);
+    }
+    starPowerGainNonceRef.current += 1;
+  }, []);
+
   const pressFret = useCallback(
     (fret: Fret) => {
       const playthrough = playthroughRef.current;
       if (!playthrough) return undefined;
       const result = playthrough.pressFret(fret);
       if (result.type === "judged") {
-        recordJudgedHit(result.event, playthrough.currentChartTime());
+        const judgedAt = playthrough.currentChartTime();
+        recordJudgedHit(result.event, judgedAt);
+        if (result.starPowerPhraseCompleted) recordStarPowerCollect(result.event, judgedAt);
       } else if (!result.awaitingChord && !getStrumModeEnabled()) {
         const pressedAt = playthrough.currentChartTime();
         errorClicksRef.current.set(fret, pressedAt);
@@ -302,7 +326,7 @@ export function useGamePlaythrough({
       }
       return result;
     },
-    [recordJudgedHit]
+    [recordJudgedHit, recordStarPowerCollect]
   );
 
   const releaseFret = useCallback(
@@ -332,13 +356,15 @@ export function useGamePlaythrough({
       if (!playthrough) return undefined;
       const result = playthrough.strum();
       if (result.type === "judged") {
-        recordJudgedHit(result.event, playthrough.currentChartTime());
+        const judgedAt = playthrough.currentChartTime();
+        recordJudgedHit(result.event, judgedAt);
+        if (result.starPowerPhraseCompleted) recordStarPowerCollect(result.event, judgedAt);
       } else {
         lastErrorAtRef.current = playthrough.currentChartTime();
       }
       return result;
     },
-    [recordJudgedHit]
+    [recordJudgedHit, recordStarPowerCollect]
   );
 
   const bindingsRef = useRef<ActionBindings>(DEFAULT_ACTION_BINDINGS);
