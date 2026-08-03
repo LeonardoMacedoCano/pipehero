@@ -26,18 +26,13 @@ export default function ScoreBox({
   const digits = score.toString().length;
 
   return (
-    <IronPipeFrame glow={starPowerActive}>
-      <Grille>
-        <Rivet $corner="top-left" />
-        <Rivet $corner="top-right" />
-        <Rivet $corner="bottom-left" />
-        <Rivet $corner="bottom-right" />
-
+    <IronPipeFrame>
+      <Layout>
         <Score $fontSize={scoreFontSize(digits)}>{score}</Score>
         <MultiplierBadge $colorKey={tierColorKey} $pulse={starPowerActive}>
           x{multiplier}
         </MultiplierBadge>
-      </Grille>
+      </Layout>
     </IronPipeFrame>
   );
 }
@@ -47,36 +42,15 @@ const pulse = keyframes`
   50% { box-shadow: 0 0 16px 4px currentColor; }
 `;
 
-const Grille = styled.div`
+const Layout = styled.div`
   position: relative;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  padding: 6px 14px;
-  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  overflow: hidden;
-  background-color: ${({ theme }) => theme.colors.black};
-  background-image:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 45%),
-    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0px, rgba(255, 255, 255, 0.035) 1px, transparent 1px, transparent 3px);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7);
-`;
-
-const RIVET_INSET = 5;
-
-const Rivet = styled.div<{ $corner: "top-left" | "top-right" | "bottom-left" | "bottom-right" }>`
-  position: absolute;
-  ${({ $corner }) => ($corner.includes("top") ? `top: ${RIVET_INSET}px;` : `bottom: ${RIVET_INSET}px;`)}
-  ${({ $corner }) => ($corner.includes("left") ? `left: ${RIVET_INSET}px;` : `right: ${RIVET_INSET}px;`)}
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, ${({ theme }) => theme.colors.white}, ${({ theme }) => theme.colors.quaternary} 60%, ${({ theme }) => theme.colors.black} 100%);
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.85);
 `;
 
 const Score = styled.div<{ $fontSize: string }>`

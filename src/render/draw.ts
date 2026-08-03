@@ -220,6 +220,20 @@ function drawFretboardGrid(
   }
 }
 
+const RAIL_CYLINDER_BANDS = 18;
+const RAIL_CYLINDER_ANCHORS = [0, 0.3, 0.5, 0.7, 1];
+
+function railBandColor(stops: readonly string[], f: number): string {
+  for (let i = 0; i < RAIL_CYLINDER_ANCHORS.length - 1; i++) {
+    const a0 = RAIL_CYLINDER_ANCHORS[i];
+    const a1 = RAIL_CYLINDER_ANCHORS[i + 1];
+    if (f <= a1 || i === RAIL_CYLINDER_ANCHORS.length - 2) {
+      return mix(stops[i], stops[i + 1], clamp01((f - a0) / (a1 - a0)));
+    }
+  }
+  return stops[stops.length - 1];
+}
+
 function drawEdgeRail(ctx: CanvasLike2D, side: -1 | 1, config: RenderConfig, missIntensity: number, palette: Palette): void {
   const topX = highwayEdgeX(side, 0, config);
   const bottomX = highwayEdgeX(side, 1, config);
@@ -248,39 +262,32 @@ function drawEdgeRail(ctx: CanvasLike2D, side: -1 | 1, config: RenderConfig, mis
   ctx.closePath();
   ctx.fill();
 
-  const gradient = ctx.createLinearGradient(bottomX - bottomHalf, 0, bottomX + bottomHalf, 0);
-  gradient.addColorStop(0, stops[0]);
-  gradient.addColorStop(0.3, stops[1]);
-  gradient.addColorStop(0.5, stops[2]);
-  gradient.addColorStop(0.7, stops[3]);
-  gradient.addColorStop(1, stops[4]);
+  for (let i = 0; i < RAIL_CYLINDER_BANDS; i++) {
+    const f0 = i / RAIL_CYLINDER_BANDS;
+    const f1 = (i + 1) / RAIL_CYLINDER_BANDS;
+    const offset0 = f0 * 2 - 1;
+    const offset1 = f1 * 2 - 1;
 
-  ctx.fillStyle = gradient;
+    ctx.fillStyle = railBandColor(stops, (f0 + f1) / 2);
+    ctx.beginPath();
+    ctx.moveTo(topX + offset0 * topHalf, 0);
+    ctx.lineTo(topX + offset1 * topHalf, 0);
+    ctx.lineTo(bottomX + offset1 * bottomHalf, config.hitLineY);
+    ctx.lineTo(bottomX + offset0 * bottomHalf, config.hitLineY);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  const glossOffset = -0.35 * inward;
+  ctx.fillStyle = lighten(railBandColor(stops, 0.5), 0.35);
+  ctx.globalAlpha = 0.55;
   ctx.beginPath();
-  ctx.moveTo(topX - topHalf, 0);
-  ctx.lineTo(topX + topHalf, 0);
-  ctx.lineTo(bottomX + bottomHalf, config.hitLineY);
-  ctx.lineTo(bottomX - bottomHalf, config.hitLineY);
+  ctx.moveTo(topX + (glossOffset - 0.06) * topHalf, 0);
+  ctx.lineTo(topX + (glossOffset + 0.06) * topHalf, 0);
+  ctx.lineTo(bottomX + (glossOffset + 0.06) * bottomHalf, config.hitLineY);
+  ctx.lineTo(bottomX + (glossOffset - 0.06) * bottomHalf, config.hitLineY);
   ctx.closePath();
   ctx.fill();
-
-  const glossOffset = 0.18;
-  ctx.strokeStyle = lighten(stops[2], 0.4);
-  ctx.lineWidth = Math.max(1, topHalf * 0.35);
-  ctx.globalAlpha = 0.85;
-  ctx.beginPath();
-  ctx.moveTo(topX - inward * topHalf * glossOffset, topHalf * 0.5);
-  ctx.lineTo(bottomX - inward * bottomHalf * glossOffset, config.hitLineY - bottomHalf * 0.5);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-
-  ctx.strokeStyle = lighten(stops[0], -0.3);
-  ctx.lineWidth = Math.max(1, topHalf * 0.25);
-  ctx.globalAlpha = 0.6;
-  ctx.beginPath();
-  ctx.moveTo(topX + inward * topHalf * 0.85, topHalf * 0.5);
-  ctx.lineTo(bottomX + inward * bottomHalf * 0.85, config.hitLineY - bottomHalf * 0.5);
-  ctx.stroke();
   ctx.globalAlpha = 1;
 }
 
@@ -294,26 +301,48 @@ function drawPipeBarrelAndMouth(
   const baseColor = laneColors[fret] ?? palette.noteFallback;
   const x = laneX(fret, 1, config);
   const halfWidth = pipeHalfWidthAt(1, config);
+  const y = config.hitLineY;
 
   const barrelGradient = ctx.createLinearGradient(x - halfWidth, 0, x + halfWidth, 0);
   barrelGradient.addColorStop(0, lighten(baseColor, -0.6));
   barrelGradient.addColorStop(0.5, baseColor);
   barrelGradient.addColorStop(1, lighten(baseColor, -0.6));
   ctx.fillStyle = barrelGradient;
-  ctx.fillRect(x - halfWidth, config.hitLineY, halfWidth * 2, config.canvasHeight - config.hitLineY);
+  ctx.fillRect(x - halfWidth, y, halfWidth * 2, config.canvasHeight - y);
+
+  const depthFade = ctx.createLinearGradient(0, y, 0, config.canvasHeight);
+  depthFade.addColorStop(0, "rgba(0, 0, 0, 0)");
+  depthFade.addColorStop(1, "rgba(0, 0, 0, 0.5)");
+  ctx.fillStyle = depthFade;
+  ctx.fillRect(x - halfWidth, y, halfWidth * 2, config.canvasHeight - y);
 
   const mouthRx = config.pipeMouthRadius;
   const mouthRy = config.pipeMouthRadius * 0.4;
 
-  ctx.fillStyle = baseColor;
+  const rimGradient = ctx.createLinearGradient(x, y - mouthRy, x, y + mouthRy);
+  rimGradient.addColorStop(0, lighten(baseColor, 0.35));
+  rimGradient.addColorStop(0.55, baseColor);
+  rimGradient.addColorStop(1, lighten(baseColor, -0.5));
+  ctx.fillStyle = rimGradient;
   ctx.beginPath();
-  ctx.ellipse(x, config.hitLineY, mouthRx, mouthRy, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, y, mouthRx, mouthRy, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = lighten(baseColor, -0.8);
+  const holeGradient = ctx.createRadialGradient(x, y - mouthRy * 0.15, 0, x, y, mouthRx * 0.72);
+  holeGradient.addColorStop(0, lighten(baseColor, -0.55));
+  holeGradient.addColorStop(1, lighten(baseColor, -0.88));
+  ctx.fillStyle = holeGradient;
   ctx.beginPath();
-  ctx.ellipse(x, config.hitLineY, mouthRx * 0.7, mouthRy * 0.7, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, y, mouthRx * 0.7, mouthRy * 0.7, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.strokeStyle = lighten(baseColor, 0.55);
+  ctx.lineWidth = Math.max(1, mouthRy * 0.3);
+  ctx.globalAlpha = 0.65;
+  ctx.beginPath();
+  ctx.ellipse(x, y, mouthRx * 0.94, mouthRy * 0.94, 0, -Math.PI * 0.92, -Math.PI * 0.08);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
 }
 
 function taperedDropPath(
@@ -444,7 +473,9 @@ function strokeBoltPath(
   coreWidthTip: number,
   glowBlur: number,
   alpha: number,
-  glowAlphaScale: number = 0.5
+  glowAlphaScale: number = 0.5,
+  coreColor: string = STAR_POWER_BOLT_CORE_COLOR,
+  coreWidthMid: number = (coreWidthBase + coreWidthTip) / 2
 ): void {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
@@ -458,14 +489,203 @@ function strokeBoltPath(
   ctx.lineCap = "butt";
   ctx.lineJoin = "miter";
   ctx.shadowBlur = glowBlur * 0.35;
-  ctx.strokeStyle = STAR_POWER_BOLT_CORE_COLOR;
+  ctx.strokeStyle = coreColor;
   ctx.globalAlpha = alpha;
   ctx.lineWidth = coreWidthTip;
   strokePolyline(ctx, points);
 
-  const baseCount = Math.max(2, Math.ceil(points.length * 0.5));
+  const midCount = Math.max(2, Math.ceil(points.length * 0.7));
+  ctx.lineWidth = coreWidthMid;
+  strokePolyline(ctx, points.slice(0, midCount));
+
+  const baseCount = Math.max(2, Math.ceil(points.length * 0.4));
   ctx.lineWidth = coreWidthBase;
   strokePolyline(ctx, points.slice(0, baseCount));
+}
+
+const BOLT_HAIR_CHANCE = 0.22;
+
+function drawBoltHairs(
+  ctx: CanvasLike2D,
+  points: BoltPoint[],
+  seed: number,
+  baseWidth: number,
+  alpha: number,
+  coreColor: string
+): void {
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = coreColor;
+  ctx.lineCap = "round";
+  for (let i = 1; i < points.length - 1; i++) {
+    const hairSeed = seed + i * 19.7;
+    if (pseudoRandom(hairSeed) > BOLT_HAIR_CHANCE) continue;
+    const p = points[i];
+    const prev = points[i - 1];
+    const dirAngle = Math.atan2(p.y - prev.y, p.x - prev.x);
+    const side = pseudoRandom(hairSeed + 1) > 0.5 ? 1 : -1;
+    const hairAngle = dirAngle + side * (0.6 + pseudoRandom(hairSeed + 2) * 0.7);
+    const hairLen = baseWidth * (2.5 + pseudoRandom(hairSeed + 3) * 3.5);
+    ctx.globalAlpha = alpha * (0.35 + pseudoRandom(hairSeed + 4) * 0.3);
+    ctx.lineWidth = Math.max(0.5, baseWidth * 0.3);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x + Math.cos(hairAngle) * hairLen, p.y + Math.sin(hairAngle) * hairLen);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = alpha;
+}
+
+interface BoltArchetype {
+  depth: number;
+  displacementRatio: number;
+  glowWidthRatio: number;
+  coreBaseRatio: number;
+  coreMidRatio: number;
+  coreTipRatio: number;
+  glowBlurRatio: number;
+  forkChance: number;
+  coreColor: string;
+  glowAlphaScale: number;
+}
+
+const BOLT_ARCHETYPES: readonly BoltArchetype[] = [
+  {
+    depth: 5,
+    displacementRatio: 0.1,
+    glowWidthRatio: 0.14,
+    coreBaseRatio: 0.06,
+    coreMidRatio: 0.035,
+    coreTipRatio: 0.016,
+    glowBlurRatio: 0.55,
+    forkChance: 0.2,
+    coreColor: "#f6efff",
+    glowAlphaScale: 0.5,
+  },
+  {
+    depth: 2,
+    displacementRatio: 0.24,
+    glowWidthRatio: 0.3,
+    coreBaseRatio: 0.13,
+    coreMidRatio: 0.08,
+    coreTipRatio: 0.045,
+    glowBlurRatio: 0.95,
+    forkChance: 0.15,
+    coreColor: "#e7dcff",
+    glowAlphaScale: 0.62,
+  },
+  {
+    depth: 4,
+    displacementRatio: 0.17,
+    glowWidthRatio: 0.19,
+    coreBaseRatio: 0.075,
+    coreMidRatio: 0.045,
+    coreTipRatio: 0.02,
+    glowBlurRatio: 0.68,
+    forkChance: 0.8,
+    coreColor: "#eaf5ff",
+    glowAlphaScale: 0.55,
+  },
+  {
+    depth: 3,
+    displacementRatio: 0.13,
+    glowWidthRatio: 0.16,
+    coreBaseRatio: 0.06,
+    coreMidRatio: 0.037,
+    coreTipRatio: 0.018,
+    glowBlurRatio: 0.6,
+    forkChance: 0.4,
+    coreColor: "#fff6ea",
+    glowAlphaScale: 0.55,
+  },
+];
+
+function pickArchetype(seed: number): BoltArchetype {
+  const index = Math.floor(pseudoRandom(seed) * BOLT_ARCHETYPES.length) % BOLT_ARCHETYPES.length;
+  return BOLT_ARCHETYPES[index];
+}
+
+const BOLT_REROLL_HZ_DEFAULT = 5.5;
+
+function drawCrackleBolt(
+  ctx: CanvasLike2D,
+  x: number,
+  y: number,
+  angle: number,
+  length: number,
+  seedBase: number,
+  currentTime: number,
+  glowScale: number,
+  envelopeAlpha: number,
+  rerollHz: number = BOLT_REROLL_HZ_DEFAULT
+): void {
+  if (envelopeAlpha <= 0.005 || length <= 0) return;
+
+  const period = 1 / rerollHz;
+  const rawPhase = currentTime / period;
+  const genA = Math.floor(rawPhase);
+  const cyclePos = rawPhase - genA;
+  const fadeT = cyclePos * cyclePos * (3 - 2 * cyclePos);
+
+  for (const [gen, genAlpha] of [
+    [genA, 1 - fadeT],
+    [genA + 1, fadeT],
+  ] as const) {
+    if (genAlpha <= 0.01) continue;
+    const archetype = pickArchetype(seedBase * 3.1 + gen * 971.3);
+    const seed = seedBase * 17.7 + gen * 53.1;
+    const rawPoints = jaggedBoltPath(x, y, angle, length, seed, archetype.displacementRatio, archetype.depth);
+    const jitterAmp = glowScale * 0.03;
+    const jitterPhase = currentTime * 20 + seed;
+    const points = rawPoints.map((p, i) => {
+      if (i === 0 || i === rawPoints.length - 1) return p;
+      const phase = jitterPhase + i * 2.1;
+      return { x: p.x + Math.sin(phase) * jitterAmp, y: p.y + Math.cos(phase * 1.4) * jitterAmp * 0.6 };
+    });
+
+    const alpha = envelopeAlpha * genAlpha;
+    strokeBoltPath(
+      ctx,
+      points,
+      Math.max(1.5, glowScale * archetype.glowWidthRatio),
+      Math.max(0.8, glowScale * archetype.coreBaseRatio),
+      Math.max(0.3, glowScale * archetype.coreTipRatio),
+      glowScale * archetype.glowBlurRatio,
+      alpha,
+      archetype.glowAlphaScale,
+      archetype.coreColor,
+      Math.max(0.5, glowScale * archetype.coreMidRatio)
+    );
+
+    drawBoltHairs(ctx, points, seed + 7, glowScale * archetype.coreBaseRatio, alpha, archetype.coreColor);
+
+    if (pseudoRandom(seed + 31.4) < archetype.forkChance && points.length > 3) {
+      const forkOrigin = points[Math.floor(points.length * (0.35 + pseudoRandom(seed + 9) * 0.3))];
+      const forkAngle = angle + (pseudoRandom(seed + 12) - 0.5) * 1.7;
+      const forkLength = length * (0.35 + pseudoRandom(seed + 14) * 0.25);
+      const forkPoints = jaggedBoltPath(
+        forkOrigin.x,
+        forkOrigin.y,
+        forkAngle,
+        forkLength,
+        seed + 88,
+        archetype.displacementRatio * 1.1,
+        Math.max(1, archetype.depth - 1)
+      );
+      strokeBoltPath(
+        ctx,
+        forkPoints,
+        Math.max(1, glowScale * archetype.glowWidthRatio * 0.6),
+        Math.max(0.5, glowScale * archetype.coreBaseRatio * 0.6),
+        Math.max(0.25, glowScale * archetype.coreTipRatio * 0.6),
+        glowScale * archetype.glowBlurRatio * 0.6,
+        alpha * 0.75,
+        archetype.glowAlphaScale,
+        archetype.coreColor
+      );
+    }
+  }
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
 }
 
 const STAR_POWER_DROP_GLOW_RGB = "156, 109, 255";
@@ -499,44 +719,15 @@ function drawStarPowerDropRim(ctx: CanvasLike2D, x: number, y: number, radius: n
 }
 
 const STAR_POWER_SPARK_COUNT = 3;
-const STAR_POWER_SPARK_FLICKER_HZ = 15;
 const STAR_POWER_SPARK_ANGLE_SPREAD = Math.PI * 1.7;
-const STAR_POWER_SPARK_FORK_CHANCE = 0.6;
+const STAR_POWER_SPARK_REROLL_HZ = 4.2;
 
 function drawStarPowerSparks(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number, seed: number): void {
-  const flickerFrame = Math.floor(currentTime * STAR_POWER_SPARK_FLICKER_HZ);
   for (let i = 0; i < STAR_POWER_SPARK_COUNT; i++) {
     const boltSeed = seed * 17.3 + i * 91.7;
     const baseAngle = -Math.PI / 2 + (pseudoRandom(boltSeed) - 0.5) * STAR_POWER_SPARK_ANGLE_SPREAD;
     const length = radius * (1.15 + pseudoRandom(boltSeed + 3.1) * 0.85);
-    const displacementRatio = 0.3 + pseudoRandom(boltSeed + 6.6) * 0.2;
-    const alpha = 0.6 + pseudoRandom(boltSeed + flickerFrame * 1.3) * 0.35;
-
-    const points = jaggedBoltPath(x, y, baseAngle, length, boltSeed + flickerFrame * 2.3, displacementRatio, 3);
-    strokeBoltPath(ctx, points, Math.max(2, radius * 0.18), Math.max(1, radius * 0.09), Math.max(0.5, radius * 0.035), radius * 0.85, alpha);
-
-    if (pseudoRandom(boltSeed + flickerFrame * 0.6 + 9.7) > STAR_POWER_SPARK_FORK_CHANCE) {
-      const forkOrigin = points[Math.min(2 + Math.floor(pseudoRandom(boltSeed + 15) * 2), points.length - 2)];
-      const forkAngle = baseAngle + (pseudoRandom(boltSeed + 21.3) - 0.5) * 1.9;
-      const forkPoints = jaggedBoltPath(
-        forkOrigin.x,
-        forkOrigin.y,
-        forkAngle,
-        length * 0.45,
-        boltSeed + flickerFrame * 2.3 + 50,
-        0.3,
-        2
-      );
-      strokeBoltPath(
-        ctx,
-        forkPoints,
-        Math.max(1.5, radius * 0.09),
-        Math.max(0.6, radius * 0.05),
-        Math.max(0.4, radius * 0.02),
-        radius * 0.45,
-        alpha * 0.8
-      );
-    }
+    drawCrackleBolt(ctx, x, y, baseAngle, length, boltSeed, currentTime + i * 0.37, radius, 0.85, STAR_POWER_SPARK_REROLL_HZ);
   }
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
@@ -605,29 +796,77 @@ function drawStarPowerCollectBurst(ctx: CanvasLike2D, x: number, y: number, conf
   ctx.globalAlpha = 1;
 }
 
-function drawDrop(ctx: CanvasLike2D, x: number, y: number, radius: number, baseColor: string, alpha: number): void {
+function drawDropShadow(ctx: CanvasLike2D, x: number, y: number, radius: number, alpha: number): void {
+  const shadowY = y + radius * 0.55;
+  const shadow = ctx.createRadialGradient(x, shadowY, 0, x, shadowY, radius * 0.95);
+  shadow.addColorStop(0, "rgba(0, 0, 0, 0.35)");
+  shadow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = shadow;
+  ctx.beginPath();
+  ctx.ellipse(x, shadowY, radius * 0.85, radius * 0.32, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function applyGlossyShading(
+  ctx: CanvasLike2D,
+  drawPath: () => void,
+  x: number,
+  y: number,
+  radius: number,
+  baseColor: string,
+  alpha: number,
+  highlightOffsetX: number = -0.3,
+  highlightOffsetY: number = -0.4
+): void {
   if (alpha <= 0) return;
   ctx.globalAlpha = alpha;
 
   ctx.fillStyle = baseColor;
-  dropPath(ctx, x, y, radius);
+  drawPath();
   ctx.fill();
 
-  const highlightX = x - radius * 0.3;
-  const highlightY = y - radius * 0.4;
+  const shadeX = x - highlightOffsetX * radius;
+  const shadeY = y - highlightOffsetY * radius;
+  const shade = ctx.createRadialGradient(shadeX, shadeY, 0, shadeX, shadeY, radius * 1.15);
+  shade.addColorStop(0, mix(baseColor, "#000000", 0.4));
+  shade.addColorStop(0.75, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = shade;
+  drawPath();
+  ctx.fill();
+
+  const highlightX = x + highlightOffsetX * radius;
+  const highlightY = y + highlightOffsetY * radius;
   const highlight = ctx.createRadialGradient(highlightX, highlightY, 0, highlightX, highlightY, radius * 0.8);
   highlight.addColorStop(0, lighten(baseColor, 0.8));
   highlight.addColorStop(1, "rgba(255, 255, 255, 0)");
   ctx.fillStyle = highlight;
-  dropPath(ctx, x, y, radius);
+  drawPath();
   ctx.fill();
 
-  ctx.strokeStyle = lighten(baseColor, -0.4);
+  const specular = ctx.createRadialGradient(highlightX, highlightY, 0, highlightX, highlightY, radius * 0.3);
+  specular.addColorStop(0, "rgba(255, 255, 255, 0.95)");
+  specular.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = specular;
+  drawPath();
+  ctx.fill();
+
+  const rimGradient = ctx.createLinearGradient(highlightX, highlightY, shadeX, shadeY);
+  rimGradient.addColorStop(0, lighten(baseColor, 0.2));
+  rimGradient.addColorStop(1, lighten(baseColor, -0.55));
+  ctx.strokeStyle = rimGradient;
   ctx.lineWidth = Math.max(1, radius * 0.06);
-  dropPath(ctx, x, y, radius);
+  drawPath();
   ctx.stroke();
 
   ctx.globalAlpha = 1;
+}
+
+function drawDrop(ctx: CanvasLike2D, x: number, y: number, radius: number, baseColor: string, alpha: number): void {
+  if (alpha <= 0) return;
+  drawDropShadow(ctx, x, y, radius, alpha);
+  applyGlossyShading(ctx, () => dropPath(ctx, x, y, radius), x, y, radius, baseColor, alpha);
 }
 
 const HOLD_SHAKE_FREQUENCY_HZ = 14;
@@ -668,23 +907,15 @@ function drawSustainTrail(
 
   const fillColor = isHolding ? lighten(baseColor, 0.15) : baseColor;
 
-  ctx.fillStyle = fillColor;
-  sustainTrailPath(ctx, bottomX, bottomY, bottomRadius, topX, topY);
-  ctx.fill();
-
-  const highlightX = bottomX - bottomRadius * 0.3;
-  const highlightY = bottomY - bottomRadius * 0.4;
-  const highlight = ctx.createRadialGradient(highlightX, highlightY, 0, highlightX, highlightY, bottomRadius * 0.8);
-  highlight.addColorStop(0, lighten(fillColor, 0.8));
-  highlight.addColorStop(1, "rgba(255, 255, 255, 0)");
-  ctx.fillStyle = highlight;
-  sustainTrailPath(ctx, bottomX, bottomY, bottomRadius, topX, topY);
-  ctx.fill();
-
-  ctx.strokeStyle = lighten(fillColor, -0.4);
-  ctx.lineWidth = Math.max(1, bottomRadius * 0.06);
-  sustainTrailPath(ctx, bottomX, bottomY, bottomRadius, topX, topY);
-  ctx.stroke();
+  applyGlossyShading(
+    ctx,
+    () => sustainTrailPath(ctx, bottomX, bottomY, bottomRadius, topX, topY),
+    bottomX,
+    bottomY,
+    bottomRadius,
+    fillColor,
+    1
+  );
 }
 
 function openBarPath(ctx: CanvasLike2D, x: number, y: number, halfWidth: number, halfHeight: number): void {
@@ -717,7 +948,8 @@ function drawOpenNoteBar(
 
   const highlight = ctx.createLinearGradient(x, y - halfHeight, x, y + halfHeight);
   highlight.addColorStop(0, lighten(baseColor, 0.6));
-  highlight.addColorStop(1, "rgba(255, 255, 255, 0)");
+  highlight.addColorStop(0.55, "rgba(255, 255, 255, 0)");
+  highlight.addColorStop(1, mix(baseColor, "#000000", 0.3));
   ctx.fillStyle = highlight;
   openBarPath(ctx, x, y, halfWidth, halfHeight);
   ctx.fill();
@@ -865,34 +1097,49 @@ function pseudoRandom(seed: number): number {
   return x - Math.floor(x);
 }
 
-const AMBIENT_LIGHTNING_BOLT_COUNT = 3;
-const AMBIENT_LIGHTNING_FLICKER_HZ = 9;
+const AMBIENT_LIGHTNING_BOLT_COUNT = 4;
+
+function ambientStrikeEnvelope(index: number, currentTime: number): { alpha: number; strikeIndex: number } {
+  const cycleLength = 0.8 + pseudoRandom(index * 9.13 + 4) * 1.3;
+  const cyclePos = ((currentTime % cycleLength) + cycleLength) % cycleLength;
+  const strikeIndex = Math.floor(currentTime / cycleLength);
+  const activeWindow = cycleLength * (0.22 + pseudoRandom(strikeIndex * 7.7 + index * 3.3) * 0.2);
+  if (cyclePos >= activeWindow) return { alpha: 0, strikeIndex };
+
+  const localT = cyclePos / activeWindow;
+  const fadeInEnd = 0.25;
+  const fadeOutStart = 0.65;
+  const alpha =
+    localT < fadeInEnd
+      ? localT / fadeInEnd
+      : localT < fadeOutStart
+        ? 1
+        : 1 - (localT - fadeOutStart) / (1 - fadeOutStart);
+  return { alpha, strikeIndex };
+}
 
 function drawAmbientLightningBolt(ctx: CanvasLike2D, config: RenderConfig, index: number, currentTime: number): void {
-  const flickerFrame = Math.floor(currentTime * AMBIENT_LIGHTNING_FLICKER_HZ);
-  const flicker = pseudoRandom(flickerFrame + index * 97.3);
-  if (flicker < 0.55) return;
+  const { alpha: envelopeAlpha, strikeIndex } = ambientStrikeEnvelope(index, currentTime);
+  if (envelopeAlpha <= 0.005) return;
 
   const side: -1 | 1 = index % 2 === 0 ? -1 : 1;
   const startX = highwayEdgeX(side, 0, config) + side * config.noteMaxRadius * 1.5;
-  const startY = config.canvasHeight * (0.05 + pseudoRandom(index * 3.1) * 0.1);
+  const startY = config.canvasHeight * (0.05 + pseudoRandom(index * 3.1 + strikeIndex * 1.7) * 0.1);
   const endX = highwayEdgeX(side, 1, config) + side * config.noteMaxRadius * 2;
-  const endY = config.hitLineY * (0.7 + pseudoRandom(index * 5.7) * 0.3);
+  const endY = config.hitLineY * (0.7 + pseudoRandom(index * 5.7 + strikeIndex * 2.3) * 0.3);
   const angle = Math.atan2(endY - startY, endX - startX);
   const length = Math.hypot(endX - startX, endY - startY);
-  const seed = index * 53.7 + flickerFrame * 2.9;
-  const alpha = 0.55 + pseudoRandom(index * 7.3 + flickerFrame) * 0.35;
 
-  const points = jaggedBoltPath(startX, startY, angle, length, seed, 0.14, 4);
-  strokeBoltPath(
+  drawCrackleBolt(
     ctx,
-    points,
-    Math.max(3, config.noteMaxRadius * 0.22),
-    Math.max(1.5, config.noteMaxRadius * 0.1),
-    Math.max(0.6, config.noteMaxRadius * 0.035),
-    config.noteMaxRadius * 0.8,
-    alpha,
-    0.6
+    startX,
+    startY,
+    angle,
+    length,
+    index * 53.7 + strikeIndex * 91.3,
+    currentTime,
+    config.noteMaxRadius,
+    envelopeAlpha * 0.9
   );
 }
 

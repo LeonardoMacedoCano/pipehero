@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import styled, { type DefaultTheme } from "styled-components";
 
-export default function IronPipeFrame({ glow, children }: { glow: boolean; children: ReactNode }) {
+export default function IronPipeFrame({ children }: { children: ReactNode }) {
   return (
-    <Frame $glow={glow}>
+    <Frame>
       <Stem />
       <CeilingMount />
       <CeilingMountBolt $side="left" />
@@ -11,8 +11,6 @@ export default function IronPipeFrame({ glow, children }: { glow: boolean; child
       <Crossbar />
       <Elbow $side="left" />
       <Elbow $side="right" />
-      <ElbowHighlight $side="left" />
-      <ElbowHighlight $side="right" />
       <SidePipe $side="left" />
       <SidePipe $side="right" />
       <PipeMouth $side="left" />
@@ -33,12 +31,10 @@ const STEM_HEIGHT = 48;
 
 export const FRAME_WIDTH = PANEL_WIDTH + FRAME_HORIZONTAL_PADDING * 2;
 
-const Frame = styled.div<{ $glow: boolean }>`
+const Frame = styled.div`
   position: relative;
   margin-top: ${STEM_HEIGHT}px;
   padding: ${ELBOW_SIZE + 4}px ${FRAME_HORIZONTAL_PADDING}px calc(${BOTTOM_OVERSHOOT} + 4px);
-  filter: ${({ $glow, theme }) => ($glow ? `drop-shadow(0 0 16px ${theme.colors.info})` : "none")};
-  transition: filter 0.3s ease;
 `;
 
 const cylinderGradientHorizontal = (theme: DefaultTheme) => `linear-gradient(
@@ -108,31 +104,30 @@ const Crossbar = styled.div`
   box-shadow: ${pipeShadow};
 `;
 
+function elbowRingGradient(theme: DefaultTheme, cx: number, cy: number): string {
+  const outer = ELBOW_SIZE;
+  const inner = ELBOW_SIZE - PIPE_THICKNESS;
+  const at = (t: number) => inner + (outer - inner) * t;
+  return `radial-gradient(
+    circle at ${cx}px ${cy}px,
+    transparent ${Math.max(0, inner)}px,
+    ${theme.colors.black} ${Math.max(0, inner)}px,
+    ${theme.colors.quaternary} ${at(0.22)}px,
+    ${theme.colors.white} ${at(0.5)}px,
+    ${theme.colors.quaternary} ${at(0.78)}px,
+    ${theme.colors.black} ${outer}px,
+    transparent ${outer}px
+  )`;
+}
+
 const Elbow = styled.div<{ $side: "left" | "right" }>`
   position: absolute;
   top: 0;
   ${({ $side }) => ($side === "left" ? `left: ${SIDE_INSET};` : `right: ${SIDE_INSET};`)}
   width: ${ELBOW_SIZE}px;
   height: ${ELBOW_SIZE}px;
-  border-radius: ${({ $side }) => ($side === "left" ? `${ELBOW_SIZE}px 0 0 0` : `0 ${ELBOW_SIZE}px 0 0`)};
-  border-style: solid;
-  border-color: ${({ theme }) => theme.colors.quaternary};
-  border-width: ${({ $side }) =>
-    $side === "left" ? `${PIPE_THICKNESS}px 0 0 ${PIPE_THICKNESS}px` : `${PIPE_THICKNESS}px ${PIPE_THICKNESS}px 0 0`};
-  box-shadow: ${pipeShadow};
-`;
-
-const ElbowHighlight = styled.div<{ $side: "left" | "right" }>`
-  position: absolute;
-  top: 3px;
-  ${({ $side }) => ($side === "left" ? `left: calc(${SIDE_INSET} + 3px);` : `right: calc(${SIDE_INSET} + 3px);`)}
-  width: ${ELBOW_SIZE - 3}px;
-  height: ${ELBOW_SIZE - 3}px;
-  border-radius: ${({ $side }) => ($side === "left" ? `${ELBOW_SIZE}px 0 0 0` : `0 ${ELBOW_SIZE}px 0 0`)};
-  border-style: solid;
-  border-color: rgba(255, 255, 255, 0.55);
-  border-width: ${({ $side }) => ($side === "left" ? "2px 0 0 2px" : "2px 2px 0 0")};
-  pointer-events: none;
+  background: ${({ theme, $side }) => elbowRingGradient(theme, $side === "left" ? ELBOW_SIZE : 0, ELBOW_SIZE)};
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.85));
 `;
 
 const SidePipe = styled.div<{ $side: "left" | "right" }>`
@@ -169,8 +164,6 @@ const Panel = styled.div`
   height: ${PANEL_HEIGHT}px;
   box-sizing: border-box;
   padding: 6px;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.28);
   display: flex;
   align-items: center;
   justify-content: center;
