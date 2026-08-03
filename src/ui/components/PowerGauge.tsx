@@ -113,7 +113,7 @@ export default function PowerGauge({
   const boltClipY = BOLT.maxY - (BOLT.maxY - BOLT.minY) * (starFill / 100);
 
   return (
-    <IronPipeFrame glow={starPowerActive}>
+    <IronPipeFrame>
       <Layout>
         <HandWrapper $shake={rockShaking} $critical={rockCritical} style={{ color: rockGlow }}>
           <svg viewBox="0 0 100 100" width="64" height="64" role="img" aria-label="Rock Meter">
