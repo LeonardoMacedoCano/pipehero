@@ -36,7 +36,7 @@ export default function IconRail({
         )}
       </AccountWrapper>
       <IconButton icon="🏆" label="Achievements" onClick={() => onNavigate("achievements")} active={current === "achievements"} />
-      <IconButton icon="⚙" label="Options" onClick={() => onNavigate("options")} active={current === "options"} />
+      <IconButton icon="⚙️" label="Options" onClick={() => onNavigate("options")} active={current === "options"} />
       {fullscreenSupported && (
         <IconButton icon={isFullscreen ? "⤡" : "⤢"} label={isFullscreen ? "Exit fullscreen" : "Fullscreen"} onClick={toggle} />
       )}
