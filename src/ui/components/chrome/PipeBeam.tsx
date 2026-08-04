@@ -1,7 +1,7 @@
 import styled from "styled-components";
-import { cylinderGradientHorizontal, pipeCapGradient, pipeShadow } from "../../pipeStyles.js";
+import { cylinderGradientVertical, pipeCapGradient, pipeShadow } from "../../pipeStyles.js";
 
-export default function PipeBeam({ width = "100%", thickness = 8 }: { width?: string; thickness?: number }) {
+export default function PipeBeam({ width = "100%", thickness = 10 }: { width?: string; thickness?: number }) {
   return (
     <Beam style={{ width }} $thickness={thickness}>
       <Cap $side="left" $thickness={thickness} />
@@ -14,7 +14,7 @@ const Beam = styled.div<{ $thickness: number }>`
   position: relative;
   height: ${({ $thickness }) => $thickness}px;
   max-width: 100%;
-  background: ${({ theme }) => cylinderGradientHorizontal(theme)};
+  background: ${({ theme }) => cylinderGradientVertical(theme)};
   box-shadow: ${pipeShadow};
 `;
 
@@ -23,8 +23,8 @@ const Cap = styled.div<{ $side: "left" | "right"; $thickness: number }>`
   top: 50%;
   ${({ $side }) => ($side === "left" ? "left: 0;" : "right: 0;")}
   transform: translate(${({ $side }) => ($side === "left" ? "-45%" : "45%")}, -50%);
-  width: ${({ $thickness }) => $thickness + 6}px;
-  height: ${({ $thickness }) => $thickness + 6}px;
+  width: ${({ $thickness }) => $thickness * 0.8}px;
+  height: ${({ $thickness }) => $thickness * 1.6}px;
   border-radius: 50%;
   background: ${({ theme }) => pipeCapGradient(theme)};
   border: 1px solid ${({ theme }) => theme.colors.black};
