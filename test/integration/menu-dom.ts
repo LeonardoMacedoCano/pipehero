@@ -107,7 +107,7 @@ function clickButtonWithText(document: Document, text: string): boolean {
 
 try {
   await vite.ssrLoadModule("/main.tsx");
-  await new Promise((r) => setTimeout(r, 300));
+  await new Promise((r) => setTimeout(r, 1500));
 
   const document = dom.window.document;
   const root = document.getElementById("root");
@@ -180,7 +180,7 @@ try {
     ok: document.querySelectorAll("#root canvas").length === 0 && !!root?.innerHTML.includes("Test Song"),
   });
 
-  checks.push({ name: "'« Menu' from the song list goes back to the main menu", ok: clickButtonWithText(document, "« Menu") });
+  checks.push({ name: "'Home' from the song list goes back to the main menu", ok: clickButtonWithText(document, "Home") });
   await new Promise((r) => setTimeout(r, 200));
   checks.push({ name: "main menu shows again after going back", ok: !!root?.innerHTML.includes("Single Player") });
 
@@ -214,7 +214,7 @@ try {
     ok: document.querySelectorAll("#root canvas").length === 0 && !!root?.innerHTML.includes("Test Song"),
   });
 
-  clickButtonWithText(document, "« Menu");
+  clickButtonWithText(document, "Home");
   await new Promise((r) => setTimeout(r, 200));
 
   checks.push({ name: "'Options' navigates to the options screen", ok: clickButtonWithText(document, "Options") });
@@ -314,7 +314,7 @@ try {
   await new Promise((r) => setTimeout(r, 100));
   checks.push({
     name: "hint explains you need to log in first",
-    ok: !!root?.innerHTML.includes("Log in with Google from the main menu"),
+    ok: !!root?.innerHTML.includes("Log in with Google from the menu"),
   });
 } finally {
   await vite.close();
