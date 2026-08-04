@@ -52,7 +52,8 @@ export default function GoogleSignInButton({
         client_id: clientId,
         callback: (response) => onCredential(response.credential),
       });
-      window.google.accounts.id.renderButton(containerRef.current, { theme: "outline", size: "large", width: 260 });
+      const width = Math.min(260, containerRef.current.clientWidth);
+      window.google.accounts.id.renderButton(containerRef.current, { theme: "outline", size: "large", width });
     });
 
     return () => {

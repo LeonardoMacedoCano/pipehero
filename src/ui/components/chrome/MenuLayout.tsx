@@ -46,7 +46,7 @@ const Screen = styled.div`
   flex-direction: column;
   align-items: center;
   gap: clamp(12px, 3vh, 24px);
-  padding: clamp(56px, 8vh, 64px) clamp(12px, 4vw, 32px) clamp(24px, 6vh, 56px);
+  padding: clamp(24px, 5vh, 40px) clamp(12px, 4vw, 32px) clamp(24px, 6vh, 56px);
   background:
     radial-gradient(circle at 50% -10%, ${({ theme }) => theme.colors.secondary} 0%, ${({ theme }) => theme.colors.primary} 55%, ${({ theme }) => theme.colors.black} 100%),
     repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0px, rgba(255, 255, 255, 0.025) 2px, transparent 2px, transparent 8px);
