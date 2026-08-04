@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Difficulty, Fret, GameEvent, GameState, Note, StarPowerPhrase } from "../../types.js";
 import { createPlaythrough } from "../../game/gamePlaythrough.js";
-import { drawFrame, ABSORB_DURATION_SECONDS, OPEN_RESIDUE_FALL_SECONDS, STAR_POWER_COLLECT_DURATION_SECONDS } from "../../render/draw.js";
+import { drawFrame, ABSORB_DURATION_SECONDS, OPEN_RESIDUE_FALL_SECONDS } from "../../render/draw.js";
+import { STAR_POWER_COLLECT_DURATION_SECONDS } from "../../render/starPowerFx.js";
 import { createRenderConfig, highwayBuildConfig, noteRenderKey } from "../../render/layout.js";
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";

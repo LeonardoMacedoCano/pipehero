@@ -1,54 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { drawFrame, type CanvasLike2D } from "./draw.js";
+import { drawFrame } from "./draw.js";
 import { RENDER_CONFIG } from "./layout.js";
 import { COLORS, STAR_POWER_COLORS } from "../colors.js";
 import type { Note } from "../types.js";
-
-function fakeCtx(): CanvasLike2D & {
-  fillStyles: unknown[];
-  arcCalls: { x: number; y: number; radius: number }[];
-  lineToCalls: { x: number; y: number }[];
-} {
-  const fillStyles: unknown[] = [];
-  const arcCalls: { x: number; y: number; radius: number }[] = [];
-  const lineToCalls: { x: number; y: number }[] = [];
-  const gradient = { addColorStop() {} };
-  return {
-    fillStyles,
-    arcCalls,
-    lineToCalls,
-    lineWidth: 0,
-    lineCap: "butt",
-    lineJoin: "miter",
-    globalAlpha: 1,
-    shadowBlur: 0,
-    shadowColor: "",
-    strokeStyle: "",
-    get fillStyle() {
-      return fillStyles[fillStyles.length - 1];
-    },
-    set fillStyle(value: unknown) {
-      fillStyles.push(value);
-    },
-    createLinearGradient: () => gradient,
-    createRadialGradient: () => gradient,
-    fillRect() {},
-    beginPath() {},
-    closePath() {},
-    arc(x: number, y: number, radius: number) {
-      arcCalls.push({ x, y, radius });
-    },
-    ellipse() {},
-    moveTo() {},
-    lineTo(x: number, y: number) {
-      lineToCalls.push({ x, y });
-    },
-    bezierCurveTo() {},
-    fill() {},
-    stroke() {},
-  };
-}
+import { fakeCtx } from "./testCanvas.js";
 
 function note(overrides: Partial<Note> = {}): Note {
   return { id: 0, time: 1, fret: 0, fretName: "green", duration: 0, isChord: false, isHOPO: false, forced: false, tap: false, ...overrides };
