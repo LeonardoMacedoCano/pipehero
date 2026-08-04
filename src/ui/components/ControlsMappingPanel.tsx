@@ -159,7 +159,8 @@ const List = styled.div`
 const Row = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   padding: 10px 14px;
   border: 1px solid ${({ theme }) => theme.colors.gray};
   border-radius: 8px;
@@ -182,7 +183,9 @@ const Label = styled.span`
 const RowActions = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+  margin-left: auto;
 `;
 
 const KeyBadge = styled.span`
