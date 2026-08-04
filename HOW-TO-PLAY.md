@@ -123,9 +123,10 @@ off.
 ## Latency calibration
 
 If notes always seem early or late relative to the sound you hear,
-adjust the calibration **before you start playing**, in the same modal
-where you pick the difficulty (`−10ms` / `+10ms` buttons). The value is
-saved in the browser for future sessions.
+adjust the calibration **before you start playing**, in **Options →
+Account** (`−10ms` / `+10ms` buttons). No login required — the value is
+saved in the browser for future sessions, and also synced to your
+account if you're logged in with Google.
 
 ## Where the songs come from
 
