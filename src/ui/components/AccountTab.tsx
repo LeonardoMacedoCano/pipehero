@@ -13,7 +13,7 @@ export default function AccountTab() {
       {user ? (
         <AccountSummary user={user} onLogout={logout} showEmail />
       ) : (
-        <LockedMenuItem label="Account" hint="Log in with Google from the main menu to see your account here." />
+        <LockedMenuItem label="Account" hint="Log in with Google from the menu to see your account here." />
       )}
       <CalibrationControl />
     </>

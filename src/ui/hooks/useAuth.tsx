@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 export interface AuthUser {
   name: string;
@@ -6,13 +6,17 @@ export interface AuthUser {
   avatarUrl: string | null;
 }
 
-export function useAuth(): {
+interface AuthContextValue {
   user: AuthUser | null;
   googleClientId: string | null;
   isLoading: boolean;
   login: (credential: string) => Promise<void>;
   logout: () => Promise<void>;
-} {
+}
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [googleClientId, setGoogleClientId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,5 +59,18 @@ export function useAuth(): {
     setUser(null);
   }, []);
 
-  return { user, googleClientId, isLoading, login, logout };
+  const value = useMemo(
+    () => ({ user, googleClientId, isLoading, login, logout }),
+    [user, googleClientId, isLoading, login, logout]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth(): AuthContextValue {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an <AuthProvider>");
+  }
+  return context;
 }
