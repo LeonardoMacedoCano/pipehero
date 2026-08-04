@@ -9,6 +9,7 @@ import { handleScoreRequest } from "./src/server/scoreRoutes.js";
 import { handleSettingsRequest } from "./src/server/settingsRoutes.js";
 import { runMigrations } from "./src/server/migrate.js";
 import { isInsideDir } from "./src/server/pathGuard.js";
+import packageJson from "./package.json" with { type: "json" };
 
 const MIME_TYPES: Record<string, string> = {
   ".chart": "text/plain; charset=utf-8",
@@ -84,5 +85,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), songsMiddlewarePlugin(songsDir)],
+    define: {
+      __APP_VERSION__: JSON.stringify(packageJson.version),
+    },
   };
 });

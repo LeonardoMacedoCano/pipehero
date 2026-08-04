@@ -13,24 +13,32 @@ function isValidBinding(value: unknown): value is InputBinding {
   return false;
 }
 
+function parsePartialBindings(parsed: Partial<Record<ControlAction, unknown>>): ActionBindings {
+  const result: ActionBindings = { ...DEFAULT_ACTION_BINDINGS };
+  for (const action of Object.keys(DEFAULT_ACTION_BINDINGS) as ControlAction[]) {
+    if (!(action in parsed)) continue;
+    const value = parsed[action];
+    if (value === null || isValidBinding(value)) result[action] = value as InputBinding | null;
+  }
+  return result;
+}
+
 export function getBindings(): ActionBindings {
   const raw = readLocalStorage(STORAGE_KEY);
   if (!raw) return { ...DEFAULT_ACTION_BINDINGS };
   try {
-    const parsed = JSON.parse(raw) as Partial<Record<ControlAction, unknown>>;
-    const result: ActionBindings = { ...DEFAULT_ACTION_BINDINGS };
-    for (const action of Object.keys(DEFAULT_ACTION_BINDINGS) as ControlAction[]) {
-      if (!(action in parsed)) continue;
-      const value = parsed[action];
-      if (value === null || isValidBinding(value)) result[action] = value as InputBinding | null;
-    }
-    return result;
+    return parsePartialBindings(JSON.parse(raw) as Partial<Record<ControlAction, unknown>>);
   } catch {
     return { ...DEFAULT_ACTION_BINDINGS };
   }
 }
 
-function saveBindings(bindings: ActionBindings): void {
+export function parseBindingsFromServer(raw: unknown): ActionBindings {
+  if (!raw || typeof raw !== "object") return { ...DEFAULT_ACTION_BINDINGS };
+  return parsePartialBindings(raw as Partial<Record<ControlAction, unknown>>);
+}
+
+export function saveBindings(bindings: ActionBindings): void {
   writeLocalStorage(STORAGE_KEY, JSON.stringify(bindings));
 }
 

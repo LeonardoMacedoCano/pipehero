@@ -51,4 +51,12 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    name: "0003_user_settings_preferences",
+    sql: `
+      ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS theme_id TEXT;
+      ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS key_bindings JSONB;
+      ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS strum_mode_enabled BOOLEAN;
+    `,
+  },
 ];
