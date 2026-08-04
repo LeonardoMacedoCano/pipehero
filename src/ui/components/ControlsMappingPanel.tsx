@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import styled from "styled-components";
 import { Button, ToggleSwitch } from "lcano-react-ui";
 import {
@@ -20,6 +20,8 @@ import {
 import { getStrumModeEnabled, setStrumModeEnabled } from "../../game/strumModeStore.js";
 import { useGamepadPolling } from "../hooks/useGamepadPolling.js";
 import { useSyncedPreference } from "../hooks/useSyncedPreference.js";
+
+const COMPACT_BUTTON_STYLE: CSSProperties = { padding: "5px 14px" };
 
 export default function ControlsMappingPanel() {
   const { value: bindings, updateValue: setBindingsSynced } = useSyncedPreference<ActionBindings>({
@@ -125,18 +127,18 @@ export default function ControlsMappingPanel() {
               {isCapturing ? (
                 <RowActions>
                   <KeyBadge>{describeBinding(capturedBinding)}</KeyBadge>
-                  <Button description="Confirm" variant="success" onClick={confirm} />
-                  <Button description="Cancel" variant="secondary" onClick={cancel} />
+                  <Button description="Confirm" variant="success" onClick={confirm} style={COMPACT_BUTTON_STYLE} />
+                  <Button description="Cancel" variant="secondary" onClick={cancel} style={COMPACT_BUTTON_STYLE} />
                 </RowActions>
               ) : isListening ? (
                 <RowActions>
                   <Listening>Press a key or guitar button...</Listening>
-                  <Button description="Cancel" variant="secondary" onClick={cancel} />
+                  <Button description="Cancel" variant="secondary" onClick={cancel} style={COMPACT_BUTTON_STYLE} />
                 </RowActions>
               ) : (
                 <RowActions>
                   <KeyBadge>{describeBinding(bindings[action.id])}</KeyBadge>
-                  <Button description="Remap" variant="secondary" onClick={() => startListening(action.id)} />
+                  <Button description="Remap" variant="secondary" onClick={() => startListening(action.id)} style={COMPACT_BUTTON_STYLE} />
                 </RowActions>
               )}
             </Row>
@@ -147,7 +149,7 @@ export default function ControlsMappingPanel() {
       {conflictNote && <Note>{conflictNote}</Note>}
 
       <Footer>
-        <Button description="Restore defaults" variant="secondary" onClick={restoreDefaults} />
+        <Button description="Restore defaults" variant="secondary" onClick={restoreDefaults} style={COMPACT_BUTTON_STYLE} />
       </Footer>
     </Wrapper>
   );
@@ -173,7 +175,7 @@ const ModeRow = styled.div`
 const List = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 `;
 
 const Row = styled.div`
@@ -181,7 +183,7 @@ const Row = styled.div`
   align-items: center;
   flex-wrap: wrap;
   gap: 8px 12px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   border: 1px solid ${({ theme }) => theme.colors.gray};
   border-radius: 8px;
   background-color: ${({ theme }) => theme.colors.secondary};
