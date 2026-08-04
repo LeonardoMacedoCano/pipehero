@@ -56,6 +56,17 @@ const FAKE_SONGS = [
     chartUrl: "/songs/test-song/notes.chart",
     audioUrl: "/songs/test-song/song.wav",
   },
+  {
+    id: "other-song",
+    name: "Another Track",
+    artist: "Jane Roe",
+    genre: "Rock",
+    album: "",
+    coverUrl: null,
+    chartFormat: "chart",
+    chartUrl: "/songs/other-song/notes.chart",
+    audioUrl: "/songs/other-song/song.wav",
+  },
 ];
 
 const FAKE_CHART_TEXT = `[Song]
@@ -105,6 +116,19 @@ function clickButtonWithText(document: Document, text: string): boolean {
   return !!button;
 }
 
+function clickRowWithText(document: Document, text: string): boolean {
+  const row = [...document.querySelectorAll("#root tbody tr")].find((r) => r.textContent?.includes(text));
+  row?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  return !!row;
+}
+
+const nativeInputValueSetter = Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value")!.set!;
+
+function typeIntoInput(input: HTMLInputElement, text: string): void {
+  nativeInputValueSetter.call(input, text);
+  input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+}
+
 try {
   await vite.ssrLoadModule("/main.tsx");
   await new Promise((r) => setTimeout(r, 1500));
@@ -131,8 +155,8 @@ try {
   checks.push({ name: "'Single Player' navigates to the song list", ok: clickButtonWithText(document, "Single Player") });
   await new Promise((r) => setTimeout(r, 300));
 
-  const songButtons = document.querySelectorAll("#root button");
-  checks.push({ name: "menu renders at least 1 clickable song", ok: songButtons.length >= 1 });
+  const songRows = document.querySelectorAll("#root tbody tr");
+  checks.push({ name: "menu renders at least 1 clickable song row", ok: songRows.length >= 1 });
 
   checks.push({
     name: "song name appears in the menu",
@@ -144,8 +168,45 @@ try {
     ok: !!root?.innerHTML.includes("John Doe") && !!root?.innerHTML.includes("Metal"),
   });
 
-  const firstSongButton = [...document.querySelectorAll("#root button")].find((b) => b.textContent?.includes("Test Song"));
-  firstSongButton?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  checks.push({
+    name: "both songs appear in the list before searching",
+    ok: !!root?.innerHTML.includes("Test Song") && !!root?.innerHTML.includes("Another Track"),
+  });
+
+  const searchFieldPicker = document.querySelectorAll("#root select")[0] as HTMLSelectElement | undefined;
+  checks.push({ name: "song list has a search field picker (SearchFilterRSQL)", ok: !!searchFieldPicker });
+
+  if (searchFieldPicker) {
+    searchFieldPicker.value = "artist";
+    searchFieldPicker.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  }
+  await new Promise((r) => setTimeout(r, 100));
+
+  const searchValueInput = document.querySelector("#root input") as HTMLInputElement | null;
+  checks.push({ name: "picking a search field enables the filter value input", ok: !!searchValueInput });
+  if (searchValueInput) typeIntoInput(searchValueInput, "Doe");
+  await new Promise((r) => setTimeout(r, 100));
+
+  const addFilterButton = [...document.querySelectorAll("#root button")].find((b) => b.getAttribute("title") === "Adicionar");
+  checks.push({
+    name: "'Add filter' button is enabled once a field and value are set",
+    ok: !!addFilterButton && !(addFilterButton as HTMLButtonElement).disabled,
+  });
+
+  addFilterButton?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 150));
+  checks.push({
+    name: "adding an 'Artist contains Doe' filter keeps the matching song and filters out the other one",
+    ok: !!root?.innerHTML.includes("Test Song") && !root?.innerHTML.includes("Another Track"),
+  });
+
+  const songRowWithHint = [...document.querySelectorAll("#root tbody tr")].find((r) => r.textContent?.includes("Test Song"));
+  checks.push({
+    name: "song rows show a click hint (clickableRows)",
+    ok: songRowWithHint?.getAttribute("title") === "Click to choose a difficulty",
+  });
+
+  checks.push({ name: "clicking the 'Test Song' row opens its options modal", ok: clickRowWithText(document, "Test Song") });
   await new Promise((r) => setTimeout(r, 300));
 
   const difficultyButton = [...document.querySelectorAll("#root button")].find(
@@ -186,7 +247,7 @@ try {
 
   clickButtonWithText(document, "Single Player");
   await new Promise((r) => setTimeout(r, 300));
-  [...document.querySelectorAll("#root button")].find((b) => b.textContent?.includes("Test Song"))?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  clickRowWithText(document, "Test Song");
   await new Promise((r) => setTimeout(r, 300));
   [...document.querySelectorAll("#root button")].find((b) => b.textContent?.trim() === "Expert")?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
   await new Promise((r) => setTimeout(r, 400));
