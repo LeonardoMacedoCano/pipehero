@@ -8,13 +8,15 @@ import { trackNameForDifficulty } from "../../engine/availableTracks.js";
 import { extractStarPowerPhrases, synthesizeStarPowerPhrases } from "../../engine/starPower.js";
 import { computeStars } from "../../scoring/stars.js";
 import { useGamePlaythrough } from "../hooks/useGamePlaythrough.js";
-import { pipeHeroTheme, starPowerTheme } from "../theme.js";
+import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
+import { starPowerTheme } from "../theme.js";
 import GameCanvas from "../components/GameCanvas.js";
 import ScoreBox from "../components/ScoreBox.js";
 import PowerGauge from "../components/PowerGauge.js";
 import ResultsOverlay from "../components/ResultsOverlay.js";
 import FailedOverlay from "../components/FailedOverlay.js";
-import { FRAME_WIDTH, cylinderGradientVertical } from "../components/IronPipeFrame.js";
+import { FRAME_WIDTH } from "../components/IronPipeFrame.js";
+import { cylinderGradientVertical } from "../pipeStyles.js";
 
 function submitScore(songId: string, difficulty: Difficulty, stars: number, fullCombo: boolean): void {
   fetch("/api/scores", {
@@ -35,6 +37,7 @@ export default function GamePage({
   difficulty: Difficulty;
   onBack: () => void;
 }) {
+  const { currentTheme } = useThemeControl();
   const notes = useMemo(() => loadTrack(chart, trackNameForDifficulty(difficulty)), [chart, difficulty]);
 
   const starPowerPhrases = useMemo(() => {
@@ -70,7 +73,7 @@ export default function GamePage({
         <GameCanvas canvasRef={canvasRef} />
 
         {phase === "playing" && (
-          <ThemeProvider theme={hud.starPowerActive ? starPowerTheme : pipeHeroTheme}>
+          <ThemeProvider theme={hud.starPowerActive ? starPowerTheme : currentTheme}>
             <ScoreBoxOverlay>
               <ScoreBox score={hud.score} combo={hud.combo} multiplier={hud.multiplier} starPowerActive={hud.starPowerActive} />
             </ScoreBoxOverlay>

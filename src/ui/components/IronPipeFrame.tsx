@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
-import styled, { type DefaultTheme } from "styled-components";
+import styled from "styled-components";
+import {
+  cylinderGradientHorizontal,
+  cylinderGradientVertical,
+  elbowRingGradient,
+  pipeCapGradient,
+  pipeShadow,
+} from "../pipeStyles.js";
 
 export default function IronPipeFrame({ children }: { children: ReactNode }) {
   return (
@@ -36,26 +43,6 @@ const Frame = styled.div`
   margin-top: ${STEM_HEIGHT}px;
   padding: ${ELBOW_SIZE + 4}px ${FRAME_HORIZONTAL_PADDING}px calc(${BOTTOM_OVERSHOOT} + 4px);
 `;
-
-const cylinderGradientHorizontal = (theme: DefaultTheme) => `linear-gradient(
-  90deg,
-  ${theme.colors.black} 0%,
-  ${theme.colors.quaternary} 22%,
-  ${theme.colors.white} 50%,
-  ${theme.colors.quaternary} 78%,
-  ${theme.colors.black} 100%
-)`;
-
-export const cylinderGradientVertical = (theme: DefaultTheme) => `linear-gradient(
-  180deg,
-  ${theme.colors.black} 0%,
-  ${theme.colors.quaternary} 22%,
-  ${theme.colors.white} 50%,
-  ${theme.colors.quaternary} 78%,
-  ${theme.colors.black} 100%
-)`;
-
-const pipeShadow = "0 1px 4px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(0, 0, 0, 0.5)";
 
 const Stem = styled.div`
   position: absolute;
@@ -104,29 +91,14 @@ const Crossbar = styled.div`
   box-shadow: ${pipeShadow};
 `;
 
-function elbowRingGradient(theme: DefaultTheme, cx: number, cy: number): string {
-  const outer = ELBOW_SIZE;
-  const inner = ELBOW_SIZE - PIPE_THICKNESS;
-  const at = (t: number) => inner + (outer - inner) * t;
-  return `radial-gradient(
-    circle at ${cx}px ${cy}px,
-    transparent ${Math.max(0, inner)}px,
-    ${theme.colors.black} ${Math.max(0, inner)}px,
-    ${theme.colors.quaternary} ${at(0.22)}px,
-    ${theme.colors.white} ${at(0.5)}px,
-    ${theme.colors.quaternary} ${at(0.78)}px,
-    ${theme.colors.black} ${outer}px,
-    transparent ${outer}px
-  )`;
-}
-
 const Elbow = styled.div<{ $side: "left" | "right" }>`
   position: absolute;
   top: 0;
   ${({ $side }) => ($side === "left" ? `left: ${SIDE_INSET};` : `right: ${SIDE_INSET};`)}
   width: ${ELBOW_SIZE}px;
   height: ${ELBOW_SIZE}px;
-  background: ${({ theme, $side }) => elbowRingGradient(theme, $side === "left" ? ELBOW_SIZE : 0, ELBOW_SIZE)};
+  background: ${({ theme, $side }) =>
+    elbowRingGradient(theme, ELBOW_SIZE, PIPE_THICKNESS, $side === "left" ? ELBOW_SIZE : 0, ELBOW_SIZE)};
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.85));
 `;
 
@@ -147,14 +119,7 @@ const PipeMouth = styled.div<{ $side: "left" | "right" }>`
   width: 16px;
   height: 8px;
   border-radius: 50%;
-  background: radial-gradient(
-    ellipse at center,
-    ${({ theme }) => theme.colors.black} 0%,
-    ${({ theme }) => theme.colors.black} 35%,
-    ${({ theme }) => theme.colors.quaternary} 55%,
-    ${({ theme }) => theme.colors.white} 72%,
-    ${({ theme }) => theme.colors.quaternary} 100%
-  );
+  background: ${({ theme }) => pipeCapGradient(theme)};
   border: 1px solid ${({ theme }) => theme.colors.black};
 `;
 
