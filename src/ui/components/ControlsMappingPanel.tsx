@@ -9,20 +9,40 @@ import {
   type InputBinding,
   type InputMode,
 } from "../../game/keymap.js";
-import { getBindings, setBinding, resetToDefaults, type ActionBindings } from "../../game/keymapStore.js";
+import {
+  getBindings,
+  setBinding,
+  resetToDefaults,
+  saveBindings,
+  parseBindingsFromServer,
+  type ActionBindings,
+} from "../../game/keymapStore.js";
 import { getStrumModeEnabled, setStrumModeEnabled } from "../../game/strumModeStore.js";
 import { useGamepadPolling } from "../hooks/useGamepadPolling.js";
+import { useSyncedPreference } from "../hooks/useSyncedPreference.js";
 
 export default function ControlsMappingPanel() {
-  const [bindings, setBindings] = useState<ActionBindings>(() => getBindings());
+  const { value: bindings, updateValue: setBindingsSynced } = useSyncedPreference<ActionBindings>({
+    field: "keyBindings",
+    get: getBindings,
+    set: saveBindings,
+    toPayload: (value) => value,
+    fromPayload: parseBindingsFromServer,
+  });
+  const { value: strumModeEnabled, updateValue: setStrumModeSynced } = useSyncedPreference<boolean>({
+    field: "strumModeEnabled",
+    get: getStrumModeEnabled,
+    set: setStrumModeEnabled,
+    toPayload: (value) => value,
+    fromPayload: (raw) => raw === true,
+  });
   const [listeningAction, setListeningAction] = useState<ControlAction | null>(null);
   const [capturedBinding, setCapturedBinding] = useState<InputBinding | null>(null);
   const [conflictNote, setConflictNote] = useState<string | null>(null);
-  const [inputMode, setInputMode] = useState<InputMode>(() => (getStrumModeEnabled() ? "strum" : "tap"));
+  const inputMode: InputMode = strumModeEnabled ? "strum" : "tap";
 
   function changeInputMode(mode: InputMode) {
-    setStrumModeEnabled(mode === "strum");
-    setInputMode(mode);
+    setStrumModeSynced(mode === "strum");
   }
 
   useEffect(() => {
@@ -67,14 +87,14 @@ export default function ControlsMappingPanel() {
     const conflicting = CONTROL_ACTIONS.find(
       (action) => action.id !== listeningAction && bindingsEqual(bindings[action.id], capturedBinding)
     );
-    setBindings(setBinding(listeningAction, capturedBinding));
+    setBindingsSynced(setBinding(listeningAction, capturedBinding));
     setConflictNote(conflicting ? `Was also bound to "${conflicting.label}" — unbound.` : null);
     setListeningAction(null);
     setCapturedBinding(null);
   }
 
   function restoreDefaults() {
-    setBindings(resetToDefaults());
+    setBindingsSynced(resetToDefaults());
     setListeningAction(null);
     setCapturedBinding(null);
     setConflictNote(null);

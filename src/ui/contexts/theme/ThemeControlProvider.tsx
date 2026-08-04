@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { ThemeProvider, type DefaultTheme } from "styled-components";
 import { THEME_OPTIONS, getThemeOption, type ThemeOption } from "../../themes/registry.js";
 import { getStoredThemeId, setStoredThemeId } from "../../themes/themeStore.js";
+import { useSyncedPreference } from "../../hooks/useSyncedPreference.js";
 
 interface ThemeControlContextValue {
   currentTheme: DefaultTheme;
@@ -21,12 +22,13 @@ export function useThemeControl(): ThemeControlContextValue {
 }
 
 export function ThemeControlProvider({ children }: { children: ReactNode }) {
-  const [themeId, setThemeIdState] = useState(() => getStoredThemeId());
-
-  const setThemeId = useCallback((id: string) => {
-    setStoredThemeId(id);
-    setThemeIdState(id);
-  }, []);
+  const { value: themeId, updateValue: setThemeId } = useSyncedPreference<string>({
+    field: "themeId",
+    get: getStoredThemeId,
+    set: setStoredThemeId,
+    toPayload: (id) => id,
+    fromPayload: (raw) => raw as string,
+  });
 
   const currentTheme = getThemeOption(themeId).theme;
 

@@ -22,9 +22,9 @@ export default function App() {
   }
 
   return (
-    <ThemeControlProvider>
-      <GlobalStyles />
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeControlProvider>
+        <GlobalStyles />
         <ContextMessageProvider>
           {screen.name === "game" && (
             <GamePage
@@ -55,7 +55,7 @@ export default function App() {
             </MenuLayout>
           )}
         </ContextMessageProvider>
-      </AuthProvider>
-    </ThemeControlProvider>
+      </ThemeControlProvider>
+    </AuthProvider>
   );
 }
