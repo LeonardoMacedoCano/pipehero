@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { getCalibration, setCalibration } from "../../audio/calibrationStore.js";
+import { useAuth } from "../hooks/useAuth.js";
 
 const CALIBRATION_STEP_SECONDS = 0.01;
 const MS_PER_SECOND = 1000;
@@ -14,10 +15,12 @@ function saveCalibrationToServer(seconds: number): void {
 }
 
 export default function CalibrationControl() {
+  const { user } = useAuth();
   const [value, setValue] = useState(() => getCalibration());
   const adjustedRef = useRef(false);
 
   useEffect(() => {
+    if (!user) return;
     let cancelled = false;
     fetch("/api/settings/me")
       .then((response) => response.json() as Promise<{ calibrationMs: number | null }>)
@@ -31,14 +34,14 @@ export default function CalibrationControl() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
 
   function adjust(deltaSeconds: number) {
     adjustedRef.current = true;
     const next = value + deltaSeconds;
     setCalibration(next);
     setValue(next);
-    saveCalibrationToServer(next);
+    if (user) saveCalibrationToServer(next);
   }
 
   return (
