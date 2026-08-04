@@ -253,6 +253,13 @@ export function useGamePlaythrough({
     stop();
     createFreshPlaythrough();
     audio.currentTime = 0;
+    judgedHitsRef.current.clear();
+    missedKeysRef.current.clear();
+    errorClicksRef.current.clear();
+    openHoldReleaseAtRef.current.clear();
+    starPowerCollectAtRef.current.clear();
+    starPowerGainNonceRef.current = 0;
+    lastErrorAtRef.current = null;
     endedAtRef.current = null;
     failedAtRef.current = null;
     resultsSnapshotRef.current = null;
@@ -274,16 +281,6 @@ export function useGamePlaythrough({
     setNeedsTapToStart(false);
     setPhase("playing");
     setResults(null);
-    judgedHitsRef.current.clear();
-    missedKeysRef.current.clear();
-    errorClicksRef.current.clear();
-    openHoldReleaseAtRef.current.clear();
-    starPowerCollectAtRef.current.clear();
-    starPowerGainNonceRef.current = 0;
-    lastErrorAtRef.current = null;
-    endedAtRef.current = null;
-    failedAtRef.current = null;
-    resultsSnapshotRef.current = null;
 
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
