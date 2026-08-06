@@ -4,6 +4,7 @@ import type { MenuScreenName } from "./navigation.js";
 import IconButton from "./IconButton.js";
 import AccountPopover from "./AccountPopover.js";
 import CreditsModal from "./CreditsModal.js";
+import SupportModal from "./SupportModal.js";
 
 const NAV_ITEMS: { screen: MenuScreenName; label: string }[] = [
   { screen: "menu", label: "Home" },
@@ -20,6 +21,7 @@ export default function SideDrawer({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const drawerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -59,6 +61,9 @@ export default function SideDrawer({
               {item.label}
             </NavButton>
           ))}
+          <NavButton type="button" onClick={() => setSupportOpen(true)}>
+            Support
+          </NavButton>
           <NavButton type="button" onClick={() => setCreditsOpen(true)}>
             Credits
           </NavButton>
@@ -70,6 +75,7 @@ export default function SideDrawer({
       </Drawer>
 
       <CreditsModal isOpen={creditsOpen} onClose={() => setCreditsOpen(false)} />
+      <SupportModal isOpen={supportOpen} onClose={() => setSupportOpen(false)} />
     </>
   );
 }
