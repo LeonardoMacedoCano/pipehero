@@ -42,11 +42,13 @@ const DESPAWN_AFTER_SECONDS = 0.3;
 const LANE_ORDER: Fret[] = [0, 1, 2, 3, 4];
 const HIGHWAY_TOP_WIDTH_RATIO = 0.26;
 const HIGHWAY_BOTTOM_WIDTH_RATIO = 0.88;
+const HIGHWAY_MAX_WIDTH_PX = 1200;
 
 const PIPE_MOUTH_RADIUS_RATIO = 1.25;
 
 export function createRenderConfig(canvasWidth: number, canvasHeight: number): RenderConfig {
-  const maxRadius = clamp(canvasWidth * NOTE_MAX_RADIUS_WIDTH_RATIO, NOTE_MAX_RADIUS_MIN_PX, NOTE_MAX_RADIUS_MAX_PX);
+  const highwayWidth = Math.min(canvasWidth, HIGHWAY_MAX_WIDTH_PX);
+  const maxRadius = clamp(highwayWidth * NOTE_MAX_RADIUS_WIDTH_RATIO, NOTE_MAX_RADIUS_MIN_PX, NOTE_MAX_RADIUS_MAX_PX);
   return {
     canvasWidth,
     canvasHeight,
@@ -54,8 +56,8 @@ export function createRenderConfig(canvasWidth: number, canvasHeight: number): R
     approachTime: APPROACH_TIME_SECONDS,
     despawnAfter: DESPAWN_AFTER_SECONDS,
     laneOrder: LANE_ORDER,
-    highwayTopWidth: canvasWidth * HIGHWAY_TOP_WIDTH_RATIO,
-    highwayBottomWidth: canvasWidth * HIGHWAY_BOTTOM_WIDTH_RATIO,
+    highwayTopWidth: highwayWidth * HIGHWAY_TOP_WIDTH_RATIO,
+    highwayBottomWidth: highwayWidth * HIGHWAY_BOTTOM_WIDTH_RATIO,
     highwayCenterX: canvasWidth / 2,
     noteMinRadius: maxRadius * NOTE_MIN_RADIUS_RATIO,
     noteMaxRadius: maxRadius,

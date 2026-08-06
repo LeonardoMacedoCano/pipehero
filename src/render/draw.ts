@@ -50,6 +50,15 @@ function pipeHalfWidthAt(progress: number, config: RenderConfig): number {
   return spacing * 0.51;
 }
 
+function pipeBarrelXRange(fret: Fret, config: RenderConfig): [number, number] {
+  const order = config.laneOrder;
+  const index = order.indexOf(fret);
+  const x = laneX(fret, 1, config);
+  const left = index > 0 ? (x + laneX(order[index - 1], 1, config)) / 2 : 0;
+  const right = index < order.length - 1 ? (x + laneX(order[index + 1], 1, config)) / 2 : config.canvasWidth;
+  return [left, right];
+}
+
 const GRID_LINE_SPACING_SECONDS = 0.16;
 
 interface FrameInvariantStyles {
@@ -278,21 +287,21 @@ function drawPipeBarrelAndMouth(
 ): void {
   const baseColor = laneColors[fret] ?? palette.noteFallback;
   const x = laneX(fret, 1, config);
-  const halfWidth = pipeHalfWidthAt(1, config);
   const y = config.hitLineY;
+  const [barrelLeft, barrelRight] = pipeBarrelXRange(fret, config);
 
-  const barrelGradient = ctx.createLinearGradient(x - halfWidth, 0, x + halfWidth, 0);
+  const barrelGradient = ctx.createLinearGradient(barrelLeft, 0, barrelRight, 0);
   barrelGradient.addColorStop(0, lighten(baseColor, -0.6));
   barrelGradient.addColorStop(0.5, baseColor);
   barrelGradient.addColorStop(1, lighten(baseColor, -0.6));
   ctx.fillStyle = barrelGradient;
-  ctx.fillRect(x - halfWidth, y, halfWidth * 2, config.canvasHeight - y);
+  ctx.fillRect(barrelLeft, y, barrelRight - barrelLeft, config.canvasHeight - y);
 
   const depthFade = ctx.createLinearGradient(0, y, 0, config.canvasHeight);
   depthFade.addColorStop(0, "rgba(0, 0, 0, 0)");
   depthFade.addColorStop(1, "rgba(0, 0, 0, 0.5)");
   ctx.fillStyle = depthFade;
-  ctx.fillRect(x - halfWidth, y, halfWidth * 2, config.canvasHeight - y);
+  ctx.fillRect(barrelLeft, y, barrelRight - barrelLeft, config.canvasHeight - y);
 
   const mouthRx = config.pipeMouthRadius;
   const mouthRy = config.pipeMouthRadius * 0.4;
