@@ -43,7 +43,7 @@ export default function SongOptionsModal({
           {availableDifficulties.length > 0 && (
             <Section>
               <SectionLabel>Difficulty</SectionLabel>
-              <Stack direction="row" gap="8px">
+              <Stack direction="row" gap="8px" wrap>
                 {availableDifficulties.map((difficulty) => (
                   <Button
                     key={difficulty}
