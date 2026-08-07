@@ -431,5 +431,5 @@ export function useGamePlaythrough({
     true
   );
 
-  return { canvasRef, audioRef, hud, needsTapToStart, phase, results, start, stop };
+  return { canvasRef, audioRef, hud, needsTapToStart, phase, results, start, stop, pressFret, releaseFret, strum, activateStarPower };
 }

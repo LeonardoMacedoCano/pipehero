@@ -18,10 +18,24 @@ import {
   type ActionBindings,
 } from "../../game/keymapStore.js";
 import { getStrumModeEnabled, setStrumModeEnabled } from "../../game/strumModeStore.js";
+import type { ControlSchemeOverride, Handedness, TouchButtonSize } from "../../game/controlSchemeStore.js";
 import { useGamepadPolling } from "../hooks/useGamepadPolling.js";
 import { useSyncedPreference } from "../hooks/useSyncedPreference.js";
+import { useControlScheme } from "../hooks/useControlScheme.js";
 
 const COMPACT_BUTTON_STYLE: CSSProperties = { padding: "5px 14px" };
+
+const SCHEME_OPTIONS: { value: ControlSchemeOverride; label: string }[] = [
+  { value: "auto", label: "Automatic" },
+  { value: "touch", label: "Touch" },
+  { value: "keyboard", label: "Keyboard" },
+];
+
+const BUTTON_SIZE_OPTIONS: { value: TouchButtonSize; label: string }[] = [
+  { value: "small", label: "Small" },
+  { value: "medium", label: "Medium" },
+  { value: "large", label: "Large" },
+];
 
 export default function ControlsMappingPanel() {
   const { value: bindings, updateValue: setBindingsSynced } = useSyncedPreference<ActionBindings>({
@@ -42,6 +56,8 @@ export default function ControlsMappingPanel() {
   const [capturedBinding, setCapturedBinding] = useState<InputBinding | null>(null);
   const [conflictNote, setConflictNote] = useState<string | null>(null);
   const inputMode: InputMode = strumModeEnabled ? "strum" : "tap";
+
+  const { scheme, preferences, updatePreferences } = useControlScheme();
 
   function changeInputMode(mode: InputMode) {
     setStrumModeSynced(mode === "strum");
@@ -104,6 +120,51 @@ export default function ControlsMappingPanel() {
 
   return (
     <Wrapper>
+      <SectionTitle>Input device</SectionTitle>
+      <ModeRow>
+        <Label>Method</Label>
+        <SegmentedGroup>
+          {SCHEME_OPTIONS.map((option) => (
+            <Button
+              key={option.value}
+              description={option.label}
+              variant={preferences.overrideScheme === option.value ? "success" : "secondary"}
+              onClick={() => updatePreferences({ ...preferences, overrideScheme: option.value })}
+              style={COMPACT_BUTTON_STYLE}
+            />
+          ))}
+        </SegmentedGroup>
+      </ModeRow>
+
+      {scheme === "touch" && (
+        <>
+          <ModeRow>
+            <Label>Dominant hand</Label>
+            <ToggleSwitch<Handedness>
+              optionA={{ label: "Right", value: "right" }}
+              optionB={{ label: "Left", value: "left" }}
+              value={preferences.handedness}
+              onChange={(handedness) => updatePreferences({ ...preferences, handedness })}
+            />
+          </ModeRow>
+          <ModeRow>
+            <Label>Button size</Label>
+            <SegmentedGroup>
+              {BUTTON_SIZE_OPTIONS.map((option) => (
+                <Button
+                  key={option.value}
+                  description={option.label}
+                  variant={preferences.buttonSize === option.value ? "success" : "secondary"}
+                  onClick={() => updatePreferences({ ...preferences, buttonSize: option.value })}
+                  style={COMPACT_BUTTON_STYLE}
+                />
+              ))}
+            </SegmentedGroup>
+          </ModeRow>
+        </>
+      )}
+
+      <SectionTitle>Key mapping</SectionTitle>
       <ModeRow>
         <Label>Input mode</Label>
         <ToggleSwitch<InputMode>
@@ -170,6 +231,24 @@ const ModeRow = styled.div`
   border: 1px solid ${({ theme }) => theme.colors.gray};
   border-radius: 8px;
   background-color: ${({ theme }) => theme.colors.secondary};
+`;
+
+const SectionTitle = styled.h3`
+  margin: 4px 0 -4px;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: ${({ theme }) => theme.colors.tertiary};
+
+  &:first-child {
+    margin-top: 0;
+  }
+`;
+
+const SegmentedGroup = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 `;
 
 const List = styled.div`
