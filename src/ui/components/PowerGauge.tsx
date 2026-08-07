@@ -3,7 +3,8 @@ import styled, { css, keyframes, useTheme, type DefaultTheme } from "styled-comp
 import IronPipeFrame from "./IronPipeFrame.js";
 import { STAR_POWER_ACTIVATION_THRESHOLD, STAR_POWER_METER_EPSILON } from "../../engine/gameEngine.js";
 import { rockTierFor, type RockTier } from "../../engine/rockMeter.js";
-import { STAR_POWER_BOLT as BOLT, STAR_POWER_BOLT_COLOR as BOLT_COLOR, STAR_POWER_BOLT_COLOR_LIGHT as BOLT_COLOR_LIGHT } from "./starPowerBolt.js";
+import { STAR_POWER_BOLT as BOLT } from "./starPowerBolt.js";
+import { lighten } from "../../render/colorUtils.js";
 
 const BONE_OUTLINE = "rgba(0, 0, 0, 0.55)";
 
@@ -13,7 +14,7 @@ function clamp01to100(value: number): number {
 
 function rockGlowColor(tier: RockTier, theme: DefaultTheme): string {
   if (tier === "critical" || tier === "red") return theme.colors.warning;
-  if (tier === "yellow") return theme.colors.laneYellow;
+  if (tier === "yellow") return theme.colors.lane3;
   return theme.colors.success;
 }
 
@@ -88,15 +89,17 @@ export default function PowerGauge({
   const starFill = clamp01to100(starPowerMeter);
   const starReady = starFill >= STAR_POWER_ACTIVATION_THRESHOLD - STAR_POWER_METER_EPSILON;
   const boltClipY = BOLT.maxY - (BOLT.maxY - BOLT.minY) * (starFill / 100);
+  const boltColor = theme.colors.info;
+  const boltColorLight = lighten(boltColor, 0.35);
 
   const boltGlyph = (
     <BoltBump key={starPowerGainNonce} $pulse={starPowerGainNonce > 0}>
       <BoltWrapper $ready={starReady} $active={starPowerActive}>
-        <svg viewBox="0 0 100 100" width="64" height="64" role="img" aria-label="Star Power">
+        <svg viewBox="0 0 100 100" width="34" height="34" role="img" aria-label="Star Power">
           <defs>
             <linearGradient id={boltGradientId} x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0%" stopColor={BOLT_COLOR} />
-              <stop offset="100%" stopColor={BOLT_COLOR_LIGHT} />
+              <stop offset="0%" stopColor={boltColor} />
+              <stop offset="100%" stopColor={boltColorLight} />
             </linearGradient>
             <clipPath id={boltClipId}>
               <rect x="0" y={boltClipY} width="100" height={120} />
@@ -114,7 +117,7 @@ export default function PowerGauge({
     <IronPipeFrame>
       <Layout>
         <HandWrapper $shake={rockShaking} $critical={rockCritical} style={{ color: rockGlow }}>
-          <svg viewBox="0 0 100 100" width="64" height="64" role="img" aria-label="Rock Meter">
+          <svg viewBox="0 0 100 100" width="34" height="34" role="img" aria-label="Rock Meter">
             <defs>
               <filter id={handOutlineId} x="-30%" y="-30%" width="160%" height="160%">
                 <feMorphology in="SourceAlpha" operator="dilate" radius="2.2" result="dilated" />
@@ -164,14 +167,14 @@ const criticalFlash = keyframes`
 
 const bump = keyframes`
   0% { transform: scale(1); }
-  35% { transform: scale(1.3); filter: drop-shadow(0 0 16px ${BOLT_COLOR_LIGHT}); }
+  35% { transform: scale(1.3); filter: drop-shadow(0 0 16px currentColor); }
   100% { transform: scale(1); }
 `;
 
 const Layout = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 `;
 
 const BoltTapButton = styled.button`
@@ -199,11 +202,11 @@ const HandWrapper = styled.div<{ $shake: boolean; $critical: boolean }>`
 `;
 
 const BoltBump = styled.div<{ $pulse: boolean }>`
+  color: ${({ theme }) => theme.colors.info};
   animation: ${({ $pulse }) => ($pulse ? css`${bump} 0.35s ease-out` : "none")};
 `;
 
 const BoltWrapper = styled.div<{ $ready: boolean; $active: boolean }>`
-  color: ${BOLT_COLOR};
   transform-origin: 50% 88%;
   animation: ${({ $ready, $active }) =>
     $ready || $active

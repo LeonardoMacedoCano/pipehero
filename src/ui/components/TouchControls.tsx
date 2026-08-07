@@ -11,14 +11,14 @@ import {
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { LANDSCAPE_MEDIA_QUERY } from "../responsive.js";
 
-type LaneColorKey = "laneGreen" | "laneRed" | "laneYellow" | "laneBlue" | "laneOrange";
+type LaneColorKey = "lane1" | "lane2" | "lane3" | "lane4" | "lane5";
 
 const FRET_BUTTONS: { fret: Fret; colorKey: LaneColorKey; label: string }[] = [
-  { fret: 0, colorKey: "laneGreen", label: "Green" },
-  { fret: 1, colorKey: "laneRed", label: "Red" },
-  { fret: 2, colorKey: "laneYellow", label: "Yellow" },
-  { fret: 3, colorKey: "laneBlue", label: "Blue" },
-  { fret: 4, colorKey: "laneOrange", label: "Orange" },
+  { fret: 0, colorKey: "lane1", label: "Button 1" },
+  { fret: 1, colorKey: "lane2", label: "Button 2" },
+  { fret: 2, colorKey: "lane3", label: "Button 3" },
+  { fret: 3, colorKey: "lane4", label: "Button 4" },
+  { fret: 4, colorKey: "lane5", label: "Button 5" },
 ];
 
 function safeSetPointerCapture(target: Element & { setPointerCapture?: (pointerId: number) => void }, pointerId: number): void {

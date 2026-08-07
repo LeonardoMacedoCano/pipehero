@@ -6,6 +6,7 @@ import { useSyncedPreference } from "../../hooks/useSyncedPreference.js";
 
 interface ThemeControlContextValue {
   currentTheme: DefaultTheme;
+  themeOption: ThemeOption;
   themeId: string;
   availableThemes: readonly ThemeOption[];
   setThemeId: (id: string) => void;
@@ -30,11 +31,12 @@ export function ThemeControlProvider({ children }: { children: ReactNode }) {
     fromPayload: (raw) => raw as string,
   });
 
-  const currentTheme = getThemeOption(themeId).theme;
+  const themeOption = getThemeOption(themeId);
+  const currentTheme = themeOption.theme;
 
   const value = useMemo(
-    () => ({ currentTheme, themeId, availableThemes: THEME_OPTIONS, setThemeId }),
-    [currentTheme, themeId, setThemeId]
+    () => ({ currentTheme, themeOption, themeId, availableThemes: THEME_OPTIONS, setThemeId }),
+    [currentTheme, themeOption, themeId, setThemeId]
   );
 
   return (

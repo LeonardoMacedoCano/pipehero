@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { drawFrame } from "./draw.js";
 import { RENDER_CONFIG } from "./layout.js";
-import { COLORS, STAR_POWER_COLORS } from "../colors.js";
+import { COLORS, DRACULA_DARK } from "../colors.js";
 import type { Note } from "../types.js";
 import { fakeCtx } from "./testCanvas.js";
 
@@ -29,15 +29,15 @@ test("drawFrame fills the background with the given palette's canvasBackground",
     undefined,
     null,
     undefined,
-    STAR_POWER_COLORS
+    DRACULA_DARK
   );
-  assert.equal(ctx.fillStyles[0], STAR_POWER_COLORS.canvasBackground);
+  assert.equal(ctx.fillStyles[0], DRACULA_DARK.canvasBackground);
 });
 
 test("drawFrame doesn't throw when intense (Star Power) mode draws the extra lightning pass", () => {
   const ctx = fakeCtx();
   assert.doesNotThrow(() => {
-    drawFrame(ctx, [], 0.5, RENDER_CONFIG, undefined, undefined, undefined, undefined, null, undefined, STAR_POWER_COLORS, true);
+    drawFrame(ctx, [], 0.5, RENDER_CONFIG, undefined, undefined, undefined, undefined, null, undefined, DRACULA_DARK, true);
   });
 });
 

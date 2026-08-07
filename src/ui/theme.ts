@@ -1,7 +1,7 @@
 import type { AppTheme } from "lcano-react-ui";
-import { COLORS, STAR_POWER_COLORS, type Palette } from "../colors.js";
+import type { Palette } from "../colors.js";
 
-function themeFromPalette(title: string, palette: Palette): AppTheme {
+export function themeFromPalette(title: string, palette: Palette): AppTheme {
   return {
     title,
     colors: {
@@ -16,15 +16,12 @@ function themeFromPalette(title: string, palette: Palette): AppTheme {
       info: palette.info,
       warning: palette.warning,
 
-      laneGreen: palette.laneGreen,
-      laneRed: palette.laneRed,
-      laneYellow: palette.laneYellow,
-      laneBlue: palette.laneBlue,
-      laneOrange: palette.laneOrange,
+      lane1: palette.lane1,
+      lane2: palette.lane2,
+      lane3: palette.lane3,
+      lane4: palette.lane4,
+      lane5: palette.lane5,
       laneOpen: palette.laneOpen,
     },
   };
 }
-
-export const pipeHeroTheme: AppTheme = themeFromPalette("PipeHero", COLORS);
-export const starPowerTheme: AppTheme = themeFromPalette("PipeHero — Star Power", STAR_POWER_COLORS);

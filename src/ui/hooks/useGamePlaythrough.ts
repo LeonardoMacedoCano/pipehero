@@ -9,7 +9,7 @@ import { getGraphicsQuality } from "../../render/graphicsQualityStore.js";
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
 import { playBooSound } from "../../audio/booSound.js";
-import { COLORS } from "../../colors.js";
+import type { Palette } from "../../colors.js";
 import {
   fretForBinding,
   isStarPowerBinding,
@@ -65,12 +65,14 @@ export function useGamePlaythrough({
   starPowerPhrases,
   difficulty,
   hitLineRatio,
+  palette,
 }: {
   notes: Note[] | null;
   chartOffsetSeconds: number | undefined;
   starPowerPhrases: StarPowerPhrase[] | undefined;
   difficulty: Difficulty | null;
   hitLineRatio: number;
+  palette: Palette;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -143,7 +145,7 @@ export function useGamePlaythrough({
       }
       const outroElapsed = performance.now() - endedAtRef.current;
       const remaining = 1 - Math.min(1, outroElapsed / HIGHWAY_BUILD_OUTRO_MS);
-      drawFrame(ctx, [], 0, highwayBuildConfig(config, easeInCubic(remaining)));
+      drawFrame(ctx, [], 0, highwayBuildConfig(config, easeInCubic(remaining)), undefined, undefined, undefined, undefined, null, undefined, palette);
       if (outroElapsed < HIGHWAY_BUILD_OUTRO_MS) {
         rafRef.current = requestAnimationFrame(loop);
       } else {
@@ -156,7 +158,7 @@ export function useGamePlaythrough({
     if (failedAtRef.current !== null) {
       const outroElapsed = performance.now() - failedAtRef.current;
       const remaining = 1 - Math.min(1, outroElapsed / HIGHWAY_BUILD_OUTRO_MS);
-      drawFrame(ctx, [], 0, highwayBuildConfig(config, easeInCubic(remaining)));
+      drawFrame(ctx, [], 0, highwayBuildConfig(config, easeInCubic(remaining)), undefined, undefined, undefined, undefined, null, undefined, palette);
       if (outroElapsed < HIGHWAY_BUILD_OUTRO_MS) {
         rafRef.current = requestAnimationFrame(loop);
       } else {
@@ -235,7 +237,7 @@ export function useGamePlaythrough({
       errorClicksRef.current,
       lastErrorAtRef.current,
       openHoldReleaseAtRef.current,
-      COLORS,
+      palette,
       state.starPowerActive,
       starPowerPhrases ?? [],
       state.starPowerPhraseBroken,
@@ -256,7 +258,7 @@ export function useGamePlaythrough({
     if (!audio.paused || failedAtRef.current !== null) {
       rafRef.current = requestAnimationFrame(loop);
     }
-  }, [notes, noteByKey, hitLineRatio]);
+  }, [notes, noteByKey, hitLineRatio, palette]);
 
   const start = useCallback(async () => {
     const audio = audioRef.current;
@@ -304,12 +306,19 @@ export function useGamePlaythrough({
         highwayBuildConfig(
           createRenderConfig(canvas.width, canvas.height, clampDevicePixelRatio(window.devicePixelRatio || 1, previewMaxDpr), hitLineRatio),
           0
-        )
+        ),
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        null,
+        undefined,
+        palette
       );
     }
 
     if (notes) start();
-  }, [notes, chartOffsetSeconds, starPowerPhrases, difficulty, hitLineRatio, stop, start]);
+  }, [notes, chartOffsetSeconds, starPowerPhrases, difficulty, hitLineRatio, palette, stop, start]);
 
   useEffect(() => stop, [stop]);
 

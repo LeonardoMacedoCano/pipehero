@@ -57,36 +57,38 @@ test("ambientStrikeEnvelope alpha stays within [0, 1]", () => {
   }
 });
 
+const GLOW_COLOR = "#6dff9c";
+
 test("drawStarPowerHitBolt draws bolts mid-animation but not once its duration has elapsed", () => {
   const midway = fakeCtx();
-  drawStarPowerHitBolt(midway, 0, RENDER_CONFIG, 0.05);
+  drawStarPowerHitBolt(midway, GLOW_COLOR, 0, RENDER_CONFIG, 0.05);
   assert.ok(midway.lineToCalls.length > 0);
 
   const finished = fakeCtx();
-  drawStarPowerHitBolt(finished, 0, RENDER_CONFIG, 1);
+  drawStarPowerHitBolt(finished, GLOW_COLOR, 0, RENDER_CONFIG, 1);
   assert.equal(finished.lineToCalls.length, 0);
 });
 
 test("drawAmbientLightningBolts does not throw across a range of times", () => {
   const ctx = fakeCtx();
   assert.doesNotThrow(() => {
-    for (let t = 0; t < 3; t += 0.2) drawAmbientLightningBolts(ctx, RENDER_CONFIG, t);
+    for (let t = 0; t < 3; t += 0.2) drawAmbientLightningBolts(ctx, GLOW_COLOR, RENDER_CONFIG, t);
   });
 });
 
 test("drawStarPowerCollectBurst draws a burst that travels upward from its origin", () => {
   const ctx = fakeCtx();
-  drawStarPowerCollectBurst(ctx, 100, 500, RENDER_CONFIG, 0.1);
+  drawStarPowerCollectBurst(ctx, GLOW_COLOR, 100, 500, RENDER_CONFIG, 0.1);
   assert.ok(ctx.lineToCalls.some((p) => p.y < 500), "expected the burst to reach above its origin y");
 });
 
 test("drawStarPowerDropAura and drawStarPowerDropRim do not throw", () => {
   const ctx = fakeCtx();
-  assert.doesNotThrow(() => drawStarPowerDropAura(ctx, 10, 10, 20, 0.5));
-  assert.doesNotThrow(() => drawStarPowerDropRim(ctx, 10, 10, 20, 0.5));
+  assert.doesNotThrow(() => drawStarPowerDropAura(ctx, GLOW_COLOR, 10, 10, 20, 0.5));
+  assert.doesNotThrow(() => drawStarPowerDropRim(ctx, GLOW_COLOR, 10, 10, 20, 0.5));
 });
 
 test("drawStarPowerSparks does not throw", () => {
   const ctx = fakeCtx();
-  assert.doesNotThrow(() => drawStarPowerSparks(ctx, 10, 10, 20, 0.5, 3));
+  assert.doesNotThrow(() => drawStarPowerSparks(ctx, GLOW_COLOR, 10, 10, 20, 0.5, 3));
 });
