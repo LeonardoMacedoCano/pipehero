@@ -1,13 +1,13 @@
 import styled, { keyframes } from "styled-components";
 import IronPipeFrame from "./IronPipeFrame.js";
 
-const TIER_COLOR_KEYS = ["tertiary", "laneGreen", "laneYellow", "laneOrange"] as const;
+const TIER_COLOR_KEYS = ["tertiary", "lane1", "lane3", "lane5"] as const;
 
 function scoreFontSize(digits: number): string {
-  if (digits <= 5) return "2.2em";
-  if (digits === 6) return "1.85em";
-  if (digits === 7) return "1.55em";
-  return "1.2em";
+  if (digits <= 5) return "1.7em";
+  if (digits === 6) return "1.45em";
+  if (digits === 7) return "1.25em";
+  return "1.05em";
 }
 
 export default function ScoreBox({
@@ -67,9 +67,9 @@ const Score = styled.div<{ $fontSize: string }>`
 const MultiplierBadge = styled.div<{ $colorKey: (typeof TIER_COLOR_KEYS)[number]; $pulse: boolean }>`
   display: inline-block;
   flex-shrink: 0;
-  padding: 2px 6px;
-  border-radius: 7px;
-  font-size: 1.3em;
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-size: 1em;
   font-weight: bold;
   line-height: 1.3;
   color: ${({ theme, $colorKey }) => theme.colors[$colorKey]};

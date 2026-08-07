@@ -54,15 +54,15 @@ export default function ResultsOverlay({
             <StatLabel>Accuracy</StatLabel>
           </Stat>
           <Stat>
-            <StatValue $color="laneGreen">{perfectCount}</StatValue>
+            <StatValue $color="lane1">{perfectCount}</StatValue>
             <StatLabel>Perfect</StatLabel>
           </Stat>
           <Stat>
-            <StatValue $color="laneBlue">{goodCount}</StatValue>
+            <StatValue $color="lane4">{goodCount}</StatValue>
             <StatLabel>Good</StatLabel>
           </Stat>
           <Stat>
-            <StatValue $color="laneRed">{missCount}</StatValue>
+            <StatValue $color="lane2">{missCount}</StatValue>
             <StatLabel>Miss</StatLabel>
           </Stat>
         </StatsGrid>
@@ -211,7 +211,7 @@ const Stat = styled.div`
   align-items: center;
 `;
 
-const StatValue = styled.div<{ $color?: "laneGreen" | "laneBlue" | "laneRed" }>`
+const StatValue = styled.div<{ $color?: "lane1" | "lane4" | "lane2" }>`
   font-size: 1.1em;
   font-weight: bold;
   color: ${({ theme, $color }) => ($color ? theme.colors[$color] : theme.colors.white)};

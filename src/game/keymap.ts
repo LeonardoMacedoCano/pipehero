@@ -1,5 +1,22 @@
 import type { Fret } from "../types.js";
-import { COLORS } from "../colors.js";
+
+export type ThemeColorKey =
+  | "primary"
+  | "secondary"
+  | "tertiary"
+  | "quaternary"
+  | "white"
+  | "black"
+  | "gray"
+  | "success"
+  | "info"
+  | "warning"
+  | "lane1"
+  | "lane2"
+  | "lane3"
+  | "lane4"
+  | "lane5"
+  | "laneOpen";
 
 export type ControlAction =
   | "fretGreen"
@@ -19,21 +36,21 @@ const BOTH_MODES: InputMode[] = ["tap", "strum"];
 export interface ControlActionInfo {
   id: ControlAction;
   label: string;
-  color: string;
+  colorKey: ThemeColorKey;
   fret?: Fret;
   modes: InputMode[];
 }
 
 export const CONTROL_ACTIONS: ControlActionInfo[] = [
-  { id: "fretGreen", label: "Green", color: COLORS.laneGreen, fret: 0, modes: BOTH_MODES },
-  { id: "fretRed", label: "Red", color: COLORS.laneRed, fret: 1, modes: BOTH_MODES },
-  { id: "fretYellow", label: "Yellow", color: COLORS.laneYellow, fret: 2, modes: BOTH_MODES },
-  { id: "fretBlue", label: "Blue", color: COLORS.laneBlue, fret: 3, modes: BOTH_MODES },
-  { id: "fretOrange", label: "Orange", color: COLORS.laneOrange, fret: 4, modes: BOTH_MODES },
-  { id: "fretOpen", label: "Open", color: COLORS.laneOpen, fret: 7, modes: ["tap"] },
-  { id: "strumUp", label: "Strum Up", color: COLORS.tertiary, modes: ["strum"] },
-  { id: "strumDown", label: "Strum Down", color: COLORS.tertiary, modes: ["strum"] },
-  { id: "starPower", label: "Star Power", color: COLORS.info, modes: BOTH_MODES },
+  { id: "fretGreen", label: "Button 1", colorKey: "lane1", fret: 0, modes: BOTH_MODES },
+  { id: "fretRed", label: "Button 2", colorKey: "lane2", fret: 1, modes: BOTH_MODES },
+  { id: "fretYellow", label: "Button 3", colorKey: "lane3", fret: 2, modes: BOTH_MODES },
+  { id: "fretBlue", label: "Button 4", colorKey: "lane4", fret: 3, modes: BOTH_MODES },
+  { id: "fretOrange", label: "Button 5", colorKey: "lane5", fret: 4, modes: BOTH_MODES },
+  { id: "fretOpen", label: "Open", colorKey: "laneOpen", fret: 7, modes: ["tap"] },
+  { id: "strumUp", label: "Strum Up", colorKey: "tertiary", modes: ["strum"] },
+  { id: "strumDown", label: "Strum Down", colorKey: "tertiary", modes: ["strum"] },
+  { id: "starPower", label: "Star Power", colorKey: "info", modes: BOTH_MODES },
 ];
 
 export type InputBinding =

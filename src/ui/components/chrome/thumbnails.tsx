@@ -1,6 +1,6 @@
 import styled from "styled-components";
 
-const LANE_COLORS = ["laneGreen", "laneRed", "laneYellow", "laneBlue", "laneOrange"] as const;
+const LANE_COLORS = ["lane1", "lane2", "lane3", "lane4", "lane5"] as const;
 
 export function NoteLaneThumbnail() {
   return (
@@ -8,9 +8,9 @@ export function NoteLaneThumbnail() {
       {LANE_COLORS.map((lane, i) => (
         <Lane key={lane} $lane={lane} style={{ left: `${12 + i * 18}%` }} />
       ))}
-      <Note style={{ left: "12%", top: "20%" }} $lane="laneGreen" />
-      <Note style={{ left: "48%", top: "45%" }} $lane="laneYellow" />
-      <Note style={{ left: "84%", top: "30%" }} $lane="laneOrange" />
+      <Note style={{ left: "12%", top: "20%" }} $lane="lane1" />
+      <Note style={{ left: "48%", top: "45%" }} $lane="lane3" />
+      <Note style={{ left: "84%", top: "30%" }} $lane="lane5" />
       <HitLine />
     </Highway>
   );

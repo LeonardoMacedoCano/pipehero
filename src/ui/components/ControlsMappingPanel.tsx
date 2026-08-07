@@ -8,6 +8,7 @@ import {
   type ControlAction,
   type InputBinding,
   type InputMode,
+  type ThemeColorKey,
 } from "../../game/keymap.js";
 import {
   getBindings,
@@ -148,7 +149,7 @@ export default function ControlsMappingPanel() {
 
           return (
             <Row key={action.id}>
-              <Swatch style={{ backgroundColor: action.color }} />
+              <Swatch $colorKey={action.colorKey} />
               <Label>{action.label}</Label>
 
               {isCapturing ? (
@@ -234,11 +235,12 @@ const Row = styled.div`
   background-color: ${({ theme }) => theme.colors.secondary};
 `;
 
-const Swatch = styled.span`
+const Swatch = styled.span<{ $colorKey: ThemeColorKey }>`
   width: 14px;
   height: 14px;
   border-radius: 50%;
   flex-shrink: 0;
+  background-color: ${({ theme, $colorKey }) => theme.colors[$colorKey]};
 `;
 
 const Label = styled.span`

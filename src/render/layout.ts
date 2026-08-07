@@ -93,11 +93,11 @@ export function highwayBuildConfig(config: RenderConfig, buildProgress: number):
 
 export function laneColorsFor(palette: Palette): Record<Fret, string> {
   return {
-    0: palette.laneGreen,
-    1: palette.laneRed,
-    2: palette.laneYellow,
-    3: palette.laneBlue,
-    4: palette.laneOrange,
+    0: palette.lane1,
+    1: palette.lane2,
+    2: palette.lane3,
+    3: palette.lane4,
+    4: palette.lane5,
     7: palette.laneOpen,
   };
 }
