@@ -1,6 +1,9 @@
 import { useEffect } from "react";
 import type { RefObject } from "react";
 import styled from "styled-components";
+import { clampDevicePixelRatio } from "../../render/layout.js";
+import { graphicsSettingsFor } from "../../render/graphicsQuality.js";
+import { getGraphicsQuality } from "../../render/graphicsQualityStore.js";
 
 export default function GameCanvas({ canvasRef }: { canvasRef: RefObject<HTMLCanvasElement> }) {
   useEffect(() => {
@@ -10,7 +13,8 @@ export default function GameCanvas({ canvasRef }: { canvasRef: RefObject<HTMLCan
     function resize() {
       if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
+      const maxDpr = graphicsSettingsFor(getGraphicsQuality()).maxDevicePixelRatio;
+      const dpr = clampDevicePixelRatio(window.devicePixelRatio || 1, maxDpr);
       const width = Math.max(1, Math.round(rect.width * dpr));
       const height = Math.max(1, Math.round(rect.height * dpr));
       if (canvas.width !== width || canvas.height !== height) {

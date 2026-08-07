@@ -3,7 +3,9 @@ import type { Difficulty, Fret, GameEvent, GameState, Note, StarPowerPhrase } fr
 import { createPlaythrough } from "../../game/gamePlaythrough.js";
 import { drawFrame, ABSORB_DURATION_SECONDS, OPEN_RESIDUE_FALL_SECONDS } from "../../render/draw.js";
 import { STAR_POWER_COLLECT_DURATION_SECONDS } from "../../render/starPowerFx.js";
-import { createRenderConfig, highwayBuildConfig, noteRenderKey } from "../../render/layout.js";
+import { clampDevicePixelRatio, createRenderConfig, highwayBuildConfig, noteRenderKey } from "../../render/layout.js";
+import { graphicsSettingsFor } from "../../render/graphicsQuality.js";
+import { getGraphicsQuality } from "../../render/graphicsQualityStore.js";
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
 import { playBooSound } from "../../audio/booSound.js";
@@ -126,7 +128,13 @@ export function useGamePlaythrough({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const config = createRenderConfig(canvas.width, canvas.height, window.devicePixelRatio || 1, hitLineRatio);
+    const graphicsSettings = graphicsSettingsFor(getGraphicsQuality());
+    const config = createRenderConfig(
+      canvas.width,
+      canvas.height,
+      clampDevicePixelRatio(window.devicePixelRatio || 1, graphicsSettings.maxDevicePixelRatio),
+      hitLineRatio
+    );
 
     if (audio.ended) {
       if (endedAtRef.current === null) {
@@ -231,7 +239,8 @@ export function useGamePlaythrough({
       state.starPowerActive,
       starPowerPhrases ?? [],
       state.starPowerPhraseBroken,
-      starPowerCollectAtRef.current
+      starPowerCollectAtRef.current,
+      graphicsSettings
     );
 
     setHud({
@@ -287,7 +296,16 @@ export function useGamePlaythrough({
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (ctx && canvas && notes) {
-      drawFrame(ctx, notes, 0, highwayBuildConfig(createRenderConfig(canvas.width, canvas.height, window.devicePixelRatio || 1, hitLineRatio), 0));
+      const previewMaxDpr = graphicsSettingsFor(getGraphicsQuality()).maxDevicePixelRatio;
+      drawFrame(
+        ctx,
+        notes,
+        0,
+        highwayBuildConfig(
+          createRenderConfig(canvas.width, canvas.height, clampDevicePixelRatio(window.devicePixelRatio || 1, previewMaxDpr), hitLineRatio),
+          0
+        )
+      );
     }
 
     if (notes) start();

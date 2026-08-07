@@ -59,4 +59,10 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS strum_mode_enabled BOOLEAN;
     `,
   },
+  {
+    name: "0004_user_settings_graphics_quality",
+    sql: `
+      ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS graphics_quality TEXT;
+    `,
+  },
 ];
