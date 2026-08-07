@@ -174,7 +174,7 @@ export function useGamePlaythrough({
       const holdEnd =
         note && note.fret === 7 && note.duration > 0
           ? (releasedAt ?? note.time + note.duration) + OPEN_RESIDUE_FALL_SECONDS
-          : judgedAt + ABSORB_DURATION_SECONDS;
+          : Math.max(judgedAt + ABSORB_DURATION_SECONDS, (note?.time ?? judgedAt) + config.despawnAfter);
       if (chartTime > holdEnd) {
         judgedHitsRef.current.delete(key);
         openHoldReleaseAtRef.current.delete(key);

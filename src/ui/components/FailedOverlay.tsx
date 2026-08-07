@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import { Button } from "lcano-react-ui";
 import type { GameState, Song } from "../../types.js";
+import { LANDSCAPE_MEDIA_QUERY } from "../responsive.js";
 
 export default function FailedOverlay({
   song,
@@ -55,13 +56,24 @@ const Panel = styled.div`
   box-shadow: 0 0 30px rgba(232, 68, 60, 0.3);
   color: ${({ theme }) => theme.colors.white};
   max-width: min(420px, 90vw);
+  max-height: 90vh;
+  overflow-y: auto;
   text-align: center;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    gap: 3px;
+    padding: 14px 24px;
+  }
 `;
 
 const BooedTitle = styled.h2`
   margin: 0 0 4px;
   font-size: 1.3em;
   color: ${({ theme }) => theme.colors.warning};
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    font-size: 1.05em;
+  }
 `;
 
 const SongName = styled.div`
@@ -72,12 +84,20 @@ const SongArtist = styled.div`
   color: ${({ theme }) => theme.colors.tertiary};
   font-size: 0.9em;
   margin-bottom: 12px;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    margin-bottom: 6px;
+  }
 `;
 
 const Score = styled.div`
   font-size: 2.2em;
   font-weight: bold;
   line-height: 1;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    font-size: 1.6em;
+  }
 `;
 
 const ScoreLabel = styled.div`
@@ -85,12 +105,20 @@ const ScoreLabel = styled.div`
   letter-spacing: 0.05em;
   color: ${({ theme }) => theme.colors.tertiary};
   margin-bottom: 12px;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    margin-bottom: 6px;
+  }
 `;
 
 const Message = styled.div`
   font-size: 0.9em;
   color: ${({ theme }) => theme.colors.tertiary};
   margin-bottom: 20px;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    margin-bottom: 10px;
+  }
 `;
 
 const Actions = styled.div`
