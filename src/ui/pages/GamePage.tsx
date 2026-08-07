@@ -8,11 +8,14 @@ import { trackNameForDifficulty } from "../../engine/availableTracks.js";
 import { extractStarPowerPhrases, synthesizeStarPowerPhrases } from "../../engine/starPower.js";
 import { computeStars } from "../../scoring/stars.js";
 import { useGamePlaythrough } from "../hooks/useGamePlaythrough.js";
+import { useControlScheme } from "../hooks/useControlScheme.js";
 import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
 import { starPowerTheme } from "../theme.js";
+import { getStrumModeEnabled } from "../../game/strumModeStore.js";
 import GameCanvas from "../components/GameCanvas.js";
 import ScoreBox from "../components/ScoreBox.js";
 import PowerGauge from "../components/PowerGauge.js";
+import TouchControls from "../components/TouchControls.js";
 import ResultsOverlay from "../components/ResultsOverlay.js";
 import FailedOverlay from "../components/FailedOverlay.js";
 import { FRAME_WIDTH } from "../components/IronPipeFrame.js";
@@ -48,12 +51,17 @@ export default function GamePage({
 
   const chartOffsetSeconds = chart.Song.offset ?? 0;
 
-  const { canvasRef, audioRef, hud, needsTapToStart, phase, results, start } = useGamePlaythrough({
-    notes,
-    chartOffsetSeconds,
-    starPowerPhrases,
-    difficulty,
-  });
+  const { canvasRef, audioRef, hud, needsTapToStart, phase, results, start, pressFret, releaseFret, strum, activateStarPower } =
+    useGamePlaythrough({
+      notes,
+      chartOffsetSeconds,
+      starPowerPhrases,
+      difficulty,
+    });
+
+  const { scheme, preferences } = useControlScheme();
+  const showTouchControls = scheme === "touch" && phase === "playing";
+  const strumModeEnabled = getStrumModeEnabled();
 
   useEffect(() => {
     if (phase !== "results" || !results) return;
@@ -70,22 +78,40 @@ export default function GamePage({
       </TopBar>
 
       <CanvasArea>
-        <GameCanvas canvasRef={canvasRef} />
+        <Highway>
+          <GameCanvas canvasRef={canvasRef} />
 
-        {phase === "playing" && (
+          {phase === "playing" && (
+            <ThemeProvider theme={hud.starPowerActive ? starPowerTheme : currentTheme}>
+              <ScoreBoxOverlay>
+                <ScoreBox score={hud.score} combo={hud.combo} multiplier={hud.multiplier} starPowerActive={hud.starPowerActive} />
+              </ScoreBoxOverlay>
+              <PowerGaugeOverlay>
+                <PowerGauge
+                  rockMeter={hud.rockMeter}
+                  starPowerMeter={hud.starPowerMeter}
+                  starPowerActive={hud.starPowerActive}
+                  starPowerGainNonce={hud.starPowerGainNonce}
+                />
+              </PowerGaugeOverlay>
+              {needsTapToStart && <TapToStartOverlay onClick={start}>Tap to start</TapToStartOverlay>}
+            </ThemeProvider>
+          )}
+        </Highway>
+
+        {showTouchControls && (
           <ThemeProvider theme={hud.starPowerActive ? starPowerTheme : currentTheme}>
-            <ScoreBoxOverlay>
-              <ScoreBox score={hud.score} combo={hud.combo} multiplier={hud.multiplier} starPowerActive={hud.starPowerActive} />
-            </ScoreBoxOverlay>
-            <PowerGaugeOverlay>
-              <PowerGauge
-                rockMeter={hud.rockMeter}
-                starPowerMeter={hud.starPowerMeter}
-                starPowerActive={hud.starPowerActive}
-                starPowerGainNonce={hud.starPowerGainNonce}
-              />
-            </PowerGaugeOverlay>
-            {needsTapToStart && <TapToStartOverlay onClick={start}>Tap to start</TapToStartOverlay>}
+            <TouchControls
+              strumMode={strumModeEnabled}
+              handedness={preferences.handedness}
+              buttonSize={preferences.buttonSize}
+              starPowerMeter={hud.starPowerMeter}
+              starPowerActive={hud.starPowerActive}
+              onPressFret={pressFret}
+              onReleaseFret={releaseFret}
+              onStrum={strum}
+              onActivateStarPower={activateStarPower}
+            />
           </ThemeProvider>
         )}
 
@@ -170,6 +196,14 @@ const Title = styled.h1`
 `;
 
 const CanvasArea = styled.div`
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+`;
+
+const Highway = styled.div`
   position: relative;
   flex: 1;
   min-height: 0;

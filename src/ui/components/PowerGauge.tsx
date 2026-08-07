@@ -3,33 +3,8 @@ import styled, { css, keyframes, useTheme, type DefaultTheme } from "styled-comp
 import IronPipeFrame from "./IronPipeFrame.js";
 import { STAR_POWER_ACTIVATION_THRESHOLD, STAR_POWER_METER_EPSILON } from "../../engine/gameEngine.js";
 import { rockTierFor, type RockTier } from "../../engine/rockMeter.js";
+import { STAR_POWER_BOLT as BOLT, STAR_POWER_BOLT_COLOR as BOLT_COLOR, STAR_POWER_BOLT_COLOR_LIGHT as BOLT_COLOR_LIGHT } from "./starPowerBolt.js";
 
-interface Shape {
-  points: string;
-  minY: number;
-  maxY: number;
-}
-
-function buildShape(coords: { x: number; y: number }[]): Shape {
-  const ys = coords.map((p) => p.y);
-  return {
-    points: coords.map((p) => `${p.x},${p.y}`).join(" "),
-    minY: Math.min(...ys),
-    maxY: Math.max(...ys),
-  };
-}
-
-const BOLT = buildShape([
-  { x: 62, y: 4 },
-  { x: 24, y: 54 },
-  { x: 46, y: 54 },
-  { x: 38, y: 96 },
-  { x: 76, y: 42 },
-  { x: 54, y: 42 },
-]);
-
-const BOLT_COLOR = "#9c6dff";
-const BOLT_COLOR_LIGHT = "#d8c8ff";
 const BONE_OUTLINE = "rgba(0, 0, 0, 0.55)";
 
 function clamp01to100(value: number): number {
