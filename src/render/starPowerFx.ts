@@ -96,6 +96,7 @@ function strokeBoltPath(
   ctx.lineWidth = coreWidthTip;
   strokePolyline(ctx, points);
 
+  ctx.shadowBlur = 0;
   const midCount = Math.max(2, Math.ceil(points.length * 0.7));
   ctx.lineWidth = coreWidthMid;
   strokePolyline(ctx, points.slice(0, midCount));
@@ -208,6 +209,49 @@ export function pickArchetype(seed: number): BoltArchetype {
 
 const BOLT_REROLL_HZ_DEFAULT = 5.5;
 
+interface CachedBoltPath {
+  archetype: BoltArchetype;
+  localPoints: BoltPoint[];
+  forkLocalPoints: BoltPoint[] | null;
+}
+
+const BOLT_PATH_CACHE_LIMIT = 96;
+const boltPathCache = new Map<string, CachedBoltPath>();
+
+function getCachedBoltPath(seedBase: number, gen: number, angle: number, length: number): CachedBoltPath {
+  const key = `${seedBase}|${gen}`;
+  const cached = boltPathCache.get(key);
+  if (cached) return cached;
+
+  const archetype = pickArchetype(seedBase * 3.1 + gen * 971.3);
+  const seed = seedBase * 17.7 + gen * 53.1;
+  const localPoints = jaggedBoltPath(0, 0, angle, length, seed, archetype.displacementRatio, archetype.depth);
+
+  let forkLocalPoints: BoltPoint[] | null = null;
+  if (pseudoRandom(seed + 31.4) < archetype.forkChance && localPoints.length > 3) {
+    const forkOrigin = localPoints[Math.floor(localPoints.length * (0.35 + pseudoRandom(seed + 9) * 0.3))];
+    const forkAngle = angle + (pseudoRandom(seed + 12) - 0.5) * 1.7;
+    const forkLength = length * (0.35 + pseudoRandom(seed + 14) * 0.25);
+    forkLocalPoints = jaggedBoltPath(
+      forkOrigin.x,
+      forkOrigin.y,
+      forkAngle,
+      forkLength,
+      seed + 88,
+      archetype.displacementRatio * 1.1,
+      Math.max(1, archetype.depth - 1)
+    );
+  }
+
+  const entry: CachedBoltPath = { archetype, localPoints, forkLocalPoints };
+  if (boltPathCache.size >= BOLT_PATH_CACHE_LIMIT) {
+    const oldestKey = boltPathCache.keys().next().value;
+    if (oldestKey !== undefined) boltPathCache.delete(oldestKey);
+  }
+  boltPathCache.set(key, entry);
+  return entry;
+}
+
 function drawCrackleBolt(
   ctx: CanvasLike2D,
   x: number,
@@ -233,15 +277,14 @@ function drawCrackleBolt(
     [genA + 1, fadeT],
   ] as const) {
     if (genAlpha <= 0.01) continue;
-    const archetype = pickArchetype(seedBase * 3.1 + gen * 971.3);
+    const { archetype, localPoints, forkLocalPoints } = getCachedBoltPath(seedBase, gen, angle, length);
     const seed = seedBase * 17.7 + gen * 53.1;
-    const rawPoints = jaggedBoltPath(x, y, angle, length, seed, archetype.displacementRatio, archetype.depth);
     const jitterAmp = glowScale * 0.03;
     const jitterPhase = currentTime * 20 + seed;
-    const points = rawPoints.map((p, i) => {
-      if (i === 0 || i === rawPoints.length - 1) return p;
+    const points = localPoints.map((p, i) => {
+      if (i === 0 || i === localPoints.length - 1) return { x: p.x + x, y: p.y + y };
       const phase = jitterPhase + i * 2.1;
-      return { x: p.x + Math.sin(phase) * jitterAmp, y: p.y + Math.cos(phase * 1.4) * jitterAmp * 0.6 };
+      return { x: p.x + x + Math.sin(phase) * jitterAmp, y: p.y + y + Math.cos(phase * 1.4) * jitterAmp * 0.6 };
     });
 
     const alpha = envelopeAlpha * genAlpha;
@@ -260,19 +303,8 @@ function drawCrackleBolt(
 
     drawBoltHairs(ctx, points, seed + 7, glowScale * archetype.coreBaseRatio, alpha, archetype.coreColor);
 
-    if (pseudoRandom(seed + 31.4) < archetype.forkChance && points.length > 3) {
-      const forkOrigin = points[Math.floor(points.length * (0.35 + pseudoRandom(seed + 9) * 0.3))];
-      const forkAngle = angle + (pseudoRandom(seed + 12) - 0.5) * 1.7;
-      const forkLength = length * (0.35 + pseudoRandom(seed + 14) * 0.25);
-      const forkPoints = jaggedBoltPath(
-        forkOrigin.x,
-        forkOrigin.y,
-        forkAngle,
-        forkLength,
-        seed + 88,
-        archetype.displacementRatio * 1.1,
-        Math.max(1, archetype.depth - 1)
-      );
+    if (forkLocalPoints) {
+      const forkPoints = forkLocalPoints.map((p) => ({ x: p.x + x, y: p.y + y }));
       strokeBoltPath(
         ctx,
         forkPoints,
