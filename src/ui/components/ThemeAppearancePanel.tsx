@@ -1,10 +1,8 @@
-import { useMessage } from "lcano-react-ui";
 import styled from "styled-components";
 import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
 
 export default function ThemeAppearancePanel() {
   const { themeId, availableThemes, setThemeId } = useThemeControl();
-  const { showInfo } = useMessage();
 
   return (
     <Grid>
@@ -20,22 +18,6 @@ export default function ThemeAppearancePanel() {
           {option.id === themeId && <Badge>Selected</Badge>}
         </ThemeCard>
       ))}
-
-      <ThemeCard
-        type="button"
-        $active={false}
-        $locked
-        onClick={() => showInfo("Coming soon — more themes are planned.")}
-      >
-        <Swatch>
-          <SwatchSlice style={{ backgroundColor: "#333" }} />
-          <SwatchSlice style={{ backgroundColor: "#333" }} />
-          <SwatchSlice style={{ backgroundColor: "#333" }} />
-          <SwatchSlice style={{ backgroundColor: "#333" }} />
-        </Swatch>
-        <Label>More themes 🔒</Label>
-        <Description>Coming soon</Description>
-      </ThemeCard>
     </Grid>
   );
 }
@@ -46,7 +28,7 @@ const Grid = styled.div`
   gap: 12px;
 `;
 
-const ThemeCard = styled.button<{ $active: boolean; $locked?: boolean }>`
+const ThemeCard = styled.button<{ $active: boolean }>`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -56,7 +38,6 @@ const ThemeCard = styled.button<{ $active: boolean; $locked?: boolean }>`
   text-align: left;
   background-color: ${({ theme }) => theme.colors.secondary};
   border: 2px solid ${({ theme, $active }) => ($active ? theme.colors.quaternary : theme.colors.gray)};
-  opacity: ${({ $locked }) => ($locked ? 0.55 : 1)};
 `;
 
 const Swatch = styled.div`
