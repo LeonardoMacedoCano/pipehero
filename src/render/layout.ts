@@ -48,6 +48,12 @@ export const HIGHWAY_MAX_WIDTH_PX = 1200;
 
 const PIPE_MOUTH_RADIUS_RATIO = 1.25;
 
+export const MAX_DEVICE_PIXEL_RATIO = 2;
+
+export function clampDevicePixelRatio(devicePixelRatio: number, maxDevicePixelRatio: number = MAX_DEVICE_PIXEL_RATIO): number {
+  return Math.min(devicePixelRatio, maxDevicePixelRatio);
+}
+
 export function createRenderConfig(
   canvasWidth: number,
   canvasHeight: number,

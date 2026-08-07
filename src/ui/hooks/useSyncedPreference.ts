@@ -6,6 +6,7 @@ export interface SettingsResponse {
   themeId: string | null;
   keyBindings: Record<string, unknown> | null;
   strumModeEnabled: boolean | null;
+  graphicsQuality: string | null;
 }
 
 type SettingsField = keyof SettingsResponse;
@@ -15,6 +16,7 @@ const EMPTY_SETTINGS: SettingsResponse = {
   themeId: null,
   keyBindings: null,
   strumModeEnabled: null,
+  graphicsQuality: null,
 };
 
 let settingsPromise: Promise<SettingsResponse> | null = null;

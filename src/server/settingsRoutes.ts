@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { query } from "./db.js";
 import { readJsonBody, sendJson } from "./authRoutes.js";
 import { getRequestUser } from "./requestUser.js";
+import { isGraphicsQuality } from "../render/graphicsQuality.js";
 
 const MAX_CALIBRATION_MS = 1000;
 const MAX_THEME_ID_LENGTH = 64;
@@ -11,6 +12,7 @@ interface SettingsRow {
   theme_id: string | null;
   key_bindings: Record<string, unknown> | null;
   strum_mode_enabled: boolean | null;
+  graphics_quality: string | null;
 }
 
 interface SettingsPayload {
@@ -18,6 +20,7 @@ interface SettingsPayload {
   themeId?: string;
   keyBindings?: Record<string, unknown>;
   strumModeEnabled?: boolean;
+  graphicsQuality?: string;
 }
 
 function toResponseBody(row: SettingsRow | undefined) {
@@ -26,6 +29,7 @@ function toResponseBody(row: SettingsRow | undefined) {
     themeId: row?.theme_id ?? null,
     keyBindings: row?.key_bindings ?? null,
     strumModeEnabled: row?.strum_mode_enabled ?? null,
+    graphicsQuality: row?.graphics_quality ?? null,
   };
 }
 
@@ -54,7 +58,7 @@ export async function handleSettingsRequest(req: IncomingMessage, res: ServerRes
     }
 
     const rows = await query<SettingsRow>(
-      "SELECT calibration_ms, theme_id, key_bindings, strum_mode_enabled FROM user_settings WHERE user_id = $1",
+      "SELECT calibration_ms, theme_id, key_bindings, strum_mode_enabled, graphics_quality FROM user_settings WHERE user_id = $1",
       [user.id]
     );
     sendJson(res, 200, toResponseBody(rows[0]));
@@ -106,6 +110,15 @@ export async function handleSettingsRequest(req: IncomingMessage, res: ServerRes
       }
       columns.push("strum_mode_enabled");
       values.push(body.strumModeEnabled);
+    }
+
+    if (body.graphicsQuality !== undefined) {
+      if (typeof body.graphicsQuality !== "string" || !isGraphicsQuality(body.graphicsQuality)) {
+        sendJson(res, 400, { error: "Invalid graphicsQuality" });
+        return true;
+      }
+      columns.push("graphics_quality");
+      values.push(body.graphicsQuality);
     }
 
     if (columns.length === 0) {

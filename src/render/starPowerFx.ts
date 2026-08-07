@@ -96,6 +96,7 @@ function strokeBoltPath(
   ctx.lineWidth = coreWidthTip;
   strokePolyline(ctx, points);
 
+  ctx.shadowBlur = 0;
   const midCount = Math.max(2, Math.ceil(points.length * 0.7));
   ctx.lineWidth = coreWidthMid;
   strokePolyline(ctx, points.slice(0, midCount));
@@ -208,6 +209,49 @@ export function pickArchetype(seed: number): BoltArchetype {
 
 const BOLT_REROLL_HZ_DEFAULT = 5.5;
 
+interface CachedBoltPath {
+  archetype: BoltArchetype;
+  localPoints: BoltPoint[];
+  forkLocalPoints: BoltPoint[] | null;
+}
+
+const BOLT_PATH_CACHE_LIMIT = 96;
+const boltPathCache = new Map<string, CachedBoltPath>();
+
+function getCachedBoltPath(seedBase: number, gen: number, angle: number, length: number): CachedBoltPath {
+  const key = `${seedBase}|${gen}`;
+  const cached = boltPathCache.get(key);
+  if (cached) return cached;
+
+  const archetype = pickArchetype(seedBase * 3.1 + gen * 971.3);
+  const seed = seedBase * 17.7 + gen * 53.1;
+  const localPoints = jaggedBoltPath(0, 0, angle, length, seed, archetype.displacementRatio, archetype.depth);
+
+  let forkLocalPoints: BoltPoint[] | null = null;
+  if (pseudoRandom(seed + 31.4) < archetype.forkChance && localPoints.length > 3) {
+    const forkOrigin = localPoints[Math.floor(localPoints.length * (0.35 + pseudoRandom(seed + 9) * 0.3))];
+    const forkAngle = angle + (pseudoRandom(seed + 12) - 0.5) * 1.7;
+    const forkLength = length * (0.35 + pseudoRandom(seed + 14) * 0.25);
+    forkLocalPoints = jaggedBoltPath(
+      forkOrigin.x,
+      forkOrigin.y,
+      forkAngle,
+      forkLength,
+      seed + 88,
+      archetype.displacementRatio * 1.1,
+      Math.max(1, archetype.depth - 1)
+    );
+  }
+
+  const entry: CachedBoltPath = { archetype, localPoints, forkLocalPoints };
+  if (boltPathCache.size >= BOLT_PATH_CACHE_LIMIT) {
+    const oldestKey = boltPathCache.keys().next().value;
+    if (oldestKey !== undefined) boltPathCache.delete(oldestKey);
+  }
+  boltPathCache.set(key, entry);
+  return entry;
+}
+
 function drawCrackleBolt(
   ctx: CanvasLike2D,
   x: number,
@@ -233,15 +277,14 @@ function drawCrackleBolt(
     [genA + 1, fadeT],
   ] as const) {
     if (genAlpha <= 0.01) continue;
-    const archetype = pickArchetype(seedBase * 3.1 + gen * 971.3);
+    const { archetype, localPoints, forkLocalPoints } = getCachedBoltPath(seedBase, gen, angle, length);
     const seed = seedBase * 17.7 + gen * 53.1;
-    const rawPoints = jaggedBoltPath(x, y, angle, length, seed, archetype.displacementRatio, archetype.depth);
     const jitterAmp = glowScale * 0.03;
     const jitterPhase = currentTime * 20 + seed;
-    const points = rawPoints.map((p, i) => {
-      if (i === 0 || i === rawPoints.length - 1) return p;
+    const points = localPoints.map((p, i) => {
+      if (i === 0 || i === localPoints.length - 1) return { x: p.x + x, y: p.y + y };
       const phase = jitterPhase + i * 2.1;
-      return { x: p.x + Math.sin(phase) * jitterAmp, y: p.y + Math.cos(phase * 1.4) * jitterAmp * 0.6 };
+      return { x: p.x + x + Math.sin(phase) * jitterAmp, y: p.y + y + Math.cos(phase * 1.4) * jitterAmp * 0.6 };
     });
 
     const alpha = envelopeAlpha * genAlpha;
@@ -260,19 +303,8 @@ function drawCrackleBolt(
 
     drawBoltHairs(ctx, points, seed + 7, glowScale * archetype.coreBaseRatio, alpha, archetype.coreColor);
 
-    if (pseudoRandom(seed + 31.4) < archetype.forkChance && points.length > 3) {
-      const forkOrigin = points[Math.floor(points.length * (0.35 + pseudoRandom(seed + 9) * 0.3))];
-      const forkAngle = angle + (pseudoRandom(seed + 12) - 0.5) * 1.7;
-      const forkLength = length * (0.35 + pseudoRandom(seed + 14) * 0.25);
-      const forkPoints = jaggedBoltPath(
-        forkOrigin.x,
-        forkOrigin.y,
-        forkAngle,
-        forkLength,
-        seed + 88,
-        archetype.displacementRatio * 1.1,
-        Math.max(1, archetype.depth - 1)
-      );
+    if (forkLocalPoints) {
+      const forkPoints = forkLocalPoints.map((p) => ({ x: p.x + x, y: p.y + y }));
       strokeBoltPath(
         ctx,
         forkPoints,
@@ -307,6 +339,31 @@ export function drawStarPowerDropAura(ctx: CanvasLike2D, x: number, y: number, r
   ctx.fill();
 }
 
+const STAR_POWER_HALO_RING_RGB = "196, 168, 255";
+
+export function drawStarPowerDropHalo(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number): void {
+  const pulse = 0.75 + 0.25 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2);
+
+  const bloomRadius = radius * 2.6;
+  const bloom = ctx.createRadialGradient(x, y, radius, x, y, bloomRadius);
+  bloom.addColorStop(0, `rgba(${STAR_POWER_DROP_GLOW_RGB}, ${0.3 * pulse})`);
+  bloom.addColorStop(1, `rgba(${STAR_POWER_DROP_GLOW_RGB}, 0)`);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = bloom;
+  ctx.beginPath();
+  ctx.arc(x, y, bloomRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  const ringOuter = radius * 1.4;
+  const ring = ctx.createRadialGradient(x, y, radius * 1.02, x, y, ringOuter);
+  ring.addColorStop(0, `rgba(${STAR_POWER_HALO_RING_RGB}, ${0.85 * pulse})`);
+  ring.addColorStop(1, `rgba(${STAR_POWER_HALO_RING_RGB}, 0)`);
+  ctx.fillStyle = ring;
+  ctx.beginPath();
+  ctx.arc(x, y, ringOuter, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 export function drawStarPowerDropRim(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number): void {
   const pulse = 0.7 + 0.3 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2 + 1.5);
   ctx.shadowBlur = radius * 0.4;
@@ -324,8 +381,17 @@ const STAR_POWER_SPARK_COUNT = 3;
 const STAR_POWER_SPARK_ANGLE_SPREAD = Math.PI * 1.7;
 const STAR_POWER_SPARK_REROLL_HZ = 4.2;
 
-export function drawStarPowerSparks(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number, seed: number): void {
-  for (let i = 0; i < STAR_POWER_SPARK_COUNT; i++) {
+export function drawStarPowerSparks(
+  ctx: CanvasLike2D,
+  x: number,
+  y: number,
+  radius: number,
+  currentTime: number,
+  seed: number,
+  richness: number = 1
+): void {
+  const count = Math.max(1, Math.round(STAR_POWER_SPARK_COUNT * richness));
+  for (let i = 0; i < count; i++) {
     const boltSeed = seed * 17.3 + i * 91.7;
     const baseAngle = -Math.PI / 2 + (pseudoRandom(boltSeed) - 0.5) * STAR_POWER_SPARK_ANGLE_SPREAD;
     const length = radius * (1.15 + pseudoRandom(boltSeed + 3.1) * 0.85);
@@ -339,7 +405,14 @@ export const STAR_POWER_COLLECT_DURATION_SECONDS = 0.5;
 const STAR_POWER_COLLECT_BOLT_COUNT: number = 5;
 const STAR_POWER_COLLECT_FLASH_DURATION_SECONDS = 0.16;
 
-export function drawStarPowerCollectBurst(ctx: CanvasLike2D, x: number, y: number, config: RenderConfig, elapsedSeconds: number): void {
+export function drawStarPowerCollectBurst(
+  ctx: CanvasLike2D,
+  x: number,
+  y: number,
+  config: RenderConfig,
+  elapsedSeconds: number,
+  richness: number = 1
+): void {
   const t = clamp01(elapsedSeconds / STAR_POWER_COLLECT_DURATION_SECONDS);
   const growT = 1 - (1 - t) * (1 - t);
   const fadeT = t * t * t;
@@ -357,9 +430,10 @@ export function drawStarPowerCollectBurst(ctx: CanvasLike2D, x: number, y: numbe
     ctx.shadowBlur = 0;
   }
 
-  for (let i = 0; i < STAR_POWER_COLLECT_BOLT_COUNT; i++) {
+  const boltCount = Math.max(1, Math.round(STAR_POWER_COLLECT_BOLT_COUNT * richness));
+  for (let i = 0; i < boltCount; i++) {
     const seed = i * 41.3;
-    const spread = STAR_POWER_COLLECT_BOLT_COUNT === 1 ? 0 : (i / (STAR_POWER_COLLECT_BOLT_COUNT - 1)) * 2 - 1;
+    const spread = boltCount === 1 ? 0 : (i / (boltCount - 1)) * 2 - 1;
     const startX = x + spread * config.noteMaxRadius * 1.2;
     const baseAngle = -Math.PI / 2 + spread * 0.4 + (pseudoRandom(seed + 5) - 0.5) * 0.3;
     const length = travel * growT * (0.85 + pseudoRandom(seed + 8.2) * 0.3);
@@ -444,8 +518,14 @@ function drawAmbientLightningBolt(ctx: CanvasLike2D, config: RenderConfig, index
   );
 }
 
-export function drawAmbientLightningBolts(ctx: CanvasLike2D, config: RenderConfig, currentTime: number): void {
-  for (let i = 0; i < AMBIENT_LIGHTNING_BOLT_COUNT; i++) {
+export function drawAmbientLightningBolts(
+  ctx: CanvasLike2D,
+  config: RenderConfig,
+  currentTime: number,
+  richness: number = 1
+): void {
+  const count = Math.max(1, Math.round(AMBIENT_LIGHTNING_BOLT_COUNT * richness));
+  for (let i = 0; i < count; i++) {
     drawAmbientLightningBolt(ctx, config, i, currentTime);
   }
   ctx.shadowBlur = 0;
@@ -455,16 +535,23 @@ export function drawAmbientLightningBolts(ctx: CanvasLike2D, config: RenderConfi
 const STAR_POWER_HIT_BOLT_DURATION_SECONDS = 0.22;
 const STAR_POWER_HIT_BOLT_COUNT: number = 5;
 
-export function drawStarPowerHitBolt(ctx: CanvasLike2D, fret: Fret, config: RenderConfig, elapsedSeconds: number): void {
+export function drawStarPowerHitBolt(
+  ctx: CanvasLike2D,
+  fret: Fret,
+  config: RenderConfig,
+  elapsedSeconds: number,
+  richness: number = 1
+): void {
   const t = clamp01(elapsedSeconds / STAR_POWER_HIT_BOLT_DURATION_SECONDS);
   if (elapsedSeconds < 0 || t >= 1) return;
   const x = laneX(fret, 1, config);
   const y = config.hitLineY;
   const alpha = (1 - t) * 0.9;
 
-  for (let i = 0; i < STAR_POWER_HIT_BOLT_COUNT; i++) {
+  const boltCount = Math.max(1, Math.round(STAR_POWER_HIT_BOLT_COUNT * richness));
+  for (let i = 0; i < boltCount; i++) {
     const seed = fret * 13.7 + i * 29.3;
-    const spread = STAR_POWER_HIT_BOLT_COUNT === 1 ? 0 : (i / (STAR_POWER_HIT_BOLT_COUNT - 1)) * 2 - 1;
+    const spread = boltCount === 1 ? 0 : (i / (boltCount - 1)) * 2 - 1;
     const angle = -Math.PI / 2 + spread * 0.8 + (pseudoRandom(seed) - 0.5) * 0.4;
     const length = config.noteMaxRadius * (2.3 + pseudoRandom(seed + 3) * 1.1) * (1 - t * 0.2);
 

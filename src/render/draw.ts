@@ -18,12 +18,14 @@ import { phraseIndexAt } from "../engine/starPower.js";
 import type { CanvasGradientLike, CanvasLike2D } from "./canvasLike.js";
 import { dropPath } from "./dropShape.js";
 import { clamp01, lerp } from "./mathUtils.js";
+import { DEFAULT_GRAPHICS_QUALITY, graphicsSettingsFor, type GraphicsSettings } from "./graphicsQuality.js";
 import {
   STAR_POWER_BOLT_GLOW_COLOR,
   STAR_POWER_COLLECT_DURATION_SECONDS,
   drawAmbientLightningBolts,
   drawStarPowerCollectBurst,
   drawStarPowerDropAura,
+  drawStarPowerDropHalo,
   drawStarPowerDropRim,
   drawStarPowerHitBolt,
   drawStarPowerSparks,
@@ -75,6 +77,13 @@ const STAR_POWER_TINT_AMOUNT = 0.22;
 
 function trackTint(hex: string, intense: boolean): string {
   return intense ? mix(hex, STAR_POWER_BOLT_GLOW_COLOR, STAR_POWER_TINT_AMOUNT) : hex;
+}
+
+const INTENSE_TINT_BRIGHTEN_AMOUNT = 0.45;
+
+function intenseDropColor(laneColor: string, intense: boolean, graphicsSettings: GraphicsSettings): string {
+  if (!intense) return laneColor;
+  return graphicsSettings.intenseDropStyle === "tint" ? lighten(laneColor, INTENSE_TINT_BRIGHTEN_AMOUNT) : STAR_POWER_BOLT_GLOW_COLOR;
 }
 
 function frameInvariantStylesKey(config: RenderConfig, palette: Palette, intense: boolean): string {
@@ -669,7 +678,8 @@ export function drawFrame(
   intense: boolean = false,
   starPowerPhrases: StarPowerPhrase[] = EMPTY_STAR_POWER_PHRASES,
   starPowerPhraseBroken: readonly boolean[] = EMPTY_STAR_POWER_PHRASE_BROKEN,
-  starPowerCollectAt: ReadonlyMap<string, number> = EMPTY_STAR_POWER_COLLECT_AT
+  starPowerCollectAt: ReadonlyMap<string, number> = EMPTY_STAR_POWER_COLLECT_AT,
+  graphicsSettings: GraphicsSettings = graphicsSettingsFor(DEFAULT_GRAPHICS_QUALITY)
 ): VisibleNote[] {
   const laneColors = LANE_COLORS;
   const intensity = intense ? 1.6 : 1;
@@ -704,7 +714,7 @@ export function drawFrame(
 
   for (const note of visible) {
     if (note.fret !== 7 || note.sustainDrops.length === 0) continue;
-    const baseColor = intense ? STAR_POWER_BOLT_GLOW_COLOR : laneColors[note.fret] ?? palette.noteFallback;
+    const baseColor = intenseDropColor(laneColors[note.fret] ?? palette.noteFallback, intense, graphicsSettings);
     for (const drop of note.sustainDrops) {
       drawSustainDrop(ctx, drop.x, drop.y, drop.radius, baseColor, 0.75);
     }
@@ -719,8 +729,15 @@ export function drawFrame(
     const collectAt = starPowerCollectAt.get(key);
     if (collectAt !== undefined) {
       const collectElapsed = currentTime - collectAt;
-      if (collectElapsed >= 0 && collectElapsed <= STAR_POWER_COLLECT_DURATION_SECONDS) {
-        drawStarPowerCollectBurst(ctx, laneX(note.fret, 1, config), config.hitLineY, config, collectElapsed);
+      if (collectElapsed >= 0 && collectElapsed <= STAR_POWER_COLLECT_DURATION_SECONDS && graphicsSettings.lightningEffectsEnabled) {
+        drawStarPowerCollectBurst(
+          ctx,
+          laneX(note.fret, 1, config),
+          config.hitLineY,
+          config,
+          collectElapsed,
+          graphicsSettings.boltCountMultiplier
+        );
       }
     }
 
@@ -731,8 +748,21 @@ export function drawFrame(
 
       if (elapsed >= 0 && elapsed <= ABSORB_DURATION_SECONDS) {
         for (const flashFret of flashFrets) {
-          drawClickFlash(ctx, flashFret, config, elapsed, note.time, true, !isHeldOpen && !intense, laneColors, palette, intensity);
-          if (intense) drawStarPowerHitBolt(ctx, flashFret, config, elapsed);
+          drawClickFlash(
+            ctx,
+            flashFret,
+            config,
+            elapsed,
+            note.time,
+            true,
+            !isHeldOpen && !intense && graphicsSettings.hitResidueEnabled,
+            laneColors,
+            palette,
+            intensity
+          );
+          if (intense && graphicsSettings.lightningEffectsEnabled) {
+            drawStarPowerHitBolt(ctx, flashFret, config, elapsed, graphicsSettings.boltCountMultiplier);
+          }
         }
       }
 
@@ -745,7 +775,7 @@ export function drawFrame(
         const rise = clamp01(elapsed / OPEN_RESIDUE_RISE_SECONDS);
         const heightFraction =
           releasedAt !== undefined ? Math.min(rise, clamp01(1 - (currentTime - releasedAt) / OPEN_RESIDUE_FALL_SECONDS)) : rise;
-        if (heightFraction > 0.02) {
+        if (heightFraction > 0.02 && graphicsSettings.hitResidueEnabled) {
           for (const flashFret of flashFrets) {
             const laneColor = laneColors[flashFret] ?? palette.noteFallback;
             drawSplashDroplets(
@@ -770,14 +800,22 @@ export function drawFrame(
     const noteGlowing = judgedAt === undefined && !isMissed && (intense || inActiveStarPowerPhrase);
     const sparkOriginY = note.y + note.radius * 0.1;
 
-    if (noteGlowing) drawStarPowerDropAura(ctx, note.x, note.y, note.radius, currentTime);
+    if (noteGlowing) {
+      if (graphicsSettings.intenseDropStyle === "tint") {
+        drawStarPowerDropHalo(ctx, note.x, note.y, note.radius, currentTime);
+      } else {
+        drawStarPowerDropAura(ctx, note.x, note.y, note.radius, currentTime);
+      }
+    }
 
     const isSustain = note.fret !== 7 && note.duration > 0;
     if (isSustain) {
-      const baseColor = intense ? STAR_POWER_BOLT_GLOW_COLOR : laneColors[note.fret] ?? palette.noteFallback;
+      const baseColor = intenseDropColor(laneColors[note.fret] ?? palette.noteFallback, intense, graphicsSettings);
       const color = isMissed ? desaturate(baseColor, MISS_DESATURATION_AMOUNT) : baseColor;
       drawSustainTrail(ctx, note, config, currentTime, color, !isMissed && holdingKeys.has(key));
-      if (inActiveStarPowerPhrase) drawStarPowerSparks(ctx, note.x, sparkOriginY, note.radius, currentTime, note.time);
+      if (inActiveStarPowerPhrase && graphicsSettings.lightningEffectsEnabled) {
+        drawStarPowerSparks(ctx, note.x, sparkOriginY, note.radius, currentTime, note.time, graphicsSettings.boltCountMultiplier);
+      }
       continue;
     }
 
@@ -786,7 +824,7 @@ export function drawFrame(
     const progress = note.y / config.hitLineY;
     const fadeEnd = 1 + config.despawnAfter / config.approachTime;
     const alpha = progress <= 1 ? 1 : 1 - clamp01((progress - 1) / (fadeEnd - 1));
-    const baseColor = intense ? STAR_POWER_BOLT_GLOW_COLOR : laneColors[note.fret] ?? palette.noteFallback;
+    const baseColor = intenseDropColor(laneColors[note.fret] ?? palette.noteFallback, intense, graphicsSettings);
     const color = isMissed ? desaturate(baseColor, MISS_DESATURATION_AMOUNT) : baseColor;
 
     if (note.fret === 7) {
@@ -798,10 +836,14 @@ export function drawFrame(
       drawDrop(ctx, note.x, note.y, note.radius, color, alpha);
       if (noteGlowing) drawStarPowerDropRim(ctx, note.x, note.y, note.radius, currentTime);
     }
-    if (inActiveStarPowerPhrase) drawStarPowerSparks(ctx, note.x, sparkOriginY, note.radius, currentTime, note.time);
+    if (inActiveStarPowerPhrase && graphicsSettings.lightningEffectsEnabled) {
+      drawStarPowerSparks(ctx, note.x, sparkOriginY, note.radius, currentTime, note.time, graphicsSettings.boltCountMultiplier);
+    }
   }
 
-  if (intense) drawAmbientLightningBolts(ctx, config, currentTime);
+  if (intense && graphicsSettings.lightningEffectsEnabled) {
+    drawAmbientLightningBolts(ctx, config, currentTime, graphicsSettings.boltCountMultiplier);
+  }
 
   return visible;
 }
