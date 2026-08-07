@@ -34,25 +34,32 @@ const NOTE_MAX_RADIUS_MIN_PX = 18;
 const NOTE_MAX_RADIUS_MAX_PX = 48;
 const NOTE_MIN_RADIUS_RATIO = 0.35;
 
-const HIT_LINE_Y_RATIO = 0.95;
+export const HIT_LINE_Y_RATIO = 0.95;
+export const TOUCH_HIT_LINE_Y_RATIO_LANDSCAPE = 0.78;
+export const TOUCH_HIT_LINE_Y_RATIO_PORTRAIT = 0.86;
 
 const APPROACH_TIME_SECONDS = 2.0;
 const DESPAWN_AFTER_SECONDS = 0.3;
 
 const LANE_ORDER: Fret[] = [0, 1, 2, 3, 4];
 const HIGHWAY_TOP_WIDTH_RATIO = 0.26;
-const HIGHWAY_BOTTOM_WIDTH_RATIO = 0.88;
-const HIGHWAY_MAX_WIDTH_PX = 1200;
+export const HIGHWAY_BOTTOM_WIDTH_RATIO = 0.88;
+export const HIGHWAY_MAX_WIDTH_PX = 1200;
 
 const PIPE_MOUTH_RADIUS_RATIO = 1.25;
 
-export function createRenderConfig(canvasWidth: number, canvasHeight: number): RenderConfig {
-  const highwayWidth = Math.min(canvasWidth, HIGHWAY_MAX_WIDTH_PX);
+export function createRenderConfig(
+  canvasWidth: number,
+  canvasHeight: number,
+  devicePixelRatio = 1,
+  hitLineRatio = HIT_LINE_Y_RATIO
+): RenderConfig {
+  const highwayWidth = Math.min(canvasWidth, HIGHWAY_MAX_WIDTH_PX * devicePixelRatio);
   const maxRadius = clamp(highwayWidth * NOTE_MAX_RADIUS_WIDTH_RATIO, NOTE_MAX_RADIUS_MIN_PX, NOTE_MAX_RADIUS_MAX_PX);
   return {
     canvasWidth,
     canvasHeight,
-    hitLineY: canvasHeight * HIT_LINE_Y_RATIO,
+    hitLineY: canvasHeight * hitLineRatio,
     approachTime: APPROACH_TIME_SECONDS,
     despawnAfter: DESPAWN_AFTER_SECONDS,
     laneOrder: LANE_ORDER,
@@ -106,6 +113,23 @@ export function laneCenterOffset(fret: Fret, config: RenderConfig = RENDER_CONFI
   const lastIndex = config.laneOrder.length - 1;
   if (lastIndex <= 0) return 0;
   return (index / lastIndex) * 2 - 1;
+}
+
+export function highwayWidthFraction(containerWidthPx: number): number {
+  if (containerWidthPx <= 0) return 1;
+  return Math.min(containerWidthPx, HIGHWAY_MAX_WIDTH_PX) / containerWidthPx;
+}
+
+export function laneCenterFraction(fret: Fret, highwayWidthFrac = 1): number {
+  return 0.5 + laneCenterOffset(fret) * (HIGHWAY_BOTTOM_WIDTH_RATIO / 2) * highwayWidthFrac;
+}
+
+export function laneBarrelBoundaryFractions(highwayWidthFrac = 1, laneOrder: Fret[] = LANE_ORDER): number[] {
+  const centers = laneOrder.map((fret) => laneCenterFraction(fret, highwayWidthFrac));
+  const boundaries = [0];
+  for (let i = 0; i < centers.length - 1; i++) boundaries.push((centers[i] + centers[i + 1]) / 2);
+  boundaries.push(1);
+  return boundaries;
 }
 
 function highwayHalfWidthAt(progress: number, config: RenderConfig): number {

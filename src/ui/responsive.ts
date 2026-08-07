@@ -1,0 +1,2 @@
+export const LANDSCAPE_HEIGHT_BREAKPOINT = 500;
+export const LANDSCAPE_MEDIA_QUERY = `(max-height: ${LANDSCAPE_HEIGHT_BREAKPOINT}px)`;

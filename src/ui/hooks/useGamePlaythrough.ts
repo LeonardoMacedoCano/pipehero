@@ -62,11 +62,13 @@ export function useGamePlaythrough({
   chartOffsetSeconds,
   starPowerPhrases,
   difficulty,
+  hitLineRatio,
 }: {
   notes: Note[] | null;
   chartOffsetSeconds: number | undefined;
   starPowerPhrases: StarPowerPhrase[] | undefined;
   difficulty: Difficulty | null;
+  hitLineRatio: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -124,7 +126,7 @@ export function useGamePlaythrough({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const config = createRenderConfig(canvas.width, canvas.height);
+    const config = createRenderConfig(canvas.width, canvas.height, window.devicePixelRatio || 1, hitLineRatio);
 
     if (audio.ended) {
       if (endedAtRef.current === null) {
@@ -245,7 +247,7 @@ export function useGamePlaythrough({
     if (!audio.paused || failedAtRef.current !== null) {
       rafRef.current = requestAnimationFrame(loop);
     }
-  }, [notes, noteByKey]);
+  }, [notes, noteByKey, hitLineRatio]);
 
   const start = useCallback(async () => {
     const audio = audioRef.current;
@@ -285,11 +287,11 @@ export function useGamePlaythrough({
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (ctx && canvas && notes) {
-      drawFrame(ctx, notes, 0, highwayBuildConfig(createRenderConfig(canvas.width, canvas.height), 0));
+      drawFrame(ctx, notes, 0, highwayBuildConfig(createRenderConfig(canvas.width, canvas.height, window.devicePixelRatio || 1, hitLineRatio), 0));
     }
 
     if (notes) start();
-  }, [notes, chartOffsetSeconds, starPowerPhrases, difficulty, stop, start]);
+  }, [notes, chartOffsetSeconds, starPowerPhrases, difficulty, hitLineRatio, stop, start]);
 
   useEffect(() => stop, [stop]);
 

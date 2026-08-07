@@ -66,11 +66,13 @@ export default function PowerGauge({
   starPowerMeter,
   starPowerActive,
   starPowerGainNonce,
+  onActivateStarPower,
 }: {
   rockMeter: number;
   starPowerMeter: number;
   starPowerActive: boolean;
   starPowerGainNonce: number;
+  onActivateStarPower?: () => void;
 }) {
   const theme = useTheme();
   const boltClipId = useId();
@@ -86,6 +88,27 @@ export default function PowerGauge({
   const starFill = clamp01to100(starPowerMeter);
   const starReady = starFill >= STAR_POWER_ACTIVATION_THRESHOLD - STAR_POWER_METER_EPSILON;
   const boltClipY = BOLT.maxY - (BOLT.maxY - BOLT.minY) * (starFill / 100);
+
+  const boltGlyph = (
+    <BoltBump key={starPowerGainNonce} $pulse={starPowerGainNonce > 0}>
+      <BoltWrapper $ready={starReady} $active={starPowerActive}>
+        <svg viewBox="0 0 100 100" width="64" height="64" role="img" aria-label="Star Power">
+          <defs>
+            <linearGradient id={boltGradientId} x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stopColor={BOLT_COLOR} />
+              <stop offset="100%" stopColor={BOLT_COLOR_LIGHT} />
+            </linearGradient>
+            <clipPath id={boltClipId}>
+              <rect x="0" y={boltClipY} width="100" height={120} />
+            </clipPath>
+          </defs>
+          <polygon points={BOLT.points} fill="rgba(255, 255, 255, 0.05)" stroke="rgba(255, 255, 255, 0.25)" strokeWidth={3} strokeLinejoin="round" />
+          <polygon points={BOLT.points} fill={`url(#${boltGradientId})`} clipPath={`url(#${boltClipId})`} strokeLinejoin="round" />
+          <polygon points={BOLT.points} fill="none" stroke="rgba(255, 255, 255, 0.5)" strokeWidth={1.5} strokeLinejoin="round" />
+        </svg>
+      </BoltWrapper>
+    </BoltBump>
+  );
 
   return (
     <IronPipeFrame>
@@ -109,24 +132,13 @@ export default function PowerGauge({
           </svg>
         </HandWrapper>
 
-        <BoltBump key={starPowerGainNonce} $pulse={starPowerGainNonce > 0}>
-          <BoltWrapper $ready={starReady} $active={starPowerActive}>
-            <svg viewBox="0 0 100 100" width="64" height="64" role="img" aria-label="Star Power">
-              <defs>
-                <linearGradient id={boltGradientId} x1="0" y1="1" x2="0" y2="0">
-                  <stop offset="0%" stopColor={BOLT_COLOR} />
-                  <stop offset="100%" stopColor={BOLT_COLOR_LIGHT} />
-                </linearGradient>
-                <clipPath id={boltClipId}>
-                  <rect x="0" y={boltClipY} width="100" height={120} />
-                </clipPath>
-              </defs>
-              <polygon points={BOLT.points} fill="rgba(255, 255, 255, 0.05)" stroke="rgba(255, 255, 255, 0.25)" strokeWidth={3} strokeLinejoin="round" />
-              <polygon points={BOLT.points} fill={`url(#${boltGradientId})`} clipPath={`url(#${boltClipId})`} strokeLinejoin="round" />
-              <polygon points={BOLT.points} fill="none" stroke="rgba(255, 255, 255, 0.5)" strokeWidth={1.5} strokeLinejoin="round" />
-            </svg>
-          </BoltWrapper>
-        </BoltBump>
+        {onActivateStarPower ? (
+          <BoltTapButton type="button" aria-label="Activate Star Power" onClick={onActivateStarPower}>
+            {boltGlyph}
+          </BoltTapButton>
+        ) : (
+          boltGlyph
+        )}
       </Layout>
     </IronPipeFrame>
   );
@@ -160,6 +172,19 @@ const Layout = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
+`;
+
+const BoltTapButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 16px;
+  margin: -16px;
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
 `;
 
 const HandWrapper = styled.div<{ $shake: boolean; $critical: boolean }>`
