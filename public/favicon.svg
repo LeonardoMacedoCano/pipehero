@@ -2,7 +2,7 @@
   <defs>
     <filter id="pipehero-hand-outline" x="-30%" y="-30%" width="160%" height="160%">
       <feMorphology in="SourceAlpha" operator="dilate" radius="2.6" result="dilated" />
-      <feFlood flood-color="#9c6dff" result="outlineColor" />
+      <feFlood flood-color="#b0ff5e" result="outlineColor" />
       <feComposite in="outlineColor" in2="dilated" operator="in" result="outline" />
       <feMerge>
         <feMergeNode in="outline" />
@@ -10,8 +10,8 @@
       </feMerge>
     </filter>
     <filter id="pipehero-hand-glow" x="-60%" y="-60%" width="220%" height="220%">
-      <feDropShadow dx="0" dy="0" stdDeviation="1.6" flood-color="#9c6dff" flood-opacity="0.9" />
-      <feDropShadow dx="0" dy="0" stdDeviation="4.5" flood-color="#9c6dff" flood-opacity="0.6" />
+      <feDropShadow dx="0" dy="0" stdDeviation="1.6" flood-color="#b0ff5e" flood-opacity="0.9" />
+      <feDropShadow dx="0" dy="0" stdDeviation="4.5" flood-color="#b0ff5e" flood-opacity="0.6" />
     </filter>
   </defs>
   <g filter="url(#pipehero-hand-glow)">
