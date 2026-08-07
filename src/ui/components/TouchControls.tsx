@@ -1,10 +1,15 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import styled, { css, keyframes } from "styled-components";
+import styled from "styled-components";
 import type { Fret } from "../../types.js";
-import type { Handedness, TouchButtonSize } from "../../game/controlSchemeStore.js";
-import { STAR_POWER_ACTIVATION_THRESHOLD, STAR_POWER_METER_EPSILON } from "../../engine/gameEngine.js";
-import { STAR_POWER_BOLT, STAR_POWER_BOLT_COLOR, STAR_POWER_BOLT_COLOR_LIGHT } from "./starPowerBolt.js";
+import {
+  TOUCH_HIT_LINE_Y_RATIO_LANDSCAPE,
+  TOUCH_HIT_LINE_Y_RATIO_PORTRAIT,
+  highwayWidthFraction,
+  laneBarrelBoundaryFractions,
+} from "../../render/layout.js";
+import { useMediaQuery } from "../hooks/useMediaQuery.js";
+import { LANDSCAPE_MEDIA_QUERY } from "../responsive.js";
 
 type LaneColorKey = "laneGreen" | "laneRed" | "laneYellow" | "laneBlue" | "laneOrange";
 
@@ -16,14 +21,6 @@ const FRET_BUTTONS: { fret: Fret; colorKey: LaneColorKey; label: string }[] = [
   { fret: 4, colorKey: "laneOrange", label: "Orange" },
 ];
 
-const SIZES: Record<TouchButtonSize, { fret: number; bar: number }> = {
-  small: { fret: 44, bar: 44 },
-  medium: { fret: 54, bar: 54 },
-  large: { fret: 64, bar: 64 },
-};
-
-const STRUM_DRAG_THRESHOLD_PX = 16;
-
 function safeSetPointerCapture(target: Element & { setPointerCapture?: (pointerId: number) => void }, pointerId: number): void {
   try {
     target.setPointerCapture?.(pointerId);
@@ -32,67 +29,89 @@ function safeSetPointerCapture(target: Element & { setPointerCapture?: (pointerI
 
 export interface TouchControlsProps {
   strumMode: boolean;
-  handedness: Handedness;
-  buttonSize: TouchButtonSize;
-  starPowerMeter: number;
-  starPowerActive: boolean;
   onPressFret: (fret: Fret) => void;
   onReleaseFret: (fret: Fret) => void;
   onStrum: () => void;
-  onActivateStarPower: () => void;
 }
 
-export default function TouchControls({
-  strumMode,
-  handedness,
-  buttonSize,
-  starPowerMeter,
-  starPowerActive,
-  onPressFret,
-  onReleaseFret,
-  onStrum,
-  onActivateStarPower,
-}: TouchControlsProps) {
-  const size = SIZES[buttonSize];
-  const starReady = starPowerMeter >= STAR_POWER_ACTIVATION_THRESHOLD - STAR_POWER_METER_EPSILON;
-  const starUsable = starReady && !starPowerActive;
+export default function TouchControls({ strumMode, onPressFret, onReleaseFret, onStrum }: TouchControlsProps) {
+  const isLandscapePhone = useMediaQuery(LANDSCAPE_MEDIA_QUERY);
+  const hitLineRatio = isLandscapePhone ? TOUCH_HIT_LINE_Y_RATIO_LANDSCAPE : TOUCH_HIT_LINE_Y_RATIO_PORTRAIT;
+  const openHeldRef = useRef(false);
+  const zoneRef = useRef<HTMLDivElement>(null);
+  const [zoneWidth, setZoneWidth] = useState(0);
+
+  useEffect(() => {
+    const zone = zoneRef.current;
+    if (!zone) return;
+    const observer = new ResizeObserver(([entry]) => setZoneWidth(entry.contentRect.width));
+    observer.observe(zone);
+    return () => observer.disconnect();
+  }, []);
+
+  const laneBoundaries = useMemo(() => laneBarrelBoundaryFractions(highwayWidthFraction(zoneWidth)), [zoneWidth]);
+
+  function handleZoneDown(event: ReactPointerEvent<HTMLDivElement>) {
+    event.preventDefault();
+    if (strumMode) {
+      onStrum();
+      return;
+    }
+    if (openHeldRef.current) return;
+    openHeldRef.current = true;
+    safeSetPointerCapture(event.currentTarget, event.pointerId);
+    onPressFret(7);
+  }
+
+  function handleZoneUp() {
+    if (strumMode || !openHeldRef.current) return;
+    openHeldRef.current = false;
+    onReleaseFret(7);
+  }
 
   return (
-    <Bar>
-      <FretRow $reverse={handedness === "left"}>
-        {FRET_BUTTONS.map(({ fret, colorKey, label }) => (
-          <FretButton key={fret} fret={fret} colorKey={colorKey} label={label} diameter={size.fret} onPress={onPressFret} onRelease={onReleaseFret} />
+    <StrumZone ref={zoneRef} onPointerDown={handleZoneDown} onPointerUp={handleZoneUp} onPointerCancel={handleZoneUp}>
+      <ButtonZone $top={hitLineRatio * 100}>
+        {FRET_BUTTONS.map(({ fret, colorKey, label }, index) => (
+          <LaneButton
+            key={fret}
+            fret={fret}
+            label={label}
+            $colorKey={colorKey}
+            $left={laneBoundaries[index] * 100}
+            $width={(laneBoundaries[index + 1] - laneBoundaries[index]) * 100}
+            onPress={onPressFret}
+            onRelease={onReleaseFret}
+          />
         ))}
-      </FretRow>
-
-      <BottomRow>
-        {strumMode ? <StrumTrack height={size.bar} onStrum={onStrum} /> : <OpenBar height={size.bar} onPress={onPressFret} onRelease={onReleaseFret} />}
-        <StarPowerButton diameter={size.fret} usable={starUsable} glowing={starReady || starPowerActive} onActivate={onActivateStarPower} />
-      </BottomRow>
-    </Bar>
+      </ButtonZone>
+    </StrumZone>
   );
 }
 
-function FretButton({
+function LaneButton({
   fret,
-  colorKey,
   label,
-  diameter,
+  $colorKey,
+  $left,
+  $width,
   onPress,
   onRelease,
 }: {
   fret: Fret;
-  colorKey: LaneColorKey;
   label: string;
-  diameter: number;
+  $colorKey: LaneColorKey;
+  $left: number;
+  $width: number;
   onPress: (fret: Fret) => void;
   onRelease: (fret: Fret) => void;
 }) {
-  const [pressed, setPressed] = useState(false);
   const activeRef = useRef(false);
+  const [pressed, setPressed] = useState(false);
 
   function handleDown(event: ReactPointerEvent<HTMLButtonElement>) {
     event.preventDefault();
+    event.stopPropagation();
     if (activeRef.current) return;
     activeRef.current = true;
     setPressed(true);
@@ -100,7 +119,8 @@ function FretButton({
     onPress(fret);
   }
 
-  function handleUp() {
+  function handleUp(event: ReactPointerEvent<HTMLButtonElement>) {
+    event.stopPropagation();
     if (!activeRef.current) return;
     activeRef.current = false;
     setPressed(false);
@@ -108,11 +128,12 @@ function FretButton({
   }
 
   return (
-    <FretCircle
+    <LaneButtonHit
       type="button"
       aria-label={label}
-      $colorKey={colorKey}
-      $diameter={diameter}
+      $colorKey={$colorKey}
+      $left={$left}
+      $width={$width}
       $pressed={pressed}
       onPointerDown={handleDown}
       onPointerUp={handleUp}
@@ -121,188 +142,31 @@ function FretButton({
   );
 }
 
-function OpenBar({ height, onPress, onRelease }: { height: number; onPress: (fret: Fret) => void; onRelease: (fret: Fret) => void }) {
-  const [pressed, setPressed] = useState(false);
-  const activeRef = useRef(false);
-
-  function handleDown(event: ReactPointerEvent<HTMLButtonElement>) {
-    event.preventDefault();
-    if (activeRef.current) return;
-    activeRef.current = true;
-    setPressed(true);
-    safeSetPointerCapture(event.currentTarget, event.pointerId);
-    onPress(7);
-  }
-
-  function handleUp() {
-    if (!activeRef.current) return;
-    activeRef.current = false;
-    setPressed(false);
-    onRelease(7);
-  }
-
-  return (
-    <BarButton type="button" aria-label="Open" $variant="open" $height={height} $active={pressed} onPointerDown={handleDown} onPointerUp={handleUp} onPointerCancel={handleUp}>
-      <OpenDot />
-      <BarLabel>OPEN</BarLabel>
-    </BarButton>
-  );
-}
-
-function StrumTrack({ height, onStrum }: { height: number; onStrum: () => void }) {
-  const lastYRef = useRef<number | null>(null);
-  const [active, setActive] = useState(false);
-
-  function handleDown(event: ReactPointerEvent<HTMLButtonElement>) {
-    event.preventDefault();
-    safeSetPointerCapture(event.currentTarget, event.pointerId);
-    lastYRef.current = event.clientY;
-    setActive(true);
-    onStrum();
-  }
-
-  function handleMove(event: ReactPointerEvent<HTMLButtonElement>) {
-    if (lastYRef.current === null) return;
-    const delta = event.clientY - lastYRef.current;
-    if (Math.abs(delta) >= STRUM_DRAG_THRESHOLD_PX) {
-      lastYRef.current = event.clientY;
-      onStrum();
-    }
-  }
-
-  function handleUp() {
-    lastYRef.current = null;
-    setActive(false);
-  }
-
-  return (
-    <BarButton
-      type="button"
-      aria-label="Strum"
-      $variant="strum"
-      $height={height}
-      $active={active}
-      onPointerDown={handleDown}
-      onPointerMove={handleMove}
-      onPointerUp={handleUp}
-      onPointerCancel={handleUp}
-    >
-      <BarChevron>&#9650;</BarChevron>
-      <BarLabel>STRUM</BarLabel>
-      <BarChevron>&#9660;</BarChevron>
-    </BarButton>
-  );
-}
-
-function StarPowerButton({ diameter, usable, glowing, onActivate }: { diameter: number; usable: boolean; glowing: boolean; onActivate: () => void }) {
-  return (
-    <StarButton type="button" aria-label="Activate Star Power" disabled={!usable} $diameter={diameter} $glowing={glowing} onClick={onActivate}>
-      <svg viewBox="0 0 100 100" width="58%" height="58%" role="img" aria-hidden="true">
-        <polygon points={STAR_POWER_BOLT.points} fill="currentColor" stroke="rgba(255, 255, 255, 0.5)" strokeWidth={3} strokeLinejoin="round" />
-      </svg>
-    </StarButton>
-  );
-}
-
-const Bar = styled.div`
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
-  padding: 16px 18px 18px;
-  background: ${({ theme }) => theme.colors.primary};
-  border-top: 1px solid ${({ theme }) => theme.colors.gray};
+const StrumZone = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  touch-action: none;
 `;
 
-const FretRow = styled.div<{ $reverse: boolean }>`
-  display: flex;
-  flex-direction: ${({ $reverse }) => ($reverse ? "row-reverse" : "row")};
-  align-items: center;
-  justify-content: space-between;
+const ButtonZone = styled.div<{ $top: number }>`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: ${({ $top }) => $top}%;
+  bottom: 0;
 `;
 
-const BottomRow = styled.div`
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
-`;
-
-const FretCircle = styled.button<{ $colorKey: LaneColorKey; $diameter: number; $pressed: boolean }>`
-  width: ${({ $diameter }) => $diameter}px;
-  height: ${({ $diameter }) => $diameter}px;
-  border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, ${({ $pressed }) => ($pressed ? 0.85 : 0.3)});
+const LaneButtonHit = styled.button<{ $colorKey: LaneColorKey; $left: number; $width: number; $pressed: boolean }>`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: ${({ $left }) => $left}%;
+  width: ${({ $width }) => $width}%;
+  border: none;
   background: ${({ theme, $colorKey }) => theme.colors[$colorKey]};
-  box-shadow: ${({ $pressed, theme, $colorKey }) =>
-    $pressed ? `0 0 18px 4px ${theme.colors[$colorKey]}, inset 0 0 10px rgba(0, 0, 0, 0.35)` : "0 2px 6px rgba(0, 0, 0, 0.55)"};
-  transform: scale(${({ $pressed }) => ($pressed ? 0.92 : 1)});
-  transition: transform 0.06s ease-out, box-shadow 0.06s ease-out, border-color 0.06s ease-out;
+  opacity: ${({ $pressed }) => ($pressed ? 0.4 : 0)};
+  box-shadow: ${({ $pressed }) => ($pressed ? "inset 0 0 24px rgba(255, 255, 255, 0.5)" : "none")};
+  padding: 0;
   touch-action: none;
-  padding: 0;
-  flex-shrink: 0;
-`;
-
-const BarButton = styled.button<{ $variant: "strum" | "open"; $height: number; $active: boolean }>`
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  height: ${({ $height }) => $height}px;
-  border-radius: 12px;
-  border: 1px solid
-    ${({ theme, $active, $variant }) => ($active ? ($variant === "open" ? theme.colors.laneOpen : theme.colors.info) : theme.colors.gray)};
-  background: ${({ theme, $active }) => ($active ? theme.colors.secondary : theme.colors.black)};
-  color: ${({ theme }) => theme.colors.tertiary};
-  touch-action: none;
-  padding: 0;
-`;
-
-const BarChevron = styled.span`
-  font-size: 0.85em;
-  opacity: 0.7;
-`;
-
-const BarLabel = styled.span`
-  font-family: monospace;
-  font-size: 0.85em;
-  letter-spacing: 0.1em;
-`;
-
-const OpenDot = styled.span`
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: ${({ theme }) => theme.colors.laneOpen};
-  flex-shrink: 0;
-`;
-
-const starPulse = keyframes`
-  0%, 100% { box-shadow: 0 0 10px 2px ${STAR_POWER_BOLT_COLOR}; }
-  50% { box-shadow: 0 0 22px 7px ${STAR_POWER_BOLT_COLOR_LIGHT}; }
-`;
-
-const StarButton = styled.button<{ $diameter: number; $glowing: boolean }>`
-  width: ${({ $diameter }) => $diameter}px;
-  height: ${({ $diameter }) => $diameter}px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid ${STAR_POWER_BOLT_COLOR};
-  background: ${({ theme }) => theme.colors.black};
-  color: ${STAR_POWER_BOLT_COLOR_LIGHT};
-  touch-action: manipulation;
-  padding: 0;
-  animation: ${({ $glowing }) => ($glowing ? css`${starPulse} 1s ease-in-out infinite` : "none")};
-  transition: opacity 0.15s ease-out;
-
-  &:disabled {
-    opacity: 0.3;
-    border-color: ${({ theme }) => theme.colors.gray};
-    color: ${({ theme }) => theme.colors.gray};
-  }
 `;
