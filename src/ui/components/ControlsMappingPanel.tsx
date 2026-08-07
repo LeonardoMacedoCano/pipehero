@@ -18,7 +18,7 @@ import {
   type ActionBindings,
 } from "../../game/keymapStore.js";
 import { getStrumModeEnabled, setStrumModeEnabled } from "../../game/strumModeStore.js";
-import type { ControlSchemeOverride, Handedness, TouchButtonSize } from "../../game/controlSchemeStore.js";
+import type { ControlSchemeOverride } from "../../game/controlSchemeStore.js";
 import { useGamepadPolling } from "../hooks/useGamepadPolling.js";
 import { useSyncedPreference } from "../hooks/useSyncedPreference.js";
 import { useControlScheme } from "../hooks/useControlScheme.js";
@@ -29,12 +29,6 @@ const SCHEME_OPTIONS: { value: ControlSchemeOverride; label: string }[] = [
   { value: "auto", label: "Automatic" },
   { value: "touch", label: "Touch" },
   { value: "keyboard", label: "Keyboard" },
-];
-
-const BUTTON_SIZE_OPTIONS: { value: TouchButtonSize; label: string }[] = [
-  { value: "small", label: "Small" },
-  { value: "medium", label: "Medium" },
-  { value: "large", label: "Large" },
 ];
 
 export default function ControlsMappingPanel() {
@@ -57,7 +51,7 @@ export default function ControlsMappingPanel() {
   const [conflictNote, setConflictNote] = useState<string | null>(null);
   const inputMode: InputMode = strumModeEnabled ? "strum" : "tap";
 
-  const { scheme, preferences, updatePreferences } = useControlScheme();
+  const { preferences, updatePreferences } = useControlScheme();
 
   function changeInputMode(mode: InputMode) {
     setStrumModeSynced(mode === "strum");
@@ -135,34 +129,6 @@ export default function ControlsMappingPanel() {
           ))}
         </SegmentedGroup>
       </ModeRow>
-
-      {scheme === "touch" && (
-        <>
-          <ModeRow>
-            <Label>Dominant hand</Label>
-            <ToggleSwitch<Handedness>
-              optionA={{ label: "Right", value: "right" }}
-              optionB={{ label: "Left", value: "left" }}
-              value={preferences.handedness}
-              onChange={(handedness) => updatePreferences({ ...preferences, handedness })}
-            />
-          </ModeRow>
-          <ModeRow>
-            <Label>Button size</Label>
-            <SegmentedGroup>
-              {BUTTON_SIZE_OPTIONS.map((option) => (
-                <Button
-                  key={option.value}
-                  description={option.label}
-                  variant={preferences.buttonSize === option.value ? "success" : "secondary"}
-                  onClick={() => updatePreferences({ ...preferences, buttonSize: option.value })}
-                  style={COMPACT_BUTTON_STYLE}
-                />
-              ))}
-            </SegmentedGroup>
-          </ModeRow>
-        </>
-      )}
 
       <SectionTitle>Key mapping</SectionTitle>
       <ModeRow>
