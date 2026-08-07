@@ -37,6 +37,7 @@ const PANEL_HEIGHT = 84;
 const STEM_HEIGHT = 48;
 
 export const FRAME_WIDTH = PANEL_WIDTH + FRAME_HORIZONTAL_PADDING * 2;
+export const FRAME_HEIGHT = STEM_HEIGHT + (ELBOW_SIZE + 4) + PANEL_HEIGHT + (16 + 4);
 
 const Frame = styled.div`
   position: relative;

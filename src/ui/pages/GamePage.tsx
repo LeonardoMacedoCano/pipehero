@@ -9,17 +9,22 @@ import { extractStarPowerPhrases, synthesizeStarPowerPhrases } from "../../engin
 import { computeStars } from "../../scoring/stars.js";
 import { useGamePlaythrough } from "../hooks/useGamePlaythrough.js";
 import { useControlScheme } from "../hooks/useControlScheme.js";
+import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
 import { starPowerTheme } from "../theme.js";
 import { getStrumModeEnabled } from "../../game/strumModeStore.js";
+import { HIT_LINE_Y_RATIO, TOUCH_HIT_LINE_Y_RATIO_LANDSCAPE, TOUCH_HIT_LINE_Y_RATIO_PORTRAIT } from "../../render/layout.js";
+import { LANDSCAPE_HEIGHT_BREAKPOINT, LANDSCAPE_MEDIA_QUERY } from "../responsive.js";
 import GameCanvas from "../components/GameCanvas.js";
 import ScoreBox from "../components/ScoreBox.js";
 import PowerGauge from "../components/PowerGauge.js";
 import TouchControls from "../components/TouchControls.js";
 import ResultsOverlay from "../components/ResultsOverlay.js";
 import FailedOverlay from "../components/FailedOverlay.js";
-import { FRAME_WIDTH } from "../components/IronPipeFrame.js";
+import { FRAME_WIDTH, FRAME_HEIGHT } from "../components/IronPipeFrame.js";
 import { cylinderGradientVertical } from "../pipeStyles.js";
+
+const COMPACT_TOPBAR_BUTTON_STYLE = { padding: "3px 10px", fontSize: "0.82em" };
 
 function submitScore(songId: string, difficulty: Difficulty, stars: number, fullCombo: boolean): void {
   fetch("/api/scores", {
@@ -51,16 +56,21 @@ export default function GamePage({
 
   const chartOffsetSeconds = chart.Song.offset ?? 0;
 
+  const { scheme } = useControlScheme();
+  const isTouch = scheme === "touch";
+  const isLandscapePhone = useMediaQuery(LANDSCAPE_MEDIA_QUERY);
+  const hitLineRatio = !isTouch ? HIT_LINE_Y_RATIO : isLandscapePhone ? TOUCH_HIT_LINE_Y_RATIO_LANDSCAPE : TOUCH_HIT_LINE_Y_RATIO_PORTRAIT;
+
   const { canvasRef, audioRef, hud, needsTapToStart, phase, results, start, pressFret, releaseFret, strum, activateStarPower } =
     useGamePlaythrough({
       notes,
       chartOffsetSeconds,
       starPowerPhrases,
       difficulty,
+      hitLineRatio,
     });
 
-  const { scheme, preferences } = useControlScheme();
-  const showTouchControls = scheme === "touch" && phase === "playing";
+  const showTouchControls = isTouch && phase === "playing";
   const strumModeEnabled = getStrumModeEnabled();
 
   useEffect(() => {
@@ -74,7 +84,12 @@ export default function GamePage({
     <Screen>
       <TopBar>
         <Title>{song.name}</Title>
-        <Button description="« Change song" variant="secondary" onClick={onBack} />
+        <Button
+          description="« Change song"
+          variant="secondary"
+          onClick={onBack}
+          style={isLandscapePhone ? COMPACT_TOPBAR_BUTTON_STYLE : undefined}
+        />
       </TopBar>
 
       <CanvasArea>
@@ -83,6 +98,10 @@ export default function GamePage({
 
           {phase === "playing" && (
             <ThemeProvider theme={hud.starPowerActive ? starPowerTheme : currentTheme}>
+              {showTouchControls && (
+                <TouchControls strumMode={strumModeEnabled} onPressFret={pressFret} onReleaseFret={releaseFret} onStrum={strum} />
+              )}
+
               <ScoreBoxOverlay>
                 <ScoreBox score={hud.score} combo={hud.combo} multiplier={hud.multiplier} starPowerActive={hud.starPowerActive} />
               </ScoreBoxOverlay>
@@ -92,28 +111,13 @@ export default function GamePage({
                   starPowerMeter={hud.starPowerMeter}
                   starPowerActive={hud.starPowerActive}
                   starPowerGainNonce={hud.starPowerGainNonce}
+                  onActivateStarPower={isTouch ? activateStarPower : undefined}
                 />
               </PowerGaugeOverlay>
               {needsTapToStart && <TapToStartOverlay onClick={start}>Tap to start</TapToStartOverlay>}
             </ThemeProvider>
           )}
         </Highway>
-
-        {showTouchControls && (
-          <ThemeProvider theme={hud.starPowerActive ? starPowerTheme : currentTheme}>
-            <TouchControls
-              strumMode={strumModeEnabled}
-              handedness={preferences.handedness}
-              buttonSize={preferences.buttonSize}
-              starPowerMeter={hud.starPowerMeter}
-              starPowerActive={hud.starPowerActive}
-              onPressFret={pressFret}
-              onReleaseFret={releaseFret}
-              onStrum={strum}
-              onActivateStarPower={activateStarPower}
-            />
-          </ThemeProvider>
-        )}
 
         {phase === "results" && results && <ResultsOverlay song={song} results={results} onBack={onBack} />}
         {phase === "failed" && results && <FailedOverlay song={song} results={results} onBack={onBack} onRetry={start} />}
@@ -138,13 +142,21 @@ const TABLET_BREAKPOINT = 700;
 const MOBILE_BREAKPOINT = 480;
 const MIN_SUPPORTED_VIEWPORT_WIDTH = 360;
 
+const MIN_SUPPORTED_LANDSCAPE_HEIGHT = 320;
+const HUD_HEIGHT_BUDGET_RATIO = 0.32;
+
 function hudScaleForViewport(viewportWidth: number): number {
   const available = viewportWidth - HUD_OVERLAY_MARGIN * 2 - HUD_OVERLAY_GAP;
   return Math.min(1, available / (2 * FRAME_WIDTH));
 }
 
+function hudScaleForHeight(viewportHeight: number): number {
+  return Math.min(1, (viewportHeight * HUD_HEIGHT_BUDGET_RATIO) / FRAME_HEIGHT);
+}
+
 const TABLET_HUD_SCALE = hudScaleForViewport(MOBILE_BREAKPOINT + 1);
 const MOBILE_HUD_SCALE = hudScaleForViewport(MIN_SUPPORTED_VIEWPORT_WIDTH);
+const LANDSCAPE_HUD_SCALE = hudScaleForHeight(MIN_SUPPORTED_LANDSCAPE_HEIGHT);
 
 const hudResponsiveScale = css`
   @media (max-width: ${TABLET_BREAKPOINT}px) {
@@ -153,6 +165,10 @@ const hudResponsiveScale = css`
 
   @media (max-width: ${MOBILE_BREAKPOINT}px) {
     transform: scale(${MOBILE_HUD_SCALE});
+  }
+
+  @media (max-height: ${LANDSCAPE_HEIGHT_BREAKPOINT}px) {
+    transform: scale(${LANDSCAPE_HUD_SCALE});
   }
 `;
 
@@ -175,10 +191,18 @@ const TopBar = styled.div`
     height: 5px;
     background: ${({ theme }) => cylinderGradientVertical(theme)};
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+
+    @media (max-height: ${LANDSCAPE_HEIGHT_BREAKPOINT}px) {
+      height: 3px;
+    }
   }
 
   @media (max-width: 480px) {
     padding: 8px 12px 13px;
+  }
+
+  @media (max-height: ${LANDSCAPE_HEIGHT_BREAKPOINT}px) {
+    padding: 3px 12px 4px;
   }
 `;
 
@@ -192,6 +216,10 @@ const Title = styled.h1`
 
   @media (max-width: 480px) {
     font-size: 0.9em;
+  }
+
+  @media (max-height: ${LANDSCAPE_HEIGHT_BREAKPOINT}px) {
+    font-size: 0.82em;
   }
 `;
 
@@ -213,6 +241,7 @@ const ScoreBoxOverlay = styled.div`
   position: absolute;
   top: 0;
   left: ${HUD_OVERLAY_MARGIN}px;
+  z-index: 2;
   pointer-events: none;
   transform-origin: top left;
   ${hudResponsiveScale}
@@ -222,6 +251,7 @@ const PowerGaugeOverlay = styled.div`
   position: absolute;
   top: 0;
   right: ${HUD_OVERLAY_MARGIN}px;
+  z-index: 2;
   pointer-events: none;
   transform-origin: top right;
   ${hudResponsiveScale}
@@ -230,6 +260,7 @@ const PowerGaugeOverlay = styled.div`
 const TapToStartOverlay = styled.button`
   position: absolute;
   inset: 0;
+  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: center;
