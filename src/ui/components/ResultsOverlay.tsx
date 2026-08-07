@@ -1,6 +1,10 @@
 import styled from "styled-components";
 import { Button } from "lcano-react-ui";
 import type { GameState, Song } from "../../types.js";
+import { LANDSCAPE_MEDIA_QUERY } from "../responsive.js";
+import { computeStars } from "../../scoring/stars.js";
+
+const MAX_STARS = 5;
 
 export default function ResultsOverlay({
   song,
@@ -16,18 +20,31 @@ export default function ResultsOverlay({
   const perfectCount = results.hits.filter((hit) => hit.rating === "perfect").length;
   const goodCount = results.hits.filter((hit) => hit.rating === "good").length;
   const missCount = results.misses.length;
+  const stars = computeStars(results.hits, totalNotes);
 
   return (
     <Backdrop>
       <Panel>
-        {song.coverUrl ? <Cover src={song.coverUrl} alt="" /> : <CoverPlaceholder />}
-        <SongName>{song.name}</SongName>
-        <SongArtist>{song.artist}</SongArtist>
+        <Header>
+          {song.coverUrl ? <Cover src={song.coverUrl} alt="" /> : <CoverPlaceholder />}
+          <HeaderText>
+            <SongName>{song.name}</SongName>
+            <SongArtist>{song.artist}</SongArtist>
+          </HeaderText>
+        </Header>
 
         <Score>{results.score}</Score>
         <ScoreLabel>Score</ScoreLabel>
 
-        <StatsRow>
+        <Stars aria-label={`${stars} out of ${MAX_STARS} stars`}>
+          {Array.from({ length: MAX_STARS }, (_, i) => (
+            <Star key={i} $filled={i < stars}>
+              ★
+            </Star>
+          ))}
+        </Stars>
+
+        <StatsGrid>
           <Stat>
             <StatValue>{results.maxCombo}</StatValue>
             <StatLabel>Max combo</StatLabel>
@@ -36,22 +53,19 @@ export default function ResultsOverlay({
             <StatValue>{accuracy}%</StatValue>
             <StatLabel>Accuracy</StatLabel>
           </Stat>
-        </StatsRow>
-
-        <RatingsRow>
-          <Rating>
-            <RatingValue $color="laneGreen">{perfectCount}</RatingValue>
-            <RatingLabel>Perfect</RatingLabel>
-          </Rating>
-          <Rating>
-            <RatingValue $color="laneBlue">{goodCount}</RatingValue>
-            <RatingLabel>Good</RatingLabel>
-          </Rating>
-          <Rating>
-            <RatingValue $color="laneRed">{missCount}</RatingValue>
-            <RatingLabel>Miss</RatingLabel>
-          </Rating>
-        </RatingsRow>
+          <Stat>
+            <StatValue $color="laneGreen">{perfectCount}</StatValue>
+            <StatLabel>Perfect</StatLabel>
+          </Stat>
+          <Stat>
+            <StatValue $color="laneBlue">{goodCount}</StatValue>
+            <StatLabel>Good</StatLabel>
+          </Stat>
+          <Stat>
+            <StatValue $color="laneRed">{missCount}</StatValue>
+            <StatLabel>Miss</StatLabel>
+          </Stat>
+        </StatsGrid>
 
         <Button description="Back to menu" variant="secondary" onClick={onBack} />
       </Panel>
@@ -72,61 +86,123 @@ const Panel = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 32px 40px;
+  gap: 8px;
+  padding: 24px 32px;
   border-radius: 12px;
   background: ${({ theme }) => theme.colors.secondary};
   border: 1px solid ${({ theme }) => theme.colors.gray};
   color: ${({ theme }) => theme.colors.white};
   max-width: min(420px, 90vw);
+  max-height: 90vh;
+  overflow-y: auto;
   text-align: center;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    gap: 3px;
+    padding: 12px 24px;
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    gap: 8px;
+  }
+`;
+
+const HeaderText = styled.div`
+  text-align: left;
 `;
 
 const Cover = styled.img`
-  width: 72px;
-  height: 72px;
+  width: 56px;
+  height: 56px;
   border-radius: 8px;
   object-fit: cover;
   background-color: ${({ theme }) => theme.colors.black};
-  margin-bottom: 8px;
+  flex-shrink: 0;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    width: 40px;
+    height: 40px;
+  }
 `;
 
 const CoverPlaceholder = styled.div`
-  width: 72px;
-  height: 72px;
+  width: 56px;
+  height: 56px;
   border-radius: 8px;
   background-color: ${({ theme }) => theme.colors.black};
-  margin-bottom: 8px;
+  flex-shrink: 0;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    width: 40px;
+    height: 40px;
+  }
 `;
 
 const SongName = styled.h2`
   margin: 0;
-  font-size: 1.2em;
+  font-size: 1.1em;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    font-size: 0.95em;
+  }
 `;
 
 const SongArtist = styled.div`
   color: ${({ theme }) => theme.colors.tertiary};
-  font-size: 0.9em;
-  margin-bottom: 12px;
+  font-size: 0.85em;
 `;
 
 const Score = styled.div`
-  font-size: 2.6em;
+  font-size: 2.4em;
   font-weight: bold;
   line-height: 1;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    font-size: 1.6em;
+  }
 `;
 
 const ScoreLabel = styled.div`
   font-size: 0.8em;
   letter-spacing: 0.05em;
   color: ${({ theme }) => theme.colors.tertiary};
-  margin-bottom: 18px;
 `;
 
-const StatsRow = styled.div`
+const Stars = styled.div`
+  font-size: 1.4em;
+  letter-spacing: 2px;
+  margin: 4px 0 8px;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    font-size: 1.1em;
+    margin: 2px 0 4px;
+  }
+`;
+
+const Star = styled.span<{ $filled: boolean }>`
+  color: ${({ theme, $filled }) => ($filled ? theme.colors.quaternary : theme.colors.gray)};
+`;
+
+const StatsGrid = styled.div`
   display: flex;
-  gap: 32px;
-  margin-bottom: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: 22px;
+  row-gap: 12px;
+  margin-bottom: 20px;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    column-gap: 16px;
+    row-gap: 4px;
+    margin-bottom: 8px;
+  }
 `;
 
 const Stat = styled.div`
@@ -135,35 +211,13 @@ const Stat = styled.div`
   align-items: center;
 `;
 
-const StatValue = styled.div`
-  font-size: 1.3em;
+const StatValue = styled.div<{ $color?: "laneGreen" | "laneBlue" | "laneRed" }>`
+  font-size: 1.1em;
   font-weight: bold;
+  color: ${({ theme, $color }) => ($color ? theme.colors[$color] : theme.colors.white)};
 `;
 
 const StatLabel = styled.div`
-  font-size: 0.75em;
-  color: ${({ theme }) => theme.colors.tertiary};
-`;
-
-const RatingsRow = styled.div`
-  display: flex;
-  gap: 20px;
-  margin-bottom: 24px;
-`;
-
-const Rating = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-const RatingValue = styled.div<{ $color: "laneGreen" | "laneBlue" | "laneRed" }>`
-  font-size: 1.1em;
-  font-weight: bold;
-  color: ${({ theme, $color }) => theme.colors[$color]};
-`;
-
-const RatingLabel = styled.div`
-  font-size: 0.75em;
+  font-size: 0.72em;
   color: ${({ theme }) => theme.colors.tertiary};
 `;
