@@ -21,6 +21,3 @@ export const STAR_POWER_BOLT: BoltShape = buildBoltShape([
   { x: 76, y: 42 },
   { x: 54, y: 42 },
 ]);
-
-export const STAR_POWER_BOLT_COLOR = "#9c6dff";
-export const STAR_POWER_BOLT_COLOR_LIGHT = "#d8c8ff";

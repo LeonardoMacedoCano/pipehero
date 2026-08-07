@@ -11,7 +11,6 @@ import { useGamePlaythrough } from "../hooks/useGamePlaythrough.js";
 import { useControlScheme } from "../hooks/useControlScheme.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
-import { starPowerTheme } from "../theme.js";
 import { getStrumModeEnabled } from "../../game/strumModeStore.js";
 import { HIT_LINE_Y_RATIO, TOUCH_HIT_LINE_Y_RATIO_LANDSCAPE, TOUCH_HIT_LINE_Y_RATIO_PORTRAIT } from "../../render/layout.js";
 import { LANDSCAPE_HEIGHT_BREAKPOINT, LANDSCAPE_MEDIA_QUERY } from "../responsive.js";
@@ -45,7 +44,7 @@ export default function GamePage({
   difficulty: Difficulty;
   onBack: () => void;
 }) {
-  const { currentTheme } = useThemeControl();
+  const { currentTheme, themeOption } = useThemeControl();
   const notes = useMemo(() => loadTrack(chart, trackNameForDifficulty(difficulty)), [chart, difficulty]);
 
   const starPowerPhrases = useMemo(() => {
@@ -68,6 +67,7 @@ export default function GamePage({
       starPowerPhrases,
       difficulty,
       hitLineRatio,
+      palette: themeOption.palette,
     });
 
   const showTouchControls = isTouch && phase === "playing";
@@ -97,7 +97,7 @@ export default function GamePage({
           <GameCanvas canvasRef={canvasRef} />
 
           {phase === "playing" && (
-            <ThemeProvider theme={hud.starPowerActive ? starPowerTheme : currentTheme}>
+            <ThemeProvider theme={currentTheme}>
               {showTouchControls && (
                 <TouchControls strumMode={strumModeEnabled} onPressFret={pressFret} onReleaseFret={releaseFret} onStrum={strum} />
               )}

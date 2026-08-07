@@ -1,11 +1,10 @@
 import type { Fret } from "../types.js";
 import { highwayEdgeX, laneX, type RenderConfig } from "./layout.js";
-import { STAR_POWER_COLORS } from "../colors.js";
 import type { CanvasLike2D } from "./canvasLike.js";
 import { dropPath } from "./dropShape.js";
+import { hexToRgbTriplet, lighten } from "./colorUtils.js";
 import { clamp01, lerp } from "./mathUtils.js";
 
-export const STAR_POWER_BOLT_GLOW_COLOR = STAR_POWER_COLORS.info;
 export const STAR_POWER_BOLT_CORE_COLOR = "#f6efff";
 
 export function pseudoRandom(seed: number): number {
@@ -69,6 +68,7 @@ function strokePolyline(ctx: CanvasLike2D, points: BoltPoint[]): void {
 
 function strokeBoltPath(
   ctx: CanvasLike2D,
+  glowColor: string,
   points: BoltPoint[],
   glowWidth: number,
   coreWidthBase: number,
@@ -82,8 +82,8 @@ function strokeBoltPath(
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.shadowBlur = glowBlur;
-  ctx.shadowColor = STAR_POWER_BOLT_GLOW_COLOR;
-  ctx.strokeStyle = STAR_POWER_BOLT_GLOW_COLOR;
+  ctx.shadowColor = glowColor;
+  ctx.strokeStyle = glowColor;
   ctx.lineWidth = glowWidth;
   ctx.globalAlpha = alpha * glowAlphaScale;
   strokePolyline(ctx, points);
@@ -254,6 +254,7 @@ function getCachedBoltPath(seedBase: number, gen: number, angle: number, length:
 
 function drawCrackleBolt(
   ctx: CanvasLike2D,
+  glowColor: string,
   x: number,
   y: number,
   angle: number,
@@ -290,6 +291,7 @@ function drawCrackleBolt(
     const alpha = envelopeAlpha * genAlpha;
     strokeBoltPath(
       ctx,
+      glowColor,
       points,
       Math.max(1.5, glowScale * archetype.glowWidthRatio),
       Math.max(0.8, glowScale * archetype.coreBaseRatio),
@@ -307,6 +309,7 @@ function drawCrackleBolt(
       const forkPoints = forkLocalPoints.map((p) => ({ x: p.x + x, y: p.y + y }));
       strokeBoltPath(
         ctx,
+        glowColor,
         forkPoints,
         Math.max(1, glowScale * archetype.glowWidthRatio * 0.6),
         Math.max(0.5, glowScale * archetype.coreBaseRatio * 0.6),
@@ -322,16 +325,16 @@ function drawCrackleBolt(
   ctx.globalAlpha = 1;
 }
 
-const STAR_POWER_DROP_GLOW_RGB = "156, 109, 255";
 const STAR_POWER_GLOW_PULSE_HZ = 3.2;
 
-export function drawStarPowerDropAura(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number): void {
+export function drawStarPowerDropAura(ctx: CanvasLike2D, glowColor: string, x: number, y: number, radius: number, currentTime: number): void {
   const pulse = 0.7 + 0.3 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2);
+  const glowRgb = hexToRgbTriplet(glowColor);
   const auraRadius = radius * 1.9;
   const aura = ctx.createRadialGradient(x, y, 0, x, y, auraRadius);
-  aura.addColorStop(0, `rgba(${STAR_POWER_DROP_GLOW_RGB}, ${0.32 * pulse})`);
-  aura.addColorStop(0.55, `rgba(${STAR_POWER_DROP_GLOW_RGB}, ${0.13 * pulse})`);
-  aura.addColorStop(1, `rgba(${STAR_POWER_DROP_GLOW_RGB}, 0)`);
+  aura.addColorStop(0, `rgba(${glowRgb}, ${0.32 * pulse})`);
+  aura.addColorStop(0.55, `rgba(${glowRgb}, ${0.13 * pulse})`);
+  aura.addColorStop(1, `rgba(${glowRgb}, 0)`);
   ctx.globalAlpha = 1;
   ctx.fillStyle = aura;
   ctx.beginPath();
@@ -339,15 +342,15 @@ export function drawStarPowerDropAura(ctx: CanvasLike2D, x: number, y: number, r
   ctx.fill();
 }
 
-const STAR_POWER_HALO_RING_RGB = "196, 168, 255";
-
-export function drawStarPowerDropHalo(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number): void {
+export function drawStarPowerDropHalo(ctx: CanvasLike2D, glowColor: string, x: number, y: number, radius: number, currentTime: number): void {
   const pulse = 0.75 + 0.25 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2);
+  const glowRgb = hexToRgbTriplet(glowColor);
+  const ringRgb = hexToRgbTriplet(lighten(glowColor, 0.2));
 
   const bloomRadius = radius * 2.6;
   const bloom = ctx.createRadialGradient(x, y, radius, x, y, bloomRadius);
-  bloom.addColorStop(0, `rgba(${STAR_POWER_DROP_GLOW_RGB}, ${0.3 * pulse})`);
-  bloom.addColorStop(1, `rgba(${STAR_POWER_DROP_GLOW_RGB}, 0)`);
+  bloom.addColorStop(0, `rgba(${glowRgb}, ${0.3 * pulse})`);
+  bloom.addColorStop(1, `rgba(${glowRgb}, 0)`);
   ctx.globalAlpha = 1;
   ctx.fillStyle = bloom;
   ctx.beginPath();
@@ -356,18 +359,18 @@ export function drawStarPowerDropHalo(ctx: CanvasLike2D, x: number, y: number, r
 
   const ringOuter = radius * 1.4;
   const ring = ctx.createRadialGradient(x, y, radius * 1.02, x, y, ringOuter);
-  ring.addColorStop(0, `rgba(${STAR_POWER_HALO_RING_RGB}, ${0.85 * pulse})`);
-  ring.addColorStop(1, `rgba(${STAR_POWER_HALO_RING_RGB}, 0)`);
+  ring.addColorStop(0, `rgba(${ringRgb}, ${0.85 * pulse})`);
+  ring.addColorStop(1, `rgba(${ringRgb}, 0)`);
   ctx.fillStyle = ring;
   ctx.beginPath();
   ctx.arc(x, y, ringOuter, 0, Math.PI * 2);
   ctx.fill();
 }
 
-export function drawStarPowerDropRim(ctx: CanvasLike2D, x: number, y: number, radius: number, currentTime: number): void {
+export function drawStarPowerDropRim(ctx: CanvasLike2D, glowColor: string, x: number, y: number, radius: number, currentTime: number): void {
   const pulse = 0.7 + 0.3 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2 + 1.5);
   ctx.shadowBlur = radius * 0.4;
-  ctx.shadowColor = STAR_POWER_BOLT_GLOW_COLOR;
+  ctx.shadowColor = glowColor;
   ctx.strokeStyle = STAR_POWER_BOLT_CORE_COLOR;
   ctx.lineWidth = Math.max(1, radius * 0.07);
   ctx.globalAlpha = 0.2 + 0.25 * pulse;
@@ -383,6 +386,7 @@ const STAR_POWER_SPARK_REROLL_HZ = 4.2;
 
 export function drawStarPowerSparks(
   ctx: CanvasLike2D,
+  glowColor: string,
   x: number,
   y: number,
   radius: number,
@@ -395,7 +399,7 @@ export function drawStarPowerSparks(
     const boltSeed = seed * 17.3 + i * 91.7;
     const baseAngle = -Math.PI / 2 + (pseudoRandom(boltSeed) - 0.5) * STAR_POWER_SPARK_ANGLE_SPREAD;
     const length = radius * (1.15 + pseudoRandom(boltSeed + 3.1) * 0.85);
-    drawCrackleBolt(ctx, x, y, baseAngle, length, boltSeed, currentTime + i * 0.37, radius, 0.85, STAR_POWER_SPARK_REROLL_HZ);
+    drawCrackleBolt(ctx, glowColor, x, y, baseAngle, length, boltSeed, currentTime + i * 0.37, radius, 0.85, STAR_POWER_SPARK_REROLL_HZ);
   }
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
@@ -407,6 +411,7 @@ const STAR_POWER_COLLECT_FLASH_DURATION_SECONDS = 0.16;
 
 export function drawStarPowerCollectBurst(
   ctx: CanvasLike2D,
+  glowColor: string,
   x: number,
   y: number,
   config: RenderConfig,
@@ -421,7 +426,7 @@ export function drawStarPowerCollectBurst(
   const flashT = clamp01(elapsedSeconds / STAR_POWER_COLLECT_FLASH_DURATION_SECONDS);
   if (flashT < 1) {
     ctx.shadowBlur = config.noteMaxRadius * 0.9;
-    ctx.shadowColor = STAR_POWER_BOLT_GLOW_COLOR;
+    ctx.shadowColor = glowColor;
     ctx.fillStyle = STAR_POWER_BOLT_CORE_COLOR;
     ctx.globalAlpha = (1 - flashT) * 0.85;
     ctx.beginPath();
@@ -443,6 +448,7 @@ export function drawStarPowerCollectBurst(
     const points = jaggedBoltPath(startX, y, baseAngle, length, seed, displacementRatio, 4);
     strokeBoltPath(
       ctx,
+      glowColor,
       points,
       Math.max(1.5, config.noteMaxRadius * 0.13),
       Math.max(1, config.noteMaxRadius * 0.075),
@@ -458,6 +464,7 @@ export function drawStarPowerCollectBurst(
       const forkPoints = jaggedBoltPath(forkOrigin.x, forkOrigin.y, forkAngle, length * 0.4, seed + 60, 0.22, 3);
       strokeBoltPath(
         ctx,
+        glowColor,
         forkPoints,
         Math.max(1, config.noteMaxRadius * 0.07),
         Math.max(0.6, config.noteMaxRadius * 0.045),
@@ -493,7 +500,7 @@ export function ambientStrikeEnvelope(index: number, currentTime: number): { alp
   return { alpha, strikeIndex };
 }
 
-function drawAmbientLightningBolt(ctx: CanvasLike2D, config: RenderConfig, index: number, currentTime: number): void {
+function drawAmbientLightningBolt(ctx: CanvasLike2D, glowColor: string, config: RenderConfig, index: number, currentTime: number): void {
   const { alpha: envelopeAlpha, strikeIndex } = ambientStrikeEnvelope(index, currentTime);
   if (envelopeAlpha <= 0.005) return;
 
@@ -507,6 +514,7 @@ function drawAmbientLightningBolt(ctx: CanvasLike2D, config: RenderConfig, index
 
   drawCrackleBolt(
     ctx,
+    glowColor,
     startX,
     startY,
     angle,
@@ -520,13 +528,14 @@ function drawAmbientLightningBolt(ctx: CanvasLike2D, config: RenderConfig, index
 
 export function drawAmbientLightningBolts(
   ctx: CanvasLike2D,
+  glowColor: string,
   config: RenderConfig,
   currentTime: number,
   richness: number = 1
 ): void {
   const count = Math.max(1, Math.round(AMBIENT_LIGHTNING_BOLT_COUNT * richness));
   for (let i = 0; i < count; i++) {
-    drawAmbientLightningBolt(ctx, config, i, currentTime);
+    drawAmbientLightningBolt(ctx, glowColor, config, i, currentTime);
   }
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
@@ -537,6 +546,7 @@ const STAR_POWER_HIT_BOLT_COUNT: number = 5;
 
 export function drawStarPowerHitBolt(
   ctx: CanvasLike2D,
+  glowColor: string,
   fret: Fret,
   config: RenderConfig,
   elapsedSeconds: number,
@@ -558,6 +568,7 @@ export function drawStarPowerHitBolt(
     const points = jaggedBoltPath(x, y, angle, length, seed, 0.26, 3);
     strokeBoltPath(
       ctx,
+      glowColor,
       points,
       Math.max(1.5, config.noteMaxRadius * 0.13),
       Math.max(0.8, config.noteMaxRadius * 0.065),
