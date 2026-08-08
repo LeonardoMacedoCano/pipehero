@@ -281,15 +281,15 @@ try {
   checks.push({ name: "'Options' navigates to the options screen", ok: clickButtonWithText(document, "Options") });
   await new Promise((r) => setTimeout(r, 200));
 
-  const actionLabels = ["Green", "Red", "Yellow", "Blue", "Orange", "Open", "Star Power"];
+  const actionLabels = ["Button 1", "Button 2", "Button 3", "Button 4", "Button 5", "Open", "Star Power"];
   checks.push({
     name: "Controls tab lists every control action",
     ok: actionLabels.every((label) => root?.innerHTML.includes(label)),
   });
 
   const remapButtons = [...document.querySelectorAll("#root button")].filter((b) => b.textContent?.trim() === "Remap");
-  const greenRemapButton = remapButtons.find((b) => b.parentElement?.parentElement?.textContent?.includes("Green"));
-  checks.push({ name: "'Remap' button exists for the Green action", ok: !!greenRemapButton });
+  const greenRemapButton = remapButtons.find((b) => b.parentElement?.parentElement?.textContent?.includes("Button 1"));
+  checks.push({ name: "'Remap' button exists for the Button 1 action", ok: !!greenRemapButton });
 
   greenRemapButton?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
   await new Promise((r) => setTimeout(r, 100));
@@ -315,7 +315,7 @@ try {
     ok: bindingsAfterRemap?.fretGreen?.source === "keyboard" && bindingsAfterRemap?.fretGreen?.code === "KeyZ",
   });
   checks.push({
-    name: "Green row now displays the new key (Z) instead of the listening prompt",
+    name: "Button 1 row now displays the new key (Z) instead of the listening prompt",
     ok: !root?.innerHTML.includes("Press a key") && !!root?.innerHTML.includes(">Z<"),
   });
 
@@ -331,8 +331,8 @@ try {
 
   const redRemapButton = [...document.querySelectorAll("#root button")]
     .filter((b) => b.textContent?.trim() === "Remap")
-    .find((b) => b.parentElement?.parentElement?.textContent?.includes("Red"));
-  checks.push({ name: "'Remap' button exists for the Red action", ok: !!redRemapButton });
+    .find((b) => b.parentElement?.parentElement?.textContent?.includes("Button 2"));
+  checks.push({ name: "'Remap' button exists for the Button 2 action", ok: !!redRemapButton });
 
   redRemapButton?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
   await new Promise((r) => setTimeout(r, 100));
