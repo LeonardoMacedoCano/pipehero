@@ -120,6 +120,7 @@ export interface Song {
   loadingPhrase: string;
   previewStartSeconds: number;
   difficultyRatings: DifficultyRatings;
+  availableDifficulties: Difficulty[];
   chartUrl: string;
   chartFormat: "chart" | "mid";
   audioUrl: string | null;

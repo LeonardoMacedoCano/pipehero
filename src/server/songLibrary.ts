@@ -1,6 +1,8 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
-import type { Song } from "../types.js";
+import { parseChart } from "parsehero";
+import type { Difficulty, Song } from "../types.js";
+import { listAvailableDifficulties } from "../engine/availableTracks.js";
 import { parseIni } from "./parseIni.js";
 
 const AUDIO_EXTENSIONS = [".opus", ".ogg", ".mp3", ".wav", ".flac", ".m4a"];
@@ -34,6 +36,22 @@ function toNumberOrNull(value: string | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+async function readAvailableDifficulties(chartPath: string, chartFormat: "chart" | "mid"): Promise<Difficulty[]> {
+  try {
+    if (chartFormat === "mid") {
+      const buffer = await readFile(chartPath);
+      const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+      const { chart } = parseChart(arrayBuffer);
+      return listAvailableDifficulties(chart);
+    }
+    const raw = await readFile(chartPath, "utf-8");
+    const { chart } = parseChart(raw);
+    return listAvailableDifficulties(chart);
+  } catch {
+    return [];
+  }
+}
+
 const MS_PER_SECOND = 1000;
 
 export async function listSongs(songsDir: string): Promise<Song[]> {
@@ -62,6 +80,7 @@ export async function listSongs(songsDir: string): Promise<Song[]> {
     const audioFile = await findFirstFileByExtensions(songPath, AUDIO_EXTENSIONS);
     const coverFile = await findFirstFileByExtensions(songPath, IMAGE_EXTENSIONS);
     const previewStartMs = toNumberOrNull(metadata.preview_start_time);
+    const availableDifficulties = await readAvailableDifficulties(join(songPath, chartFilename), chartFilename.endsWith(".mid") ? "mid" : "chart");
 
     songs.push({
       id: entry.name,
@@ -73,6 +92,7 @@ export async function listSongs(songsDir: string): Promise<Song[]> {
       genre: metadata.genre ?? "",
       loadingPhrase: metadata.loading_phrase ?? "",
       previewStartSeconds: previewStartMs !== null ? previewStartMs / MS_PER_SECOND : 0,
+      availableDifficulties,
       difficultyRatings: {
         band: toNumberOrNull(metadata.diff_band),
         guitar: toNumberOrNull(metadata.diff_guitar),
