@@ -73,7 +73,13 @@ export async function handleSettingsRequest(req: IncomingMessage, res: ServerRes
       return true;
     }
 
-    const body = await readJsonBody<SettingsPayload>(req);
+    let body: SettingsPayload;
+    try {
+      body = await readJsonBody<SettingsPayload>(req);
+    } catch {
+      sendJson(res, 400, { error: "Invalid JSON body" });
+      return true;
+    }
     const columns: string[] = [];
     const values: unknown[] = [];
 
