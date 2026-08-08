@@ -57,6 +57,7 @@ export function useSyncedPreference<T>({
   latestRef.current = { field, set, toPayload, user, notify };
 
   useEffect(() => {
+    appliedLocalChangeRef.current = false;
     if (!user) return;
     let cancelled = false;
     fetchSettings(user.email).then((settings) => {
