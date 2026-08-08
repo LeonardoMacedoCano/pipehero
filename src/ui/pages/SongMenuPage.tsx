@@ -25,6 +25,11 @@ function parseRsqlFilters(rsql: string): RsqlFilter[] {
 }
 
 function matchesFilter(song: Song, filter: RsqlFilter): boolean {
+  if (filter.field === "availableDifficulties") {
+    const hasDifficulty = song.availableDifficulties.some((difficulty) => difficulty.toLowerCase() === filter.value.toLowerCase());
+    return filter.operator === "!=" ? !hasDifficulty : hasDifficulty;
+  }
+
   const raw = String((song as unknown as Record<string, unknown>)[filter.field] ?? "").toLowerCase();
   const value = filter.value.toLowerCase();
   if (filter.operator === "=ilike=") return raw.includes(value);
@@ -90,11 +95,18 @@ export default function SongMenuPage({ onStartGame }: { onStartGame: (params: St
     const genres = Array.from(new Set((songs ?? []).map((song) => song.genre).filter(Boolean))).sort((a, b) =>
       a.localeCompare(b)
     );
+    const difficulties = [...DIFFICULTY_ORDER].reverse();
     return [
       { name: "name", label: "Song", type: "STRING" },
       { name: "artist", label: "Artist", type: "STRING" },
       { name: "album", label: "Album", type: "STRING" },
       { name: "genre", label: "Genre", type: "SELECT", options: genres.map((genre) => ({ key: genre, value: genre })) },
+      {
+        name: "availableDifficulties",
+        label: "Difficulty",
+        type: "SELECT",
+        options: difficulties.map((difficulty) => ({ key: difficulty, value: difficulty })),
+      },
     ];
   }, [songs]);
 
@@ -112,7 +124,7 @@ export default function SongMenuPage({ onStartGame }: { onStartGame: (params: St
     <>
       <Panel title="Choose a Song" maxWidth="1100px">
         <Stack direction="column" divider="top">
-          <SearchFilterRSQL fields={searchFields} onSearch={(rsql) => setFilters(parseRsqlFilters(rsql))} />
+          <SearchFilterRSQL fields={searchFields} onSearch={(rsql) => setFilters(parseRsqlFilters(rsql))} locale="en" />
 
           <Loading isLoading={isLoading} />
           {error && <p>Error loading song list: {error.message}</p>}

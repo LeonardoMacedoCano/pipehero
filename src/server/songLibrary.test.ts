@@ -46,6 +46,33 @@ function makeSongsDir(): string {
   writeFileSync(join(songMid, "song.ini"), "[song]\nname = MIDI Song\nartist = Jane Doe\n");
   writeFileSync(join(songMid, "song.opus"), "");
 
+  const songWithDifficulties = join(dir, "song-with-difficulties");
+  mkdirSync(songWithDifficulties);
+  writeFileSync(
+    join(songWithDifficulties, "notes.chart"),
+    [
+      "[Song]",
+      "{",
+      "  Resolution = 192",
+      "}",
+      "[SyncTrack]",
+      "{",
+      "  0 = TS 4",
+      "  0 = B 120000",
+      "}",
+      "[ExpertSingle]",
+      "{",
+      "  0 = N 0 0",
+      "  192 = N 1 0",
+      "}",
+      "[MediumSingle]",
+      "{",
+      "  0 = N 0 0",
+      "}",
+      "",
+    ].join("\n")
+  );
+
   return dir;
 }
 
@@ -53,7 +80,7 @@ test("lists folders that have notes.chart OR notes.mid", async () => {
   const dir = makeSongsDir();
   try {
     const songs = await listSongs(dir);
-    assert.equal(songs.length, 3);
+    assert.equal(songs.length, 4);
     assert.ok(!songs.some((s) => s.id === "folder-without-chart"));
     assert.ok(songs.some((s) => s.id === "song-mid"));
   } finally {
@@ -160,4 +187,28 @@ test("chartUrl and chartFormat: notes.chart becomes 'chart', notes.mid becomes '
 test("a folder that doesn't exist returns an empty list, not an error", async () => {
   const songs = await listSongs("/path/that/does/not/really/exist");
   assert.deepEqual(songs, []);
+});
+
+test("availableDifficulties lists only the difficulties with note tracks in the chart", async () => {
+  const dir = makeSongsDir();
+  try {
+    const songs = await listSongs(dir);
+    const songWithDifficulties = songs.find((s) => s.id === "song-with-difficulties")!;
+    assert.deepEqual(songWithDifficulties.availableDifficulties, ["Expert", "Medium"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("availableDifficulties is empty for a chart with no note tracks, not an error", async () => {
+  const dir = makeSongsDir();
+  try {
+    const songs = await listSongs(dir);
+    const songA = songs.find((s) => s.id === "song-a")!;
+    const songMid = songs.find((s) => s.id === "song-mid")!;
+    assert.deepEqual(songA.availableDifficulties, []);
+    assert.deepEqual(songMid.availableDifficulties, []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

@@ -52,6 +52,7 @@ const FAKE_SONGS = [
     genre: "Metal",
     album: "",
     coverUrl: null,
+    availableDifficulties: ["Expert"],
     chartFormat: "chart",
     chartUrl: "/songs/test-song/notes.chart",
     audioUrl: "/songs/test-song/song.wav",
@@ -63,6 +64,7 @@ const FAKE_SONGS = [
     genre: "Rock",
     album: "",
     coverUrl: null,
+    availableDifficulties: ["Expert", "Easy"],
     chartFormat: "chart",
     chartUrl: "/songs/other-song/notes.chart",
     audioUrl: "/songs/other-song/song.wav",
@@ -187,7 +189,7 @@ try {
   if (searchValueInput) typeIntoInput(searchValueInput, "Doe");
   await new Promise((r) => setTimeout(r, 100));
 
-  const addFilterButton = [...document.querySelectorAll("#root button")].find((b) => b.getAttribute("title") === "Adicionar");
+  const addFilterButton = [...document.querySelectorAll("#root button")].find((b) => b.getAttribute("title") === "Add");
   checks.push({
     name: "'Add filter' button is enabled once a field and value are set",
     ok: !!addFilterButton && !(addFilterButton as HTMLButtonElement).disabled,
@@ -198,6 +200,30 @@ try {
   checks.push({
     name: "adding an 'Artist contains Doe' filter keeps the matching song and filters out the other one",
     ok: !!root?.innerHTML.includes("Test Song") && !root?.innerHTML.includes("Another Track"),
+  });
+
+  const difficultyFieldPicker = document.querySelectorAll("#root select")[0] as HTMLSelectElement | undefined;
+  checks.push({ name: "song list search fields include Difficulty", ok: !!difficultyFieldPicker?.querySelector('option[value="availableDifficulties"]') });
+
+  if (difficultyFieldPicker) {
+    difficultyFieldPicker.value = "availableDifficulties";
+    difficultyFieldPicker.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  }
+  await new Promise((r) => setTimeout(r, 100));
+
+  const difficultyValuePicker = document.querySelectorAll("#root select")[2] as HTMLSelectElement | undefined;
+  if (difficultyValuePicker) {
+    difficultyValuePicker.value = "Expert";
+    difficultyValuePicker.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  }
+  await new Promise((r) => setTimeout(r, 100));
+
+  const addDifficultyFilterButton = [...document.querySelectorAll("#root button")].find((b) => b.getAttribute("title") === "Add");
+  addDifficultyFilterButton?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 150));
+  checks.push({
+    name: "adding a Difficulty=Expert filter on top keeps Test Song (which has an Expert chart)",
+    ok: !!root?.innerHTML.includes("Test Song") && !root?.innerHTML.includes("No songs match the current filters"),
   });
 
   const songRowWithHint = [...document.querySelectorAll("#root tbody tr")].find((r) => r.textContent?.includes("Test Song"));
