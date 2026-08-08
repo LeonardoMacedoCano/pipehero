@@ -20,6 +20,7 @@ export default function ResultsOverlay({
   const perfectCount = results.hits.filter((hit) => hit.rating === "perfect").length;
   const goodCount = results.hits.filter((hit) => hit.rating === "good").length;
   const missCount = results.misses.length;
+  const droppedCount = results.droppedSustains.length;
   const stars = computeStars(results.hits, totalNotes);
 
   return (
@@ -65,6 +66,12 @@ export default function ResultsOverlay({
             <StatValue $color="lane2">{missCount}</StatValue>
             <StatLabel>Miss</StatLabel>
           </Stat>
+          {droppedCount > 0 && (
+            <Stat>
+              <StatValue $color="lane2">{droppedCount}</StatValue>
+              <StatLabel>Dropped</StatLabel>
+            </Stat>
+          )}
         </StatsGrid>
 
         <Button description="Back to menu" variant="secondary" onClick={onBack} />
