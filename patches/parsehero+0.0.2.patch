@@ -1,0 +1,16 @@
+diff --git a/node_modules/parsehero/package.json b/node_modules/parsehero/package.json
+index 3ce68ad..be043fd 100644
+--- a/node_modules/parsehero/package.json
++++ b/node_modules/parsehero/package.json
+@@ -3,9 +3,9 @@
+   "version": "0.0.2",
+   "author": "awphi",
+   "exports": {
+-    ".": "./dist/index"
++    ".": "./dist/index.js"
+   },
+-  "main": "./dist/index",
++  "main": "./dist/index.js",
+   "types": "./dist/index.d.ts",
+   "type": "module",
+   "files": [
