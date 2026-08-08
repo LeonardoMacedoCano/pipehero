@@ -27,7 +27,6 @@ import {
   drawStarPowerDropAura,
   drawStarPowerDropHalo,
   drawStarPowerDropRim,
-  drawStarPowerHitBolt,
   drawStarPowerSparks,
 } from "./starPowerFx.js";
 
@@ -610,11 +609,15 @@ function drawClickFlash(
   drawBurstDroplets: boolean = withParticles,
   laneColors: Record<Fret, string> = LANE_COLORS,
   palette: Palette = COLORS,
-  intensity: number = 1
+  intensity: number = 1,
+  intense: boolean = false,
+  graphicsSettings: GraphicsSettings = graphicsSettingsFor(DEFAULT_GRAPHICS_QUALITY)
 ): void {
   const t = clamp01(elapsedSeconds / ABSORB_DURATION_SECONDS);
   const laneColor = laneColors[fret] ?? palette.noteFallback;
-  const baseColor = withParticles ? laneColor : mix(laneColor, palette.pipeMissGradientStops[2], 0.6);
+  const baseColor = withParticles
+    ? intenseDropColor(laneColor, intense, graphicsSettings, palette.info)
+    : mix(laneColor, palette.pipeMissGradientStops[2], 0.6);
   const x = laneX(fret, 1, config);
   const y = config.hitLineY;
 
@@ -754,14 +757,13 @@ export function drawFrame(
             elapsed,
             note.time,
             true,
-            !isHeldOpen && !intense && graphicsSettings.hitResidueEnabled,
+            !isHeldOpen && graphicsSettings.hitResidueEnabled,
             laneColors,
             palette,
-            intensity
+            intensity,
+            intense,
+            graphicsSettings
           );
-          if (intense && graphicsSettings.lightningEffectsEnabled) {
-            drawStarPowerHitBolt(ctx, palette.info, flashFret, config, elapsed, graphicsSettings.boltCountMultiplier);
-          }
         }
       }
 
@@ -776,7 +778,7 @@ export function drawFrame(
           releasedAt !== undefined ? Math.min(rise, clamp01(1 - (currentTime - releasedAt) / OPEN_RESIDUE_FALL_SECONDS)) : rise;
         if (heightFraction > 0.02 && graphicsSettings.hitResidueEnabled) {
           for (const flashFret of flashFrets) {
-            const laneColor = laneColors[flashFret] ?? palette.noteFallback;
+            const laneColor = intenseDropColor(laneColors[flashFret] ?? palette.noteFallback, intense, graphicsSettings, palette.info);
             drawSplashDroplets(
               ctx,
               laneX(flashFret, 1, config),

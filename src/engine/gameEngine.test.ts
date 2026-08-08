@@ -250,6 +250,39 @@ test("sustain: releasing early marks it as dropped, and it can't be pressed agai
   assert.equal(engine.getState().score, 100);
 });
 
+test("sustain: releasing within the good window of the end is tolerated, not dropped", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0], duration: 1.0 })]);
+  engine.handleKeyDown(0, 1.0);
+  engine.handleKeyUp(0, 2.0 - JUDGMENT_WINDOWS_BY_DIFFICULTY.Expert.good + 0.01);
+  assert.equal(engine.getState().droppedSustains.length, 0);
+  assert.equal(engine.getState().score, 150);
+});
+
+test("sustain: releasing right at the edge of the good window still counts as held", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0], duration: 1.0 })]);
+  engine.handleKeyDown(0, 1.0);
+  engine.handleKeyUp(0, 2.0 - JUDGMENT_WINDOWS_BY_DIFFICULTY.Expert.good);
+  assert.equal(engine.getState().droppedSustains.length, 0);
+  assert.equal(engine.getState().score, 150);
+});
+
+test("sustain: releasing just past the good window is still dropped", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0], duration: 1.0 })]);
+  engine.handleKeyDown(0, 1.0);
+  engine.handleKeyUp(0, 2.0 - JUDGMENT_WINDOWS_BY_DIFFICULTY.Expert.good - 0.01);
+  assert.equal(engine.getState().droppedSustains.length, 1);
+  assert.equal(engine.getState().score, 100);
+});
+
+test("sustain: the release tolerance scales with the difficulty's judgment windows", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0], duration: 1.0 })], {
+    windows: JUDGMENT_WINDOWS_BY_DIFFICULTY.Easy,
+  });
+  engine.handleKeyDown(0, 1.0);
+  engine.handleKeyUp(0, 2.0 - JUDGMENT_WINDOWS_BY_DIFFICULTY.Easy.good + 0.01);
+  assert.equal(engine.getState().droppedSustains.length, 0);
+});
+
 test("a note without duration (duration=0) doesn't enter a sustain state", () => {
   const engine = createGameEngine([event({ time: 1.0, frets: [0], duration: 0 })]);
   engine.handleKeyDown(0, 1.0);

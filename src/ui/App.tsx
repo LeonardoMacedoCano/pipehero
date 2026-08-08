@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ContextMessageProvider } from "lcano-react-ui";
 import { ThemeControlProvider } from "./contexts/theme/ThemeControlProvider.js";
 import { AuthProvider } from "./hooks/useAuth.js";
+import { AchievementToastProvider, AchievementToastStack } from "./components/chrome/AchievementToastProvider.js";
 import { GlobalStyles } from "./GlobalStyles.js";
 import MenuLayout from "./components/chrome/MenuLayout.js";
 import type { MenuScreenName } from "./components/chrome/navigation.js";
@@ -22,40 +23,43 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <ThemeControlProvider>
-        <GlobalStyles />
-        <ContextMessageProvider>
-          {screen.name === "game" && (
-            <GamePage
-              song={screen.params.song}
-              chart={screen.params.chart}
-              difficulty={screen.params.difficulty}
-              onBack={() => setScreen({ name: "songs" })}
-            />
-          )}
-          {screen.name === "songs" && (
-            <MenuLayout current="songs" onNavigate={navigate}>
-              <SongMenuPage onStartGame={(params) => setScreen({ name: "game", params })} />
-            </MenuLayout>
-          )}
-          {screen.name === "options" && (
-            <MenuLayout current="options" onNavigate={navigate}>
-              <OptionsPage />
-            </MenuLayout>
-          )}
-          {screen.name === "achievements" && (
-            <MenuLayout current="achievements" onNavigate={navigate}>
-              <AchievementsPage />
-            </MenuLayout>
-          )}
-          {screen.name === "menu" && (
-            <MenuLayout current="menu" onNavigate={navigate}>
-              <MainMenuPage onPlaySingleplayer={() => navigate("songs")} />
-            </MenuLayout>
-          )}
-        </ContextMessageProvider>
-      </ThemeControlProvider>
-    </AuthProvider>
+    <AchievementToastProvider>
+      <AuthProvider>
+        <ThemeControlProvider>
+          <GlobalStyles />
+          <AchievementToastStack onView={() => navigate("achievements")} />
+          <ContextMessageProvider>
+            {screen.name === "game" && (
+              <GamePage
+                song={screen.params.song}
+                chart={screen.params.chart}
+                difficulty={screen.params.difficulty}
+                onBack={() => setScreen({ name: "songs" })}
+              />
+            )}
+            {screen.name === "songs" && (
+              <MenuLayout current="songs" onNavigate={navigate}>
+                <SongMenuPage onStartGame={(params) => setScreen({ name: "game", params })} />
+              </MenuLayout>
+            )}
+            {screen.name === "options" && (
+              <MenuLayout current="options" onNavigate={navigate}>
+                <OptionsPage />
+              </MenuLayout>
+            )}
+            {screen.name === "achievements" && (
+              <MenuLayout current="achievements" onNavigate={navigate}>
+                <AchievementsPage />
+              </MenuLayout>
+            )}
+            {screen.name === "menu" && (
+              <MenuLayout current="menu" onNavigate={navigate}>
+                <MainMenuPage onPlaySingleplayer={() => navigate("songs")} />
+              </MenuLayout>
+            )}
+          </ContextMessageProvider>
+        </ThemeControlProvider>
+      </AuthProvider>
+    </AchievementToastProvider>
   );
 }

@@ -3,6 +3,7 @@ import { query } from "./db.js";
 import { readJsonBody, sendJson } from "./authRoutes.js";
 import { getRequestUser } from "./requestUser.js";
 import { isGraphicsQuality } from "../render/graphicsQuality.js";
+import { evaluateSettingsUnlocks, unlockMany } from "./achievements.js";
 
 const MAX_CALIBRATION_MS = 1000;
 const MAX_THEME_ID_LENGTH = 64;
@@ -133,7 +134,8 @@ export async function handleSettingsRequest(req: IncomingMessage, res: ServerRes
        ON CONFLICT (user_id) DO UPDATE SET ${updateClause}`,
       [user.id, ...values]
     );
-    sendJson(res, 200, { ok: true });
+    const unlockedAchievements = await unlockMany(user.id, evaluateSettingsUnlocks());
+    sendJson(res, 200, { ok: true, unlockedAchievements });
     return true;
   }
 

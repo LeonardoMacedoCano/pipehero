@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./useAuth.js";
+import { useAchievementToast, type UnlockedAchievement } from "../components/chrome/AchievementToastProvider.js";
 
 export interface SettingsResponse {
   calibrationMs: number | null;
@@ -49,10 +50,11 @@ export function useSyncedPreference<T>({
   fromPayload: (raw: unknown) => T;
 }): { value: T; updateValue: (next: T) => void } {
   const { user } = useAuth();
+  const { notify } = useAchievementToast();
   const [value, setValueState] = useState<T>(() => get());
   const appliedLocalChangeRef = useRef(false);
-  const latestRef = useRef({ field, set, toPayload, user });
-  latestRef.current = { field, set, toPayload, user };
+  const latestRef = useRef({ field, set, toPayload, user, notify });
+  latestRef.current = { field, set, toPayload, user, notify };
 
   useEffect(() => {
     if (!user) return;
@@ -71,7 +73,7 @@ export function useSyncedPreference<T>({
   }, [user, field]);
 
   const updateValue = useCallback((next: T) => {
-    const { field, set, toPayload, user } = latestRef.current;
+    const { field, set, toPayload, user, notify } = latestRef.current;
     appliedLocalChangeRef.current = true;
     set(next);
     setValueState(next);
@@ -80,7 +82,10 @@ export function useSyncedPreference<T>({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [field]: toPayload(next) }),
-      }).catch(() => {});
+      })
+        .then((response) => response.json() as Promise<{ unlockedAchievements?: UnlockedAchievement[] }>)
+        .then((data) => notify(data.unlockedAchievements ?? []))
+        .catch(() => {});
     }
   }, []);
 

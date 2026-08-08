@@ -1,5 +1,4 @@
-import type { Fret } from "../types.js";
-import { highwayEdgeX, laneX, type RenderConfig } from "./layout.js";
+import { highwayEdgeX, type RenderConfig } from "./layout.js";
 import type { CanvasLike2D } from "./canvasLike.js";
 import { dropPath } from "./dropShape.js";
 import { hexToRgbTriplet, lighten } from "./colorUtils.js";
@@ -479,13 +478,13 @@ export function drawStarPowerCollectBurst(
   ctx.globalAlpha = 1;
 }
 
-const AMBIENT_LIGHTNING_BOLT_COUNT = 4;
+const AMBIENT_LIGHTNING_BOLT_COUNT = 3;
 
 export function ambientStrikeEnvelope(index: number, currentTime: number): { alpha: number; strikeIndex: number } {
-  const cycleLength = 0.8 + pseudoRandom(index * 9.13 + 4) * 1.3;
+  const cycleLength = 1.4 + pseudoRandom(index * 9.13 + 4) * 2.0;
   const cyclePos = ((currentTime % cycleLength) + cycleLength) % cycleLength;
   const strikeIndex = Math.floor(currentTime / cycleLength);
-  const activeWindow = cycleLength * (0.22 + pseudoRandom(strikeIndex * 7.7 + index * 3.3) * 0.2);
+  const activeWindow = cycleLength * (0.14 + pseudoRandom(strikeIndex * 7.7 + index * 3.3) * 0.12);
   if (cyclePos >= activeWindow) return { alpha: 0, strikeIndex };
 
   const localT = cyclePos / activeWindow;
@@ -536,47 +535,6 @@ export function drawAmbientLightningBolts(
   const count = Math.max(1, Math.round(AMBIENT_LIGHTNING_BOLT_COUNT * richness));
   for (let i = 0; i < count; i++) {
     drawAmbientLightningBolt(ctx, glowColor, config, i, currentTime);
-  }
-  ctx.shadowBlur = 0;
-  ctx.globalAlpha = 1;
-}
-
-const STAR_POWER_HIT_BOLT_DURATION_SECONDS = 0.22;
-const STAR_POWER_HIT_BOLT_COUNT: number = 5;
-
-export function drawStarPowerHitBolt(
-  ctx: CanvasLike2D,
-  glowColor: string,
-  fret: Fret,
-  config: RenderConfig,
-  elapsedSeconds: number,
-  richness: number = 1
-): void {
-  const t = clamp01(elapsedSeconds / STAR_POWER_HIT_BOLT_DURATION_SECONDS);
-  if (elapsedSeconds < 0 || t >= 1) return;
-  const x = laneX(fret, 1, config);
-  const y = config.hitLineY;
-  const alpha = (1 - t) * 0.9;
-
-  const boltCount = Math.max(1, Math.round(STAR_POWER_HIT_BOLT_COUNT * richness));
-  for (let i = 0; i < boltCount; i++) {
-    const seed = fret * 13.7 + i * 29.3;
-    const spread = boltCount === 1 ? 0 : (i / (boltCount - 1)) * 2 - 1;
-    const angle = -Math.PI / 2 + spread * 0.8 + (pseudoRandom(seed) - 0.5) * 0.4;
-    const length = config.noteMaxRadius * (2.3 + pseudoRandom(seed + 3) * 1.1) * (1 - t * 0.2);
-
-    const points = jaggedBoltPath(x, y, angle, length, seed, 0.26, 3);
-    strokeBoltPath(
-      ctx,
-      glowColor,
-      points,
-      Math.max(1.5, config.noteMaxRadius * 0.13),
-      Math.max(0.8, config.noteMaxRadius * 0.065),
-      Math.max(0.35, config.noteMaxRadius * 0.024),
-      config.noteMaxRadius * 0.65,
-      alpha,
-      0.6
-    );
   }
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
