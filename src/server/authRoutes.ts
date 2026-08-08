@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { verifyGoogleIdToken } from "./googleAuth.js";
 import { createSession, destroySession, findOrCreateUser, getSessionUser, signValue, verifySignedValue } from "./session.js";
+import { evaluateLoginUnlocks, unlockMany } from "./achievements.js";
 
 const SESSION_COOKIE_NAME = "pipehero_session";
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
@@ -91,7 +92,8 @@ export async function handleAuthRequest(req: IncomingMessage, res: ServerRespons
       const user = await findOrCreateUser(googleUser);
       const sessionId = await createSession(user.id);
       setSessionCookie(res, sessionId, secret);
-      sendJson(res, 200, { user: toPublicUser(user) });
+      const unlockedAchievements = await unlockMany(user.id, evaluateLoginUnlocks());
+      sendJson(res, 200, { user: toPublicUser(user), unlockedAchievements });
     } catch (err) {
       console.error("[auth] Google login failed:", err);
       sendJson(res, 401, { error: "Invalid Google credential" });

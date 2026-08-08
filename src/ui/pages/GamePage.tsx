@@ -8,6 +8,7 @@ import { trackNameForDifficulty } from "../../engine/availableTracks.js";
 import { extractStarPowerPhrases, synthesizeStarPowerPhrases } from "../../engine/starPower.js";
 import { computeStars } from "../../scoring/stars.js";
 import { useGamePlaythrough } from "../hooks/useGamePlaythrough.js";
+import { useAchievementToast, type UnlockedAchievement } from "../components/chrome/AchievementToastProvider.js";
 import { useControlScheme } from "../hooks/useControlScheme.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
@@ -25,12 +26,30 @@ import { cylinderGradientVertical } from "../pipeStyles.js";
 
 const COMPACT_TOPBAR_BUTTON_STYLE = { padding: "3px 10px", fontSize: "0.82em" };
 
-function submitScore(songId: string, difficulty: Difficulty, stars: number, fullCombo: boolean): void {
-  fetch("/api/scores", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ songId, difficulty, stars, fullCombo }),
-  }).catch(() => {});
+interface SubmitScorePayload {
+  songId: string;
+  difficulty: Difficulty;
+  stars: number;
+  fullCombo: boolean;
+  maxCombo: number;
+  starPowerPhraseBroken: boolean[];
+  minRockMeter: number;
+  failed: boolean;
+  isLateNight: boolean;
+}
+
+async function submitScore(payload: SubmitScorePayload): Promise<UnlockedAchievement[]> {
+  try {
+    const response = await fetch("/api/scores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = (await response.json()) as { unlockedAchievements?: UnlockedAchievement[] };
+    return data.unlockedAchievements ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export default function GamePage({
@@ -60,25 +79,50 @@ export default function GamePage({
   const isLandscapePhone = useMediaQuery(LANDSCAPE_MEDIA_QUERY);
   const hitLineRatio = !isTouch ? HIT_LINE_Y_RATIO : isLandscapePhone ? TOUCH_HIT_LINE_Y_RATIO_LANDSCAPE : TOUCH_HIT_LINE_Y_RATIO_PORTRAIT;
 
-  const { canvasRef, audioRef, hud, needsTapToStart, phase, results, start, pressFret, releaseFret, strum, activateStarPower } =
-    useGamePlaythrough({
-      notes,
-      chartOffsetSeconds,
-      starPowerPhrases,
-      difficulty,
-      hitLineRatio,
-      palette: themeOption.palette,
-    });
+  const {
+    canvasRef,
+    audioRef,
+    hud,
+    needsTapToStart,
+    phase,
+    results,
+    minRockMeterRef,
+    start,
+    pressFret,
+    releaseFret,
+    strum,
+    activateStarPower,
+  } = useGamePlaythrough({
+    notes,
+    chartOffsetSeconds,
+    starPowerPhrases,
+    difficulty,
+    hitLineRatio,
+    palette: themeOption.palette,
+  });
 
   const showTouchControls = isTouch && phase === "playing";
   const strumModeEnabled = getStrumModeEnabled();
+  const { notify } = useAchievementToast();
 
   useEffect(() => {
-    if (phase !== "results" || !results) return;
-    const stars = computeStars(results.hits, results.totalNotes);
-    const fullCombo = results.misses.length === 0 && results.droppedSustains.length === 0 && results.totalNotes > 0;
-    submitScore(song.id, difficulty, stars, fullCombo);
-  }, [phase, results, song.id, difficulty]);
+    if ((phase !== "results" && phase !== "failed") || !results) return;
+    const failed = phase === "failed";
+    const stars = failed ? 0 : computeStars(results.hits, results.totalNotes);
+    const fullCombo = !failed && results.misses.length === 0 && results.droppedSustains.length === 0 && results.totalNotes > 0;
+    const isLateNight = new Date().getHours() < 4;
+    submitScore({
+      songId: song.id,
+      difficulty,
+      stars,
+      fullCombo,
+      maxCombo: results.maxCombo,
+      starPowerPhraseBroken: results.starPowerPhraseBroken,
+      minRockMeter: minRockMeterRef.current,
+      failed,
+      isLateNight,
+    }).then(notify);
+  }, [phase, results, song.id, difficulty, notify, minRockMeterRef]);
 
   return (
     <Screen>

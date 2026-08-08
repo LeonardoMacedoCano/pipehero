@@ -2,7 +2,15 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { query } from "./db.js";
 import { readJsonBody, sendJson } from "./authRoutes.js";
 import { getRequestUser } from "./requestUser.js";
-import { ACHIEVEMENTS, evaluateAchievements } from "./achievements.js";
+import {
+  ACHIEVEMENTS,
+  computeGlobalUnlockPercents,
+  evaluateFailureUnlocks,
+  evaluateScoreSubmissionUnlocks,
+  gatherScoreSubmissionStats,
+  unlockMany,
+  type Achievement,
+} from "./achievements.js";
 import { DIFFICULTY_ORDER } from "../engine/availableTracks.js";
 import type { Difficulty } from "../types.js";
 
@@ -21,6 +29,11 @@ interface SubmitScoreBody {
   difficulty?: string;
   stars?: number;
   fullCombo?: boolean;
+  maxCombo?: number;
+  starPowerPhraseBroken?: boolean[];
+  minRockMeter?: number;
+  failed?: boolean;
+  isLateNight?: boolean;
 }
 
 export async function handleScoreRequest(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
@@ -34,33 +47,50 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
     }
 
     const body = await readJsonBody<SubmitScoreBody>(req);
-    const { songId, difficulty, stars, fullCombo } = body;
+    const { songId, difficulty, stars, fullCombo, maxCombo, starPowerPhraseBroken, minRockMeter, failed, isLateNight } = body;
+    const isFailedSubmission = failed === true;
+
     if (
       typeof songId !== "string" ||
       !songId ||
       typeof difficulty !== "string" ||
       !isDifficulty(difficulty) ||
-      !Number.isInteger(stars) ||
-      stars! < 0 ||
-      stars! > 5
+      (!isFailedSubmission && (!Number.isInteger(stars) || stars! < 0 || stars! > 5))
     ) {
       sendJson(res, 400, { error: "Invalid score payload" });
       return true;
     }
 
-    await query(
-      `INSERT INTO song_scores (user_id, song_id, difficulty, stars)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (user_id, song_id, difficulty)
-       DO UPDATE SET
-         stars = GREATEST(song_scores.stars, EXCLUDED.stars),
-         achieved_at = CASE WHEN EXCLUDED.stars > song_scores.stars THEN EXCLUDED.achieved_at ELSE song_scores.achieved_at END`,
-      [user.id, songId, difficulty, stars]
-    );
+    let unlockedAchievements: Achievement[];
 
-    await evaluateAchievements(user.id, { fullCombo: Boolean(fullCombo) });
+    if (isFailedSubmission) {
+      unlockedAchievements = await unlockMany(user.id, evaluateFailureUnlocks());
+    } else {
+      await query(
+        `INSERT INTO song_scores (user_id, song_id, difficulty, stars)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (user_id, song_id, difficulty)
+         DO UPDATE SET
+           stars = GREATEST(song_scores.stars, EXCLUDED.stars),
+           achieved_at = CASE WHEN EXCLUDED.stars > song_scores.stars THEN EXCLUDED.achieved_at ELSE song_scores.achieved_at END`,
+        [user.id, songId, difficulty, stars]
+      );
 
-    sendJson(res, 200, { ok: true });
+      const stats = await gatherScoreSubmissionStats(user.id, {
+        songId,
+        difficulty,
+        stars: stars!,
+        fullCombo: Boolean(fullCombo),
+        maxCombo: Number.isFinite(maxCombo) ? maxCombo! : 0,
+        starPowerPhraseBroken: Array.isArray(starPowerPhraseBroken) ? starPowerPhraseBroken : [],
+        minRockMeter: Number.isFinite(minRockMeter) ? minRockMeter! : 100,
+        failed: false,
+        isLateNight: Boolean(isLateNight),
+      });
+      unlockedAchievements = await unlockMany(user.id, evaluateScoreSubmissionUnlocks(stats));
+    }
+
+    sendJson(res, 200, { ok: true, unlockedAchievements });
     return true;
   }
 
@@ -91,6 +121,7 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
         )
       : [];
     const unlockedByCode = new Map(unlocked.map((row) => [row.code, row.unlocked_at]));
+    const globalUnlockPercents = await computeGlobalUnlockPercents();
 
     sendJson(
       res,
@@ -99,6 +130,7 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
         ...achievement,
         unlocked: unlockedByCode.has(achievement.code),
         unlockedAt: unlockedByCode.get(achievement.code) ?? null,
+        globalUnlockPercent: globalUnlockPercents.get(achievement.code) ?? 0,
       }))
     );
     return true;

@@ -90,6 +90,7 @@ export function useGamePlaythrough({
   const endedAtRef = useRef<number | null>(null);
   const failedAtRef = useRef<number | null>(null);
   const resultsSnapshotRef = useRef<GameState | null>(null);
+  const minRockMeterRef = useRef<number>(100);
 
   const noteByKey = useMemo(() => {
     const map = new Map<string, Note>();
@@ -200,6 +201,7 @@ export function useGamePlaythrough({
     }
 
     const state = playthrough.getState();
+    minRockMeterRef.current = Math.min(minRockMeterRef.current, state.rockMeter);
     if (state.failed && failedAtRef.current === null) {
       failedAtRef.current = performance.now();
       resultsSnapshotRef.current = state;
@@ -276,6 +278,7 @@ export function useGamePlaythrough({
     endedAtRef.current = null;
     failedAtRef.current = null;
     resultsSnapshotRef.current = null;
+    minRockMeterRef.current = 100;
     setResults(null);
     setPhase("playing");
     try {
@@ -460,5 +463,19 @@ export function useGamePlaythrough({
     true
   );
 
-  return { canvasRef, audioRef, hud, needsTapToStart, phase, results, start, stop, pressFret, releaseFret, strum, activateStarPower };
+  return {
+    canvasRef,
+    audioRef,
+    hud,
+    needsTapToStart,
+    phase,
+    results,
+    minRockMeterRef,
+    start,
+    stop,
+    pressFret,
+    releaseFret,
+    strum,
+    activateStarPower,
+  };
 }

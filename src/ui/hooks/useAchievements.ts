@@ -4,8 +4,10 @@ export interface AchievementStatus {
   code: string;
   name: string;
   description: string;
+  icon: string;
   unlocked: boolean;
   unlockedAt: string | null;
+  globalUnlockPercent: number;
 }
 
 export function useAchievements(): { achievements: AchievementStatus[] | null; isLoading: boolean } {

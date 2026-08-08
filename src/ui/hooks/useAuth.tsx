@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useAchievementToast, type UnlockedAchievement } from "../components/chrome/AchievementToastProvider.js";
 
 export interface AuthUser {
   name: string;
@@ -20,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [googleClientId, setGoogleClientId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { notify } = useAchievementToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -43,16 +45,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (credential: string) => {
-    const response = await fetch("/api/auth/google", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ credential }),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = (await response.json()) as { user: AuthUser };
-    setUser(data.user);
-  }, []);
+  const login = useCallback(
+    async (credential: string) => {
+      const response = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = (await response.json()) as { user: AuthUser; unlockedAchievements?: UnlockedAchievement[] };
+      setUser(data.user);
+      notify(data.unlockedAchievements ?? []);
+    },
+    [notify]
+  );
 
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" });
