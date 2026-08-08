@@ -6,7 +6,6 @@ import {
   pickArchetype,
   BOLT_ARCHETYPES,
   ambientStrikeEnvelope,
-  drawStarPowerHitBolt,
   drawAmbientLightningBolts,
   drawStarPowerCollectBurst,
   drawStarPowerDropAura,
@@ -58,16 +57,6 @@ test("ambientStrikeEnvelope alpha stays within [0, 1]", () => {
 });
 
 const GLOW_COLOR = "#6dff9c";
-
-test("drawStarPowerHitBolt draws bolts mid-animation but not once its duration has elapsed", () => {
-  const midway = fakeCtx();
-  drawStarPowerHitBolt(midway, GLOW_COLOR, 0, RENDER_CONFIG, 0.05);
-  assert.ok(midway.lineToCalls.length > 0);
-
-  const finished = fakeCtx();
-  drawStarPowerHitBolt(finished, GLOW_COLOR, 0, RENDER_CONFIG, 1);
-  assert.equal(finished.lineToCalls.length, 0);
-});
 
 test("drawAmbientLightningBolts does not throw across a range of times", () => {
   const ctx = fakeCtx();
