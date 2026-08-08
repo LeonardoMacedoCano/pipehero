@@ -1,3 +1,16 @@
+diff --git a/node_modules/parsehero/dist/index.js b/node_modules/parsehero/dist/index.js
+index 9b1d45a..7b80a9c 100644
+--- a/node_modules/parsehero/dist/index.js
++++ b/node_modules/parsehero/dist/index.js
+@@ -427,7 +427,7 @@ const requiredSections = ["Song", "SyncTrack"];
+ const sectionTitleRegex = /^\[(.+)\]$/;
+ const commonLineRegex = /^(.+)\s+=\s+(.+)$/;
+ const quotedStringRegex = /^\"|\"$/g;
+-const syncTrackEventRegex = /^(TS|B)\s+(.+)/;
++const syncTrackEventRegex = /^(\S+)\s+(.+)/;
+ const simpleEventRegex = /^E\s+(.+)/;
+ const starPowerEventRegex = /^S\s+2\s+(\d+)/;
+ const noteEventRegex = /^N\s+(\d+)\s+(\d+)/;
 diff --git a/node_modules/parsehero/package.json b/node_modules/parsehero/package.json
 index 3ce68ad..be043fd 100644
 --- a/node_modules/parsehero/package.json
