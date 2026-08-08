@@ -127,11 +127,16 @@ export function createGameEngine(
 
   function isHighestForTarget(target: Fret): boolean {
     if (!heldFrets.has(target)) return false;
-    const targetRank = FRET_RANK[target];
+    return isHighestForChord([target]);
+  }
+
+  function isHighestForChord(frets: readonly Fret[]): boolean {
+    const targetRanks = frets.map((fret) => FRET_RANK[fret]).filter((rank): rank is number => rank !== undefined);
+    const maxTargetRank = targetRanks.length > 0 ? Math.max(...targetRanks) : undefined;
     for (const fret of heldFrets) {
-      if (fret === target || sustainOwnerByFret.has(fret)) continue;
+      if (frets.includes(fret) || sustainOwnerByFret.has(fret)) continue;
       const rank = FRET_RANK[fret];
-      if (rank !== undefined && (targetRank === undefined || rank > targetRank)) return false;
+      if (rank !== undefined && (maxTargetRank === undefined || rank > maxTargetRank)) return false;
     }
     return true;
   }
@@ -145,7 +150,7 @@ export function createGameEngine(
     return findNearestPending(time, (event) => {
       if (event.frets.length === 1 && event.frets[0] === 7) return openReady;
       if (!event.frets.every((fret) => heldFrets.has(fret))) return false;
-      return event.frets.length === 1 ? isHighestForTarget(event.frets[0]) : true;
+      return isHighestForChord(event.frets);
     });
   }
 
@@ -233,6 +238,7 @@ export function createGameEngine(
   }
 
   function update(currentTime: number): GameEvent[] {
+    if (!Number.isFinite(currentTime)) return [];
     const newlyMissed: GameEvent[] = [];
     for (const event of pending) {
       if (event.state === "pending" && currentTime - event.time > windows.good) {
