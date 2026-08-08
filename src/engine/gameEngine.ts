@@ -228,7 +228,7 @@ export function createGameEngine(
     heldFrets.delete(fret);
     const event = sustainOwnerByFret.get(fret);
     if (event) {
-      finalizeSustain(event, time < event.time + event.duration);
+      finalizeSustain(event, time < event.time + event.duration - windows.good);
     }
   }
 
