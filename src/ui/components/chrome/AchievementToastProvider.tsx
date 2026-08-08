@@ -57,7 +57,7 @@ export function AchievementToastStack({ onView }: { onView: () => void }) {
   return (
     <Stack>
       {toasts.map((toast) => (
-        <AchievementToastCard key={toast.id} toast={toast} onView={onView} onDismiss={() => dismiss(toast.id)} />
+        <AchievementToastCard key={toast.id} toast={toast} onView={onView} onDismiss={dismiss} />
       ))}
     </Stack>
   );
@@ -70,16 +70,16 @@ function AchievementToastCard({
 }: {
   toast: QueuedToast;
   onView: () => void;
-  onDismiss: () => void;
+  onDismiss: (id: number) => void;
 }) {
   useEffect(() => {
-    const timer = setTimeout(onDismiss, AUTO_DISMISS_MS);
+    const timer = setTimeout(() => onDismiss(toast.id), AUTO_DISMISS_MS);
     return () => clearTimeout(timer);
-  }, [onDismiss]);
+  }, [onDismiss, toast.id]);
 
   function handleActivate() {
     onView();
-    onDismiss();
+    onDismiss(toast.id);
   }
 
   return (
@@ -101,7 +101,7 @@ function AchievementToastCard({
         type="button"
         onClick={(event) => {
           event.stopPropagation();
-          onDismiss();
+          onDismiss(toast.id);
         }}
         aria-label="Dismiss"
       >
