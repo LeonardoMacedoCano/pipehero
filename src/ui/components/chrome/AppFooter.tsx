@@ -10,7 +10,6 @@ export default function AppFooter() {
       <LinkButton type="button" onClick={() => setPrivacyOpen(true)}>
         Privacy Policy
       </LinkButton>
-      <Disclaimer>Fan-made project, not affiliated with or endorsed by Harmonix, Guitar Hero, or Clone Hero.</Disclaimer>
 
       <PrivacyPolicyModal isOpen={privacyOpen} onClose={() => setPrivacyOpen(false)} />
     </Footer>
@@ -18,28 +17,25 @@ export default function AppFooter() {
 }
 
 const Footer = styled.footer`
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding-top: 16px;
+  justify-content: center;
+  padding: 6px 12px 4px;
+  background-color: ${({ theme }) => theme.colors.black};
+  border-top: 1px solid ${({ theme }) => theme.colors.gray};
   text-align: center;
 `;
 
 const LinkButton = styled.button`
-  color: ${({ theme }) => theme.colors.tertiary};
-  text-decoration: underline;
-  font-size: 0.85em;
+  color: ${({ theme }) => theme.colors.gray};
+  font-style: italic;
+  font-size: 0.7em;
 
   &:hover {
     color: ${({ theme }) => theme.colors.white};
   }
-`;
-
-const Disclaimer = styled.p`
-  margin: 0;
-  color: ${({ theme }) => theme.colors.tertiary};
-  font-size: 0.75em;
-  opacity: 0.7;
-  max-width: 480px;
 `;
