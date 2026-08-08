@@ -8,7 +8,7 @@ export default function AppFooter() {
   return (
     <Footer>
       <Disclaimer>
-        Fan-made project, not affiliated with or endorsed by Harmonix, Guitar Hero, or Clone Hero. &middot;{" "}
+        <FullText>Fan-made project, not affiliated with or endorsed by Harmonix, Guitar Hero, or Clone Hero. &middot; </FullText>
         <LinkButton type="button" onClick={() => setPrivacyOpen(true)}>
           Privacy Policy
         </LinkButton>
@@ -34,16 +34,21 @@ const Footer = styled.footer`
 
 const Disclaimer = styled.p`
   margin: 0;
-  color: ${({ theme }) => theme.colors.tertiary};
+  color: ${({ theme }) => theme.colors.quaternary};
   font-size: 0.7em;
-  opacity: 0.7;
   white-space: nowrap;
-  overflow-x: auto;
-  max-width: 100%;
+`;
+
+const FullText = styled.span`
+  display: none;
+
+  @media (min-width: 700px) {
+    display: inline;
+  }
 `;
 
 const LinkButton = styled.button`
-  color: ${({ theme }) => theme.colors.tertiary};
+  color: ${({ theme }) => theme.colors.quaternary};
   text-decoration: underline;
   font-size: inherit;
 
