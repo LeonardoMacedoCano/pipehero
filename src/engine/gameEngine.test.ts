@@ -457,6 +457,21 @@ test("star power: drains over time while active, via update()", () => {
   assert.ok(state.starPowerMeter < 100);
 });
 
+test("star power: a non-finite update() is ignored instead of poisoning the meter with NaN forever", () => {
+  const events = [event({ time: 1.0, frets: [0] })];
+  const starPowerPhrases = [{ startTime: 0, endTime: 2 }];
+  const engine = createGameEngine(events, { starPowerPhrases });
+
+  engine.update(0.5);
+  engine.update(NaN);
+  engine.handleKeyDown(0, 1.0);
+  engine.activateStarPower();
+  engine.update(1.1);
+
+  const state = engine.getState();
+  assert.ok(Number.isFinite(state.starPowerMeter));
+});
+
 test("without star power phrases (parameter omitted), the engine works normally", () => {
   const engine = createGameEngine([event({ time: 1.0, frets: [0] })]);
   engine.handleKeyDown(0, 1.0);
@@ -663,6 +678,22 @@ test("strum mode: chords require the exact combination at the moment of the stru
   engine.handleKeyDown(2, 1.0);
   const complete = engine.strum(1.0);
   assert.equal(complete.type, "judged");
+});
+
+test("strum mode: a held fret outside the chord blocks it, same as the single-note anchoring rule", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0, 2], isChord: true })], { strumMode: true });
+  engine.handleKeyDown(0, 1.0);
+  engine.handleKeyDown(2, 1.0);
+  engine.handleKeyDown(4, 1.0);
+  assert.equal(engine.strum(1.0).type, "whiffed");
+});
+
+test("strum mode: an anchored lower fret below the chord's highest note doesn't block it", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [2, 3], isChord: true })], { strumMode: true });
+  engine.handleKeyDown(0, 0.9);
+  engine.handleKeyDown(2, 1.0);
+  engine.handleKeyDown(3, 1.0);
+  assert.equal(engine.strum(1.0).type, "judged");
 });
 
 test("strum mode: highest fret wins — holding an extra higher fret blocks a single note, regardless of press order", () => {

@@ -46,7 +46,13 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
       return true;
     }
 
-    const body = await readJsonBody<SubmitScoreBody>(req);
+    let body: SubmitScoreBody;
+    try {
+      body = await readJsonBody<SubmitScoreBody>(req);
+    } catch {
+      sendJson(res, 400, { error: "Invalid JSON body" });
+      return true;
+    }
     const { songId, difficulty, stars, fullCombo, maxCombo, starPowerPhraseBroken, minRockMeter, failed, isLateNight } = body;
     const isFailedSubmission = failed === true;
 

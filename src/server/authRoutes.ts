@@ -55,9 +55,16 @@ function clearSessionCookie(res: ServerResponse): void {
   res.setHeader("Set-Cookie", `${SESSION_COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`);
 }
 
+const MAX_JSON_BODY_BYTES = 1024 * 1024;
+
 export async function readJsonBody<T>(req: IncomingMessage): Promise<T> {
   const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(chunk as Buffer);
+  let totalBytes = 0;
+  for await (const chunk of req) {
+    totalBytes += (chunk as Buffer).length;
+    if (totalBytes > MAX_JSON_BODY_BYTES) throw new Error("Request body too large");
+    chunks.push(chunk as Buffer);
+  }
   const raw = Buffer.concat(chunks).toString("utf8");
   return raw ? (JSON.parse(raw) as T) : ({} as T);
 }
