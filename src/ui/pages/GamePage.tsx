@@ -81,7 +81,7 @@ export default function GamePage({
 
   const {
     canvasRef,
-    audioRef,
+    getAudioRef,
     hud,
     needsTapToStart,
     phase,
@@ -166,7 +166,9 @@ export default function GamePage({
         {phase === "results" && results && <ResultsOverlay song={song} results={results} onBack={onBack} />}
         {phase === "failed" && results && <FailedOverlay song={song} results={results} onBack={onBack} onRetry={start} />}
 
-        <audio ref={audioRef} src={song.audioUrl ?? ""} preload="auto" />
+        {song.audioUrls.map((url, index) => (
+          <audio key={url} ref={getAudioRef(index)} src={url} preload="auto" />
+        ))}
       </CanvasArea>
     </Screen>
   );

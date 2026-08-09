@@ -48,6 +48,9 @@ export type GamePhase = "playing" | "results" | "failed";
 
 const HIGHWAY_BUILD_INTRO_MS = 550;
 const HIGHWAY_BUILD_OUTRO_MS = 500;
+const AUDIO_SOFT_RESYNC_THRESHOLD_SECONDS = 0.02;
+const AUDIO_HARD_RESYNC_THRESHOLD_SECONDS = 0.3;
+const AUDIO_RESYNC_RATE_NUDGE = 0.02;
 
 function easeOutCubic(t: number): number {
   const clamped = Math.min(1, Math.max(0, t));
@@ -75,7 +78,21 @@ export function useGamePlaythrough({
   palette: Palette;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioElementsRef = useRef<(HTMLAudioElement | null)[]>([]);
+  const audioRefCallbacksRef = useRef<Map<number, (el: HTMLAudioElement | null) => void>>(new Map());
+  const getAudioRef = useCallback((index: number) => {
+    let callback = audioRefCallbacksRef.current.get(index);
+    if (!callback) {
+      callback = (el) => {
+        audioElementsRef.current[index] = el;
+      };
+      audioRefCallbacksRef.current.set(index, callback);
+    }
+    return callback;
+  }, []);
+  const pauseAllAudio = useCallback(() => {
+    for (const el of audioElementsRef.current) el?.pause();
+  }, []);
   const playthroughRef = useRef<ReturnType<typeof createPlaythrough> | null>(null);
   const rafRef = useRef<number | null>(null);
   const judgedHitsRef = useRef<Map<string, number>>(new Map());
@@ -111,12 +128,12 @@ export function useGamePlaythrough({
   const stop = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
-    audioRef.current?.pause();
-  }, []);
+    pauseAllAudio();
+  }, [pauseAllAudio]);
 
   const createFreshPlaythrough = useCallback(() => {
-    if (!notes || !audioRef.current) return null;
-    const audio = audioRef.current;
+    const audio = audioElementsRef.current[0];
+    if (!notes || !audio) return null;
     playthroughRef.current = createPlaythrough({
       notes,
       offsetSeconds: (chartOffsetSeconds ?? 0) + getCalibration(),
@@ -131,10 +148,26 @@ export function useGamePlaythrough({
   const loop = useCallback(() => {
     const playthrough = playthroughRef.current;
     const canvas = canvasRef.current;
-    const audio = audioRef.current;
+    const audioElements = audioElementsRef.current;
+    const audio = audioElements[0];
     if (!playthrough || !canvas || !audio || !notes) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    for (let i = 1; i < audioElements.length; i++) {
+      const secondary = audioElements[i];
+      if (!secondary) continue;
+      const drift = secondary.currentTime - audio.currentTime;
+      const absDrift = Math.abs(drift);
+      if (absDrift > AUDIO_HARD_RESYNC_THRESHOLD_SECONDS) {
+        secondary.currentTime = audio.currentTime;
+        secondary.playbackRate = 1;
+      } else if (absDrift > AUDIO_SOFT_RESYNC_THRESHOLD_SECONDS) {
+        secondary.playbackRate = 1 - Math.sign(drift) * AUDIO_RESYNC_RATE_NUDGE;
+      } else if (secondary.playbackRate !== 1) {
+        secondary.playbackRate = 1;
+      }
+    }
 
     const graphicsSettings = graphicsSettingsFor(getGraphicsQuality());
     const config = createRenderConfig(
@@ -210,7 +243,7 @@ export function useGamePlaythrough({
     if (state.failed && failedAtRef.current === null) {
       failedAtRef.current = performance.now();
       resultsSnapshotRef.current = state;
-      audio.pause();
+      pauseAllAudio();
       playBooSound();
     }
     const previouslyHoldingKeys = holdingKeysRef.current;
@@ -265,14 +298,17 @@ export function useGamePlaythrough({
     if (!audio.paused || failedAtRef.current !== null) {
       rafRef.current = requestAnimationFrame(loop);
     }
-  }, [notes, noteByKey]);
+  }, [notes, noteByKey, pauseAllAudio]);
 
   const start = useCallback(async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    const audioElements = audioElementsRef.current.filter((el): el is HTMLAudioElement => el !== null);
+    if (audioElements.length === 0) return;
     stop();
     createFreshPlaythrough();
-    audio.currentTime = 0;
+    for (const audio of audioElements) {
+      audio.currentTime = 0;
+      audio.playbackRate = 1;
+    }
     judgedHitsRef.current.clear();
     missedKeysRef.current.clear();
     errorClicksRef.current.clear();
@@ -287,11 +323,12 @@ export function useGamePlaythrough({
     setResults(null);
     setPhase("playing");
     try {
-      await audio.play();
+      await Promise.all(audioElements.map((audio) => audio.play()));
       setNeedsTapToStart(false);
       introStartRef.current = performance.now();
       rafRef.current = requestAnimationFrame(loop);
     } catch {
+      for (const audio of audioElements) audio.pause();
       setNeedsTapToStart(true);
     }
   }, [stop, createFreshPlaythrough, loop]);
@@ -470,7 +507,7 @@ export function useGamePlaythrough({
 
   return {
     canvasRef,
-    audioRef,
+    getAudioRef,
     hud,
     needsTapToStart,
     phase,
