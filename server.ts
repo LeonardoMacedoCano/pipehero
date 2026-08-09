@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
-import { listSongs } from "./src/server/songLibrary.js";
+import { getSongLibrary, loadSongLibrary } from "./src/server/songLibrary.js";
 import { handleAuthRequest } from "./src/server/authRoutes.js";
 import { handleScoreRequest } from "./src/server/scoreRoutes.js";
 import { handleSettingsRequest } from "./src/server/settingsRoutes.js";
@@ -103,9 +103,8 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.url === "/api/songs") {
-      const songs = await listSongs(SONGS_DIR);
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
-      res.end(JSON.stringify(songs));
+      res.end(JSON.stringify(getSongLibrary()));
       return;
     }
 
@@ -121,6 +120,9 @@ const server = createServer(async (req, res) => {
     res.end("Internal Server Error");
   }
 });
+
+const songs = await loadSongLibrary(SONGS_DIR);
+console.log(`[pipehero] song library loaded: ${songs.length} song(s) from ${SONGS_DIR}`);
 
 let dbAvailable = false;
 try {

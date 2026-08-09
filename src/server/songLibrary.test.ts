@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { listSongs } from "./songLibrary.js";
+import { getSongLibrary, listSongs, loadSongLibrary } from "./songLibrary.js";
 
 function makeSongsDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "pipehero-songs-test-"));
@@ -253,6 +253,30 @@ test("availableDifficulties is empty for a chart with no note tracks, not an err
     const songMid = songs.find((s) => s.id === "song-mid")!;
     assert.deepEqual(songA.availableDifficulties, []);
     assert.deepEqual(songMid.availableDifficulties, []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("loadSongLibrary populates the cache and getSongLibrary returns the same songs", async () => {
+  const dir = makeSongsDir();
+  try {
+    const loaded = await loadSongLibrary(dir);
+    assert.equal(loaded.length, 6);
+    assert.deepEqual(getSongLibrary(), loaded);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("getSongLibrary keeps returning the cached snapshot until loadSongLibrary runs again", async () => {
+  const dir = makeSongsDir();
+  try {
+    await loadSongLibrary(dir);
+    const first = getSongLibrary();
+    rmSync(join(dir, "song-a"), { recursive: true, force: true });
+    assert.deepEqual(getSongLibrary(), first);
+    assert.ok(getSongLibrary().some((s) => s.id === "song-a"));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
