@@ -8,6 +8,7 @@ export default function CreditsModal({ isOpen, onClose }: { isOpen: boolean; onC
       title="Credits"
       onClose={onClose}
       variant="info"
+      closeButtonHint="Close"
       content={
         <Stack direction="column" gap="12px">
           <Line>

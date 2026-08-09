@@ -35,6 +35,7 @@ export default function SongOptionsModal({
       title={song?.name ?? ""}
       onClose={onClose}
       variant="info"
+      closeButtonHint="Close"
       content={
         <Content>
           <Loading isLoading={isLoading} />
