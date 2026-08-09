@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   ACHIEVEMENTS,
   evaluateFailureUnlocks,
@@ -38,6 +39,20 @@ test("achievement catalog has 16 unique, fully-populated entries", () => {
     assert.ok(achievement.name.length > 0);
     assert.ok(achievement.description.length > 0);
     assert.ok(achievement.icon.length > 0);
+  }
+});
+
+test("every achievement's name and description is documented in ACHIEVEMENTS.md", () => {
+  const docs = readFileSync(new URL("../../ACHIEVEMENTS.md", import.meta.url), "utf-8");
+  for (const achievement of ACHIEVEMENTS) {
+    assert.ok(
+      docs.includes(achievement.name),
+      `ACHIEVEMENTS.md is missing the name "${achievement.name}" (code: ${achievement.code}) — update the doc when the catalog changes.`
+    );
+    assert.ok(
+      docs.includes(achievement.description),
+      `ACHIEVEMENTS.md is missing the description for "${achievement.name}" (code: ${achievement.code}) — update the doc when the catalog changes.`
+    );
   }
 });
 

@@ -1,19 +1,39 @@
 # How to play
 
+In this guide: [Basic flow](#basic-flow) · [Controls](#controls) · [Tap vs. Strum bar](#input-mode-tap-vs-strum-bar) ·
+[Goal & difficulty](#goal--difficulty) · [Chords & sustains](#chords-and-long-notes-sustain) ·
+[Rock Meter](#rock-meter) · [Star Power](#star-power) · [Results & scoring](#results--scoring)
+
+For remapping keys, themes, graphics quality and your account, see
+[`SETTINGS.md`](./SETTINGS.md). For the full achievement list, see
+[`ACHIEVEMENTS.md`](./ACHIEVEMENTS.md).
+
 ## Basic flow
 
-1. Open the game in your browser — you land on the **main menu**.
-   Click **"Single Player"** to reach the **song menu**.
-2. Click a song. A modal opens with the **available difficulties**
-   and latency calibration.
+1. Open the game — you land on the **main menu**. Click **"Single
+   Player"** to reach the **song menu**. ("Multiplayer" and "Friends"
+   are shown as locked cards — planned, not built yet.)
+2. Click a song. A modal opens with the **available difficulties** and,
+   if you've already played it, your **best score per difficulty** as
+   stars.
 3. Click a difficulty — the game **starts playing right away**, no
    "Start" button. If the browser blocks autoplay (happens if loading
-   takes too long), a "Tap to start" overlay appears: one click fixes
-   it.
-4. To exit, use the **"« Change song"** button at the top of the game
-   screen.
+   takes too long), a "Tap to start" overlay appears: one click/tap
+   fixes it.
+4. Play until the song ends or your **Rock Meter** hits 0 (see below).
+   You land on a **results screen** either way — see
+   [Results & scoring](#results--scoring).
+5. To leave early, use the **"« Change song"** button at the top of the
+   game screen.
 
 ## Controls
+
+Three input methods, auto-detected per device — **touch** on
+phones/tablets, **keyboard** everywhere else — and always
+overridable in **Options → Controls → Input device**
+([`SETTINGS.md`](./SETTINGS.md#controls)).
+
+### Keyboard
 
 Default bindings:
 
@@ -26,47 +46,77 @@ Default bindings:
 | `L` | 5 | 🟠 Orange |
 | `Left Shift` | Activate Star Power | — |
 
-Every action can be remapped to a different keyboard key **or** to a
-gamepad/joystick button (e.g. a PC guitar that the OS sees as a
-controller) from **Options → Controls**.
+Every action is remappable from **Options → Controls** — see
+[`SETTINGS.md`](./SETTINGS.md#controls).
 
-### Input mode: Tap vs. Strum bar
+### Gamepad
 
-Also in **Options → Controls**, a toggle switches how notes register:
+Any device the OS reports as a gamepad works out of the box — including
+a PC guitar controller. Map any action to a gamepad button the same way
+you'd remap a key, from **Options → Controls**.
 
-- **Tap** (default): pressing the right fret key by itself hits the
-  note — no strumming needed. Has a dedicated `Space` key for the
-  **Open** note (no fret held).
-- **Strum bar**: holding a fret key does nothing by itself — you also
-  need to strum, `↑`/`↓` by default (remappable, direction doesn't
-  matter). Closer to how a real guitar controller works: hold the
-  right fret(s), then strum to register the hit. There's no separate
-  Open key here — an Open note is hit by strumming while **no**
-  colored fret is held, same as on real hardware.
+### Touch (phone / tablet)
 
-The Controls list only shows the bindings that apply to the mode
-you're in.
+There's no separate row of on-screen buttons — **the colored pipes at
+the bottom of the highway are the buttons**: tap a pipe to hit that
+lane, keep your finger down through a sustain. In **Tap** mode, tapping
+anywhere else in the play area (not on a pipe) hits the **Open** note.
+To activate **Star Power**, tap the meter in the top-right corner
+instead of pressing a key.
 
-## Goal
+Both orientations are fully playable, no rotation forced — landscape
+gives the 5 lanes more horizontal spacing and is generally the more
+comfortable one for two-thumb play; portrait works just as well.
+Either way the HUD auto-shrinks on small screens so it never overlaps
+the highway.
+
+<table>
+<tr><td align="center">
+
+![Desktop gameplay on Expert difficulty, several notes on the highway and the splash effect of a note just hit](./public/screenshot-gameplay.png)
+<sub>Desktop, keyboard</sub>
+
+</td><td align="center">
+
+![Phone gameplay in landscape orientation, wider highway and the touch lane highlighted where a note was just hit](./public/screenshot-gameplay-mobile.png)
+<sub>Phone, landscape, touch</sub>
+
+</td></tr>
+</table>
+
+## Input mode: Tap vs. Strum bar
+
+Also in **Options → Controls**, a toggle switches how notes register —
+applies to keyboard, gamepad and touch alike:
+
+- **Tap** (default): pressing the right fret by itself hits the note —
+  no strumming needed. Has a dedicated `Space` key for the **Open**
+  note (no fret held); on touch, tapping outside any pipe does the
+  same.
+- **Strum bar**: holding a fret does nothing by itself — you also need
+  to strum, `↑`/`↓` by default (remappable, direction doesn't matter;
+  on touch, tap anywhere in the play area with a second finger while
+  holding a pipe). Closer to how a real guitar controller works: hold
+  the right fret(s), then strum to register the hit. There's no
+  separate Open key here — an Open note is hit by strumming while
+  **no** colored fret is held, same as on real hardware.
+
+The Controls list in Settings only shows the bindings that apply to the
+mode you're in.
+
+## Goal & difficulty
 
 Press the right key exactly when the note (drop) reaches the pipe
 mouth at the bottom of the screen. The closer to the exact time, the
 better the judgment — and the higher the score.
 
-## Difficulty
-
 The difficulty chosen in the modal doesn't just change the chart's
-note density — it also changes how precise your timing needs to be:
-
-| Difficulty | "Perfect" window | "Good" window |
-|---|---|---|
-| Expert | ±50ms | ±140ms |
-| Hard | ±70ms | ±170ms |
-| Medium | ±90ms | ±200ms |
-| Easy | ±120ms | ±240ms |
-
-Outside these windows, the note counts as a miss (the drop falls and
-fades away — no extra penalty, it just doesn't score).
+note density — it also changes how precise your timing needs to be.
+Every difficulty judges a hit as **Perfect** (closest), **Good**
+(a bit off), or a **Miss** (too far off to count), with Expert
+demanding the tightest timing and Easy the most forgiving. A miss
+carries no extra penalty beyond losing the score — the drop just falls
+and fades.
 
 ## Chords and long notes (sustain)
 
@@ -79,54 +129,62 @@ fades away — no extra penalty, it just doesn't score).
 
 ## Rock Meter
 
-A meter from **0 to 100** (starts at 50) tracks how the crowd feels
-about your playing:
+A meter that starts half-full and tracks how the crowd feels about
+your playing: it builds a little on every hit, and drains faster on a
+miss or a wrong key — pressing wrong when nothing is actually due
+still costs you, just less than an outright miss. Any miss or wrong
+press also resets your combo streak.
 
-| Action | Rock Meter |
-|---|---|
-| Hit a note | +1 |
-| Miss a note (nothing pressed in time) | -3 |
-| Wrong key while a note is actually due | -3 — same as missing it |
-| Wrong key with nothing due nearby | -1 — still costs you, just less |
+It runs through four zones, mostly visual except the bottom one:
+**Critical** (near empty — one more slip and you fail), **Red**,
+**Yellow** (where a song starts), and **Green** (full). Activating
+**Star Power while in the critical zone** makes every hit worth much
+more — a genuine last-second comeback tool, same as in Guitar Hero
+III.
 
-Any miss or wrong press also resets your combo streak.
-
-Four zones, mostly visual — except the bottom one:
-
-| Zone | Range |
-|---|---|
-| Critical | 0–9 |
-| Red | 10–32 |
-| Yellow | 33–65 (song starts here) |
-| Green | 66–100 |
-
-**Activate Star Power while in the critical zone and every hit is
-worth 4x** (+4 instead of +1) — a genuine last-second comeback tool,
-same as in Guitar Hero III.
-
-**Reach 0 and the song ends immediately** — same as running out of
-health in Guitar Hero/Rock Band, no continuing from where you left
-off.
+**Reach empty and the song ends immediately** — same as running out
+of health in Guitar Hero/Rock Band, no continuing from where you left
+off. You land on a "Booed off stage!" screen with **Try again** (same
+difficulty, instantly) or **Back to menu**.
 
 ## Star Power
 
 - Certain stretches of a song are **Star Power** phrases — hitting
   notes within them fills the meter (top-right corner).
-- With the meter at **50% or more**, press **Left Shift** (or
-  whatever it's remapped to) to activate.
-- While active, score **doubles**. The meter drains on its own —
-  about **12.5 seconds** if activated right at 50%, up to **25
-  seconds** if you wait for a full 100% charge.
-- Also boosts the **Rock Meter** while it's in the critical zone (see
+- Once it's charged past its activation threshold, press **Left
+  Shift** (keyboard), the mapped gamepad button, or **tap the meter**
+  (touch) to activate.
+- While active, **score doubles**, and the meter drains gradually on
+  its own — the fuller it was when you activated, the longer it lasts.
+- Also rescues the **Rock Meter** while it's in the critical zone (see
   above) — worth saving for a near-fail moment.
+
+## Results & scoring
+
+**Finishing** a song shows a full results screen:
+
+| Stat | What it means |
+|---|---|
+| Score | Total points, boosted by combo multiplier and Star Power |
+| Stars (0–5) | Weighted accuracy — Perfect hits count double, Good hits count once, against the total note count |
+| Max combo | Longest streak without a miss or wrong press |
+| Accuracy | % of notes hit (Perfect + Good) |
+| Perfect / Good / Miss | Count of each judgment |
+| Dropped | Sustains released early (only shown if it happened) |
+
+Near-perfect accuracy earns the full 5 stars, dropping down a star at a
+time as accuracy falls off.
+
+**Failing** (Rock Meter hit 0) skips the breakdown — you just see your
+Score on a "Booed off stage!" screen, always at 0 stars, with **Try
+again** or **Back to menu**.
 
 ## Latency calibration
 
 If notes always seem early or late relative to the sound you hear,
-adjust the calibration **before you start playing**, in **Options →
-Account** (`−10ms` / `+10ms` buttons). No login required — the value is
-saved in the browser for future sessions, and also synced to your
-account if you're logged in with Google.
+adjust the calibration in **Options → Account** (`−10ms` / `+10ms`
+buttons) before you start playing. No login required — see
+[`SETTINGS.md`](./SETTINGS.md#account) for how it's saved and synced.
 
 ## Where the songs come from
 
