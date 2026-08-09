@@ -11,6 +11,8 @@ import {
   drawStarPowerDropAura,
   drawStarPowerDropRim,
   drawStarPowerSparks,
+  drawStarPowerHighwayWash,
+  starPowerHighwayPulse,
 } from "./starPowerFx.js";
 import { RENDER_CONFIG } from "./layout.js";
 import { fakeCtx } from "./testCanvas.js";
@@ -80,4 +82,17 @@ test("drawStarPowerDropAura and drawStarPowerDropRim do not throw", () => {
 test("drawStarPowerSparks does not throw", () => {
   const ctx = fakeCtx();
   assert.doesNotThrow(() => drawStarPowerSparks(ctx, GLOW_COLOR, 10, 10, 20, 0.5, 3));
+});
+
+test("starPowerHighwayPulse stays within [0, 1]", () => {
+  for (let t = 0; t < 5; t += 0.1) {
+    const pulse = starPowerHighwayPulse(t);
+    assert.ok(pulse >= 0 && pulse <= 1, `t=${t} produced pulse ${pulse}`);
+  }
+});
+
+test("drawStarPowerHighwayWash fills the highway trapezoid without throwing", () => {
+  const ctx = fakeCtx();
+  assert.doesNotThrow(() => drawStarPowerHighwayWash(ctx, GLOW_COLOR, RENDER_CONFIG, 0.3));
+  assert.ok(ctx.fillStyles.length > 0, "expected a fill to have been issued");
 });

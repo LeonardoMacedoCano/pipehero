@@ -28,6 +28,8 @@ import {
   drawStarPowerDropHalo,
   drawStarPowerDropRim,
   drawStarPowerSparks,
+  drawStarPowerHighwayWash,
+  starPowerHighwayPulse,
 } from "./starPowerFx.js";
 
 export const ABSORB_DURATION_SECONDS = 0.3;
@@ -185,15 +187,18 @@ function drawFretboardGrid(
   config: RenderConfig,
   currentTime: number,
   laneGridStrokeColors: Map<Fret, string>,
-  gridLineStrokeColor: string
+  gridLineStrokeColor: string,
+  starPowerGlowColor: string | null = null
 ): void {
   const lastFret = config.laneOrder[config.laneOrder.length - 1];
   const firstFret = config.laneOrder[0];
+  const glowMix = starPowerGlowColor ? 0.3 + 0.3 * starPowerHighwayPulse(currentTime) : 0;
 
   ctx.lineWidth = 2;
   ctx.globalAlpha = 0.75;
   for (const fret of config.laneOrder) {
-    ctx.strokeStyle = laneGridStrokeColors.get(fret) ?? gridLineStrokeColor;
+    const baseStroke = laneGridStrokeColors.get(fret) ?? gridLineStrokeColor;
+    ctx.strokeStyle = starPowerGlowColor ? mix(baseStroke, starPowerGlowColor, glowMix) : baseStroke;
     ctx.beginPath();
     ctx.moveTo(laneX(fret, 0, config), 0);
     ctx.lineTo(laneX(fret, 1, config), config.hitLineY);
@@ -201,7 +206,7 @@ function drawFretboardGrid(
   }
   ctx.globalAlpha = 1;
 
-  ctx.strokeStyle = gridLineStrokeColor;
+  ctx.strokeStyle = starPowerGlowColor ? mix(gridLineStrokeColor, starPowerGlowColor, glowMix) : gridLineStrokeColor;
   const firstLineTime = Math.ceil(currentTime / GRID_LINE_SPACING_SECONDS) * GRID_LINE_SPACING_SECONDS;
   for (let t = firstLineTime; t <= currentTime + config.approachTime; t += GRID_LINE_SPACING_SECONDS) {
     const progress = visualProgress(progressFor(t, currentTime, config), config);
@@ -694,7 +699,15 @@ export function drawFrame(
     lastErrorAt === null ? 0 : 1 - clamp01((currentTime - lastErrorAt) / RAIL_MISS_FADE_SECONDS);
 
   drawLaneBeams(ctx, config, frameStyles.laneBeamGradients);
-  drawFretboardGrid(ctx, config, currentTime, frameStyles.laneGridStrokeColors, frameStyles.gridLineStrokeColor);
+  if (intense) drawStarPowerHighwayWash(ctx, palette.info, config, currentTime);
+  drawFretboardGrid(
+    ctx,
+    config,
+    currentTime,
+    frameStyles.laneGridStrokeColors,
+    frameStyles.gridLineStrokeColor,
+    intense ? palette.info : null
+  );
   drawEdgeRail(ctx, -1, config, railMissIntensity, palette);
   drawEdgeRail(ctx, 1, config, railMissIntensity, palette);
   for (const fret of config.laneOrder) {
