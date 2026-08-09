@@ -30,6 +30,19 @@ async function findFirstFileByExtensions(songPath: string, extensions: string[])
   return entries.find((file) => extensions.some((ext) => file.toLowerCase().endsWith(ext))) ?? null;
 }
 
+function fileStem(filename: string): string {
+  const dot = filename.lastIndexOf(".");
+  return dot === -1 ? filename : filename.slice(0, dot);
+}
+
+async function findAudioFiles(songPath: string): Promise<string[]> {
+  const entries = await readdir(songPath);
+  return entries
+    .filter((file) => AUDIO_EXTENSIONS.some((ext) => file.toLowerCase().endsWith(ext)))
+    .filter((file) => fileStem(file).toLowerCase() !== "preview")
+    .sort();
+}
+
 function toNumberOrNull(value: string | undefined): number | null {
   if (value === undefined) return null;
   const n = Number(value);
@@ -77,7 +90,7 @@ export async function listSongs(songsDir: string): Promise<Song[]> {
       metadata = parseIni(raw).song ?? {};
     }
 
-    const audioFile = await findFirstFileByExtensions(songPath, AUDIO_EXTENSIONS);
+    const audioFiles = await findAudioFiles(songPath);
     const coverFile = await findFirstFileByExtensions(songPath, IMAGE_EXTENSIONS);
     const previewStartMs = toNumberOrNull(metadata.preview_start_time);
     const availableDifficulties = await readAvailableDifficulties(join(songPath, chartFilename), chartFilename.endsWith(".mid") ? "mid" : "chart");
@@ -102,7 +115,7 @@ export async function listSongs(songsDir: string): Promise<Song[]> {
       },
       chartUrl: `/songs/${entry.name}/${chartFilename}`,
       chartFormat: chartFilename.endsWith(".mid") ? "mid" : "chart",
-      audioUrl: audioFile ? `/songs/${entry.name}/${audioFile}` : null,
+      audioUrls: audioFiles.map((file) => `/songs/${entry.name}/${file}`),
       coverUrl: coverFile ? `/songs/${entry.name}/${coverFile}` : null,
     });
   }

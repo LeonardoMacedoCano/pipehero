@@ -55,7 +55,7 @@ const FAKE_SONGS = [
     availableDifficulties: ["Expert"],
     chartFormat: "chart",
     chartUrl: "/songs/test-song/notes.chart",
-    audioUrl: "/songs/test-song/song.wav",
+    audioUrls: ["/songs/test-song/song.wav"],
   },
   {
     id: "other-song",
@@ -67,7 +67,7 @@ const FAKE_SONGS = [
     availableDifficulties: ["Expert", "Easy"],
     chartFormat: "chart",
     chartUrl: "/songs/other-song/notes.chart",
-    audioUrl: "/songs/other-song/song.wav",
+    audioUrls: ["/songs/other-song/song.wav"],
   },
 ];
 

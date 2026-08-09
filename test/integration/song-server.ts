@@ -31,8 +31,8 @@ try {
   checks.push({ name: "/api/songs responds 200 with JSON", ok: songsRes.status === 200 });
   checks.push({ name: "/api/songs lists at least 1 song", ok: Array.isArray(songs) && songs.length >= 1 });
   checks.push({
-    name: "each song has chartUrl and audioUrl",
-    ok: songs.every((s: { chartUrl?: unknown; audioUrl?: unknown }) => s.chartUrl && s.audioUrl),
+    name: "each song has chartUrl and at least one audioUrl",
+    ok: songs.every((s: { chartUrl?: unknown; audioUrls?: unknown }) => s.chartUrl && Array.isArray(s.audioUrls) && s.audioUrls.length > 0),
   });
 
   if (songs.length > 0) {
@@ -40,8 +40,8 @@ try {
     const chartText = await chartRes.text();
     checks.push({ name: "first song's chartUrl is reachable and looks like a .chart", ok: chartRes.status === 200 && chartText.includes("[Song]") });
 
-    const audioRes = await fetch(`${BASE_URL}${songs[0].audioUrl}`);
-    checks.push({ name: "first song's audioUrl is reachable", ok: audioRes.status === 200 });
+    const audioRes = await fetch(`${BASE_URL}${songs[0].audioUrls[0]}`);
+    checks.push({ name: "first song's first audioUrl is reachable", ok: audioRes.status === 200 });
   }
 
   const indexRes = await fetch(`${BASE_URL}/index.html`);

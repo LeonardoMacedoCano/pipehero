@@ -123,6 +123,6 @@ export interface Song {
   availableDifficulties: Difficulty[];
   chartUrl: string;
   chartFormat: "chart" | "mid";
-  audioUrl: string | null;
+  audioUrls: string[];
   coverUrl: string | null;
 }

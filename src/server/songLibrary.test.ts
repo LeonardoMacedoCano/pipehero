@@ -46,6 +46,22 @@ function makeSongsDir(): string {
   writeFileSync(join(songMid, "song.ini"), "[song]\nname = MIDI Song\nartist = Jane Doe\n");
   writeFileSync(join(songMid, "song.opus"), "");
 
+  const songWithStems = join(dir, "song-with-stems");
+  mkdirSync(songWithStems);
+  writeFileSync(join(songWithStems, "notes.chart"), "[Song]\n{\n}\n");
+  writeFileSync(join(songWithStems, "vocals.ogg"), "");
+  writeFileSync(join(songWithStems, "bass.ogg"), "");
+  writeFileSync(join(songWithStems, "drums_1.ogg"), "");
+  writeFileSync(join(songWithStems, "drums_2.ogg"), "");
+  writeFileSync(join(songWithStems, "drums_3.ogg"), "");
+  writeFileSync(join(songWithStems, "guitar.ogg"), "");
+
+  const songWithPreview = join(dir, "song-with-preview");
+  mkdirSync(songWithPreview);
+  writeFileSync(join(songWithPreview, "notes.chart"), "[Song]\n{\n}\n");
+  writeFileSync(join(songWithPreview, "guitar.ogg"), "");
+  writeFileSync(join(songWithPreview, "preview.ogg"), "");
+
   const songWithDifficulties = join(dir, "song-with-difficulties");
   mkdirSync(songWithDifficulties);
   writeFileSync(
@@ -80,7 +96,7 @@ test("lists folders that have notes.chart OR notes.mid", async () => {
   const dir = makeSongsDir();
   try {
     const songs = await listSongs(dir);
-    assert.equal(songs.length, 4);
+    assert.equal(songs.length, 6);
     assert.ok(!songs.some((s) => s.id === "folder-without-chart"));
     assert.ok(songs.some((s) => s.id === "song-mid"));
   } finally {
@@ -148,9 +164,38 @@ test("detects the audio file in several formats (ogg, mp3, opus) and builds the 
     const songA = songs.find((s) => s.id === "song-a")!;
     const songB = songs.find((s) => s.id === "song-without-ini")!;
     const songMid = songs.find((s) => s.id === "song-mid")!;
-    assert.equal(songA.audioUrl, "/songs/song-a/song.ogg");
-    assert.equal(songB.audioUrl, "/songs/song-without-ini/audio.mp3");
-    assert.equal(songMid.audioUrl, "/songs/song-mid/song.opus");
+    assert.deepEqual(songA.audioUrls, ["/songs/song-a/song.ogg"]);
+    assert.deepEqual(songB.audioUrls, ["/songs/song-without-ini/audio.mp3"]);
+    assert.deepEqual(songMid.audioUrls, ["/songs/song-mid/song.opus"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("collects every audio stem of a multitrack song (vocals, bass, drums, guitar) instead of picking just one", async () => {
+  const dir = makeSongsDir();
+  try {
+    const songs = await listSongs(dir);
+    const songWithStems = songs.find((s) => s.id === "song-with-stems")!;
+    assert.deepEqual(songWithStems.audioUrls, [
+      "/songs/song-with-stems/bass.ogg",
+      "/songs/song-with-stems/drums_1.ogg",
+      "/songs/song-with-stems/drums_2.ogg",
+      "/songs/song-with-stems/drums_3.ogg",
+      "/songs/song-with-stems/guitar.ogg",
+      "/songs/song-with-stems/vocals.ogg",
+    ]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("excludes preview.* from the stems, since it's just a short preview clip, not part of the full mix", async () => {
+  const dir = makeSongsDir();
+  try {
+    const songs = await listSongs(dir);
+    const songWithPreview = songs.find((s) => s.id === "song-with-preview")!;
+    assert.deepEqual(songWithPreview.audioUrls, ["/songs/song-with-preview/guitar.ogg"]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
