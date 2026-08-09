@@ -67,6 +67,50 @@ async function readAvailableDifficulties(chartPath: string, chartFormat: "chart"
 
 const MS_PER_SECOND = 1000;
 
+async function readSong(songsDir: string, name: string): Promise<Song | null> {
+  const songPath = join(songsDir, name);
+  const chartFilename = await findChartFile(songPath);
+  if (!chartFilename) return null;
+
+  let metadata: Record<string, string> = {};
+  const iniPath = join(songPath, "song.ini");
+  if (await pathExists(iniPath)) {
+    const raw = await readFile(iniPath, "utf-8");
+    metadata = parseIni(raw).song ?? {};
+  }
+
+  const [audioFiles, coverFile, availableDifficulties] = await Promise.all([
+    findAudioFiles(songPath),
+    findFirstFileByExtensions(songPath, IMAGE_EXTENSIONS),
+    readAvailableDifficulties(join(songPath, chartFilename), chartFilename.endsWith(".mid") ? "mid" : "chart"),
+  ]);
+  const previewStartMs = toNumberOrNull(metadata.preview_start_time);
+
+  return {
+    id: name,
+    name: metadata.name ?? name,
+    artist: metadata.artist ?? "Unknown",
+    album: metadata.album ?? "",
+    year: metadata.year ?? "",
+    charter: metadata.charter ?? "",
+    genre: metadata.genre ?? "",
+    loadingPhrase: metadata.loading_phrase ?? "",
+    previewStartSeconds: previewStartMs !== null ? previewStartMs / MS_PER_SECOND : 0,
+    availableDifficulties,
+    difficultyRatings: {
+      band: toNumberOrNull(metadata.diff_band),
+      guitar: toNumberOrNull(metadata.diff_guitar),
+      bass: toNumberOrNull(metadata.diff_bass),
+      drums: toNumberOrNull(metadata.diff_drums),
+      vocals: toNumberOrNull(metadata.diff_vocals),
+    },
+    chartUrl: `/songs/${name}/${chartFilename}`,
+    chartFormat: chartFilename.endsWith(".mid") ? "mid" : "chart",
+    audioUrls: audioFiles.map((file) => `/songs/${name}/${file}`),
+    coverUrl: coverFile ? `/songs/${name}/${coverFile}` : null,
+  };
+}
+
 export async function listSongs(songsDir: string): Promise<Song[]> {
   let entries;
   try {
@@ -75,50 +119,23 @@ export async function listSongs(songsDir: string): Promise<Song[]> {
     return [];
   }
 
-  const songs: Song[] = [];
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
+  const songs = await Promise.all(
+    entries.filter((entry) => entry.isDirectory()).map((entry) => readSong(songsDir, entry.name))
+  );
 
-    const songPath = join(songsDir, entry.name);
-    const chartFilename = await findChartFile(songPath);
-    if (!chartFilename) continue;
+  return songs.filter((song): song is Song => song !== null).sort((a, b) => a.name.localeCompare(b.name));
+}
 
-    let metadata: Record<string, string> = {};
-    const iniPath = join(songPath, "song.ini");
-    if (await pathExists(iniPath)) {
-      const raw = await readFile(iniPath, "utf-8");
-      metadata = parseIni(raw).song ?? {};
-    }
+let cachedSongs: Song[] | null = null;
 
-    const audioFiles = await findAudioFiles(songPath);
-    const coverFile = await findFirstFileByExtensions(songPath, IMAGE_EXTENSIONS);
-    const previewStartMs = toNumberOrNull(metadata.preview_start_time);
-    const availableDifficulties = await readAvailableDifficulties(join(songPath, chartFilename), chartFilename.endsWith(".mid") ? "mid" : "chart");
+export async function loadSongLibrary(songsDir: string): Promise<Song[]> {
+  cachedSongs = await listSongs(songsDir);
+  return cachedSongs;
+}
 
-    songs.push({
-      id: entry.name,
-      name: metadata.name ?? entry.name,
-      artist: metadata.artist ?? "Unknown",
-      album: metadata.album ?? "",
-      year: metadata.year ?? "",
-      charter: metadata.charter ?? "",
-      genre: metadata.genre ?? "",
-      loadingPhrase: metadata.loading_phrase ?? "",
-      previewStartSeconds: previewStartMs !== null ? previewStartMs / MS_PER_SECOND : 0,
-      availableDifficulties,
-      difficultyRatings: {
-        band: toNumberOrNull(metadata.diff_band),
-        guitar: toNumberOrNull(metadata.diff_guitar),
-        bass: toNumberOrNull(metadata.diff_bass),
-        drums: toNumberOrNull(metadata.diff_drums),
-        vocals: toNumberOrNull(metadata.diff_vocals),
-      },
-      chartUrl: `/songs/${entry.name}/${chartFilename}`,
-      chartFormat: chartFilename.endsWith(".mid") ? "mid" : "chart",
-      audioUrls: audioFiles.map((file) => `/songs/${entry.name}/${file}`),
-      coverUrl: coverFile ? `/songs/${entry.name}/${coverFile}` : null,
-    });
+export function getSongLibrary(): Song[] {
+  if (!cachedSongs) {
+    throw new Error("Song library not loaded — call loadSongLibrary() at startup first");
   }
-
-  return songs.sort((a, b) => a.name.localeCompare(b.name));
+  return cachedSongs;
 }

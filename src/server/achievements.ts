@@ -1,6 +1,5 @@
-import { resolve } from "node:path";
 import { query } from "./db.js";
-import { listSongs } from "./songLibrary.js";
+import { getSongLibrary } from "./songLibrary.js";
 import type { Difficulty } from "../types.js";
 
 export interface Achievement {
@@ -159,9 +158,7 @@ export async function gatherScoreSubmissionStats(
     [userId]
   );
 
-  const songsDir = resolve(process.env.SONGS_DIR ?? process.env.MUSIC_PATH ?? "./songs");
-  const songs = await listSongs(songsDir);
-  const totalLibraryPairCount = songs.reduce((sum, song) => sum + song.availableDifficulties.length, 0);
+  const totalLibraryPairCount = getSongLibrary().reduce((sum, song) => sum + song.availableDifficulties.length, 0);
 
   return {
     totalScoredCount: Number(totalScoredCount),
