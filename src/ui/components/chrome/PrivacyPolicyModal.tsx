@@ -8,6 +8,7 @@ export default function PrivacyPolicyModal({ isOpen, onClose }: { isOpen: boolea
       title="Privacy Policy"
       onClose={onClose}
       variant="info"
+      closeButtonHint="Close"
       content={
         <Stack direction="column" gap="12px">
           <Paragraph>

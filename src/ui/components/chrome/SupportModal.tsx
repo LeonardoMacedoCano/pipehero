@@ -8,6 +8,7 @@ export default function SupportModal({ isOpen, onClose }: { isOpen: boolean; onC
       title="Support PipeHero"
       onClose={onClose}
       variant="info"
+      closeButtonHint="Close"
       content={
         <Stack direction="column" gap="12px">
           <Paragraph>

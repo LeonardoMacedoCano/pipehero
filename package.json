@@ -45,7 +45,7 @@
     "@types/node": "^20.19.43",
     "@types/pg": "^8.20.0",
     "@vitejs/plugin-react": "^5.2.0",
-    "lcano-react-ui": "github:LeonardoMacedoCano/lcano-react-ui",
+    "lcano-react-ui": "^1.0.1",
     "parsehero": "^0.0.2",
     "patch-package": "^8.0.1",
     "pg": "^8.22.0",
