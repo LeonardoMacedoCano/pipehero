@@ -324,7 +324,7 @@ function drawCrackleBolt(
   ctx.globalAlpha = 1;
 }
 
-const STAR_POWER_GLOW_PULSE_HZ = 3.2;
+export const STAR_POWER_GLOW_PULSE_HZ = 3.2;
 
 export function drawStarPowerDropAura(ctx: CanvasLike2D, glowColor: string, x: number, y: number, radius: number, currentTime: number): void {
   const pulse = 0.7 + 0.3 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2);
@@ -538,4 +538,30 @@ export function drawAmbientLightningBolts(
   }
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
+}
+
+const STAR_POWER_HIGHWAY_PULSE_HZ = 1.6;
+
+export function starPowerHighwayPulse(currentTime: number): number {
+  return 0.55 + 0.35 * Math.sin(currentTime * STAR_POWER_HIGHWAY_PULSE_HZ * Math.PI * 2);
+}
+
+export function drawStarPowerHighwayWash(ctx: CanvasLike2D, glowColor: string, config: RenderConfig, currentTime: number): void {
+  const pulse = starPowerHighwayPulse(currentTime);
+  const glowRgb = hexToRgbTriplet(glowColor);
+
+  const wash = ctx.createLinearGradient(0, 0, 0, config.hitLineY);
+  wash.addColorStop(0, `rgba(${glowRgb}, 0)`);
+  wash.addColorStop(0.5, `rgba(${glowRgb}, ${0.06 * pulse})`);
+  wash.addColorStop(1, `rgba(${glowRgb}, ${0.24 * pulse})`);
+
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = wash;
+  ctx.beginPath();
+  ctx.moveTo(highwayEdgeX(-1, 0, config), 0);
+  ctx.lineTo(highwayEdgeX(1, 0, config), 0);
+  ctx.lineTo(highwayEdgeX(1, 1, config), config.hitLineY);
+  ctx.lineTo(highwayEdgeX(-1, 1, config), config.hitLineY);
+  ctx.closePath();
+  ctx.fill();
 }
