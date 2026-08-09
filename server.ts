@@ -140,7 +140,7 @@ if (dbAvailable) {
 }
 
 server.listen(PORT, () => {
-  console.log(`PipeHero (production) running at http://localhost:${PORT}`);
-  console.log(`  Serving static build from: ${STATIC_DIR}`);
-  console.log(`  Serving songs from: ${SONGS_DIR}`);
+  console.log(`[pipehero] running at http://localhost:${PORT}`);
+  console.log(`[pipehero] serving static build from: ${STATIC_DIR}`);
+  console.log(`[pipehero] serving songs from: ${SONGS_DIR}`);
 });
