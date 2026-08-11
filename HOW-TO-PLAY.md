@@ -2,7 +2,8 @@
 
 In this guide: [Basic flow](#basic-flow) · [Controls](#controls) · [Tap vs. Strum bar](#input-mode-tap-vs-strum-bar) ·
 [Goal & difficulty](#goal--difficulty) · [Chords & sustains](#chords-and-long-notes-sustain) ·
-[Rock Meter](#rock-meter) · [Star Power](#star-power) · [Results & scoring](#results--scoring)
+[Rock Meter](#rock-meter) · [Star Power](#star-power) · [Results & scoring](#results--scoring) ·
+[Friends](#friends)
 
 For remapping keys, themes, graphics quality and your account, see
 [`SETTINGS.md`](./SETTINGS.md). For the full achievement list, see
@@ -11,8 +12,8 @@ For remapping keys, themes, graphics quality and your account, see
 ## Basic flow
 
 1. Open the game — you land on the **main menu**. Click **"Single
-   Player"** to reach the **song menu**. ("Multiplayer" and "Friends"
-   are shown as locked cards — planned, not built yet.)
+   Player"** to reach the **song menu**, or **"Friends"** to add
+   friends and compare scores (see [Friends](#friends) below).
 2. Click a song. A modal opens with the **available difficulties** and,
    if you've already played it, your **best score per difficulty** as
    stars.
@@ -178,6 +179,33 @@ time as accuracy falls off.
 **Failing** (Rock Meter hit 0) skips the breakdown — you just see your
 Score on a "Booed off stage!" screen, always at 0 stars, with **Try
 again** or **Back to menu**.
+
+## Friends
+
+Requires being **logged in with Google** (same login as
+[`ACHIEVEMENTS.md`](./ACHIEVEMENTS.md) uses). Open **Friends** from the
+main menu or the side rail:
+
+- **Add a friend**: type part of their name or email in the search box
+  under the **Friends** tab — matching players show up with an "Add"
+  button. No exact match needed and no username/apelido to remember;
+  they just need to have logged in at least once.
+- **Requests**: pending requests you've sent or received show up right
+  below the search box, with **Accept**/**Decline** for incoming ones.
+- **Feed**: the first tab shows your friends' most recent scores —
+  song, difficulty, stars, and when.
+- **Profile**: click a friend to see their unlocked achievements and
+  their best score per song/difficulty.
+- **Compare**: from a friend's profile, see a song-by-song,
+  difficulty-by-difficulty breakdown of who's ahead, plus how many
+  5/4/3/2/1-star results each of you has per difficulty. A friend who
+  hasn't played a chart yet is shown as "hasn't played this yet," never
+  as a loss — the comparison is meant to be a friendly nudge to keep
+  playing, not a way to put anyone down.
+- **Rankings**: a **Global** and a **Friends** leaderboard, ranked by a
+  score that weighs harder difficulties more (Expert counts 4x,
+  Easy 1x) — so getting better at harder charts moves you up more than
+  just playing a lot of easy ones.
 
 ## Latency calibration
 

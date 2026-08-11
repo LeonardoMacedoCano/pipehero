@@ -46,6 +46,13 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   { code: "first_fail", icon: "💥", name: "That's Rock and Roll", description: "Fail a song for the first time." },
   { code: "night_owl", icon: "🌙", name: "Night Owl", description: "Finish a song between midnight and 4 AM." },
+  { code: "squad_goals", icon: "🤝", name: "Squad Goals", description: "Add your first friend." },
+  {
+    code: "friendly_rival",
+    icon: "⚔️",
+    name: "Friendly Rival",
+    description: "Win more song/difficulty comparisons than a friend in a head-to-head.",
+  },
 ];
 
 const ACHIEVEMENT_BY_CODE = new Map(ACHIEVEMENTS.map((achievement) => [achievement.code, achievement]));
@@ -101,6 +108,17 @@ export function evaluateLoginUnlocks(): string[] {
 
 export function evaluateSettingsUnlocks(): string[] {
   return ["personal_touch"];
+}
+
+export function evaluateFriendAcceptedUnlocks(): string[] {
+  return ["squad_goals"];
+}
+
+const FRIENDLY_RIVAL_MIN_COMPARED_ROWS = 3;
+
+export function evaluateCompareUnlocks(myWins: number, friendWins: number, totalComparedRows: number): string[] {
+  if (myWins > friendWins && totalComparedRows >= FRIENDLY_RIVAL_MIN_COMPARED_ROWS) return ["friendly_rival"];
+  return [];
 }
 
 export function isRockMeterSurvivor(minRockMeter: number, failed: boolean): boolean {

@@ -9,7 +9,7 @@ all of them: a **X / Y unlocked** counter, an **Unlocked / Locked**
 toggle, and — on unlocked ones — when you got it and what percentage
 of all players have it too.
 
-## Full list (16)
+## Full list (18)
 
 ### Getting started
 
@@ -46,6 +46,13 @@ of all players have it too.
 |---|---|---|
 | 💥 | That's Rock and Roll | Fail a song for the first time. |
 | 🌙 | Night Owl | Finish a song between midnight and 4 AM. |
+
+### Friends
+
+| | Achievement | How to unlock |
+|---|---|---|
+| 🤝 | Squad Goals | Add your first friend. |
+| ⚔️ | Friendly Rival | Win more song/difficulty comparisons than a friend in a head-to-head. |
 
 Descriptions are shown up front even for achievements you haven't
 unlocked yet — nothing here is a hidden mystery, just a checklist.

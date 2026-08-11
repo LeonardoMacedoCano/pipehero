@@ -1,1 +1,1 @@
-export type MenuScreenName = "menu" | "songs" | "options" | "achievements";
+export type MenuScreenName = "menu" | "songs" | "options" | "achievements" | "friends";
