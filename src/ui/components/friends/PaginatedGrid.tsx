@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { SearchPagination, Stack } from "lcano-react-ui";
 import styled from "styled-components";
 import { toPage } from "../../utils/paginate.js";
@@ -7,26 +7,33 @@ const GRID_GAP_PX = 10;
 const DEFAULT_ROWS_PER_PAGE = 3;
 const DEFAULT_MIN_ITEM_WIDTH = "240px";
 
-function useColumnCount(containerRef: RefObject<HTMLDivElement | null>, minItemWidthPx: number): number {
+function useColumnCount(minItemWidthPx: number): [(element: HTMLDivElement | null) => void, number] {
   const [columns, setColumns] = useState(1);
+  const observerRef = useRef<ResizeObserver | null>(null);
 
-  useEffect(() => {
-    const element = containerRef.current;
-    if (!element) return;
+  const setContainer = useCallback(
+    (element: HTMLDivElement | null) => {
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+      if (!element) return;
 
-    function updateColumns() {
-      const width = element!.clientWidth;
-      const computed = Math.floor((width + GRID_GAP_PX) / (minItemWidthPx + GRID_GAP_PX));
-      setColumns(Math.max(1, computed));
-    }
+      function updateColumns() {
+        const width = element!.clientWidth;
+        const computed = Math.floor((width + GRID_GAP_PX) / (minItemWidthPx + GRID_GAP_PX));
+        setColumns(Math.max(1, computed));
+      }
 
-    updateColumns();
-    const observer = new ResizeObserver(updateColumns);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [containerRef, minItemWidthPx]);
+      updateColumns();
+      const observer = new ResizeObserver(updateColumns);
+      observer.observe(element);
+      observerRef.current = observer;
+    },
+    [minItemWidthPx]
+  );
 
-  return columns;
+  useEffect(() => () => observerRef.current?.disconnect(), []);
+
+  return [setContainer, columns];
 }
 
 export default function PaginatedGrid<T>({
@@ -44,9 +51,8 @@ export default function PaginatedGrid<T>({
   rowsPerPage?: number;
   minItemWidth?: string;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const minItemWidthPx = parseInt(minItemWidth, 10) || 240;
-  const columns = useColumnCount(containerRef, minItemWidthPx);
+  const [containerRef, columns] = useColumnCount(minItemWidthPx);
   const pageSize = columns * rowsPerPage;
   const [pageIndex, setPageIndex] = useState(0);
 
