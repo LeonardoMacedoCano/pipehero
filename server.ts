@@ -4,6 +4,7 @@ import { extname, join, normalize, resolve } from "node:path";
 import { getSongLibrary, loadSongLibrary } from "./src/server/songLibrary.js";
 import { handleAuthRequest } from "./src/server/authRoutes.js";
 import { handleScoreRequest } from "./src/server/scoreRoutes.js";
+import { handleFriendsRequest } from "./src/server/friendsRoutes.js";
 import { handleSettingsRequest } from "./src/server/settingsRoutes.js";
 import { runMigrations } from "./src/server/migrate.js";
 import { cleanupExpiredSessions } from "./src/server/session.js";
@@ -96,6 +97,10 @@ const server = createServer(async (req, res) => {
 
     if (req.url?.startsWith("/api/scores") || req.url?.startsWith("/api/achievements")) {
       if (await handleScoreRequest(req, res)) return;
+    }
+
+    if (req.url?.startsWith("/api/friends") || req.url?.startsWith("/api/leaderboard")) {
+      if (await handleFriendsRequest(req, res)) return;
     }
 
     if (req.url?.startsWith("/api/settings/")) {

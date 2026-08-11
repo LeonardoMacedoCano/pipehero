@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Panel, Stack, Loading, SearchFilterRSQL, Table, Column, type Field, type PagedResponse } from "lcano-react-ui";
+import { Panel, Stack, Loading, SearchFilterRSQL, Table, Column, type Field } from "lcano-react-ui";
 import styled from "styled-components";
 import type { Difficulty, Song } from "../../types.js";
 import { DIFFICULTY_ORDER } from "../../engine/availableTracks.js";
 import { useSongs } from "../hooks/useSongs.js";
 import { useScores } from "../hooks/useScores.js";
+import { toPage } from "../utils/paginate.js";
 import SongOptionsModal, { type StartGameParams } from "../components/SongOptionsModal.js";
 
 interface RsqlFilter {
@@ -35,24 +36,6 @@ function matchesFilter(song: Song, filter: RsqlFilter): boolean {
   if (filter.operator === "=ilike=") return raw.includes(value);
   if (filter.operator === "!=") return raw !== value;
   return raw === value;
-}
-
-function toPage<T>(items: T[], pageIndex: number, pageSize: number): PagedResponse<T> {
-  const totalElements = items.length;
-  const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
-  const number = Math.min(pageIndex, totalPages - 1);
-  const start = number * pageSize;
-  const content = items.slice(start, start + pageSize);
-  return {
-    content,
-    totalElements,
-    totalPages,
-    size: pageSize,
-    number,
-    first: number === 0,
-    last: number >= totalPages - 1,
-    numberOfElements: content.length,
-  };
 }
 
 const TABLE_ROW_HEIGHT = "104px";

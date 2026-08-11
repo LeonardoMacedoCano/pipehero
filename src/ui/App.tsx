@@ -10,6 +10,7 @@ import MainMenuPage from "./pages/MainMenuPage.js";
 import SongMenuPage from "./pages/SongMenuPage.js";
 import OptionsPage from "./pages/OptionsPage.js";
 import AchievementsPage from "./pages/AchievementsPage.js";
+import FriendsPage from "./pages/FriendsPage.js";
 import GamePage from "./pages/GamePage.js";
 import type { StartGameParams } from "./components/SongOptionsModal.js";
 
@@ -52,9 +53,14 @@ export default function App() {
                 <AchievementsPage />
               </MenuLayout>
             )}
+            {screen.name === "friends" && (
+              <MenuLayout current="friends" onNavigate={navigate}>
+                <FriendsPage />
+              </MenuLayout>
+            )}
             {screen.name === "menu" && (
               <MenuLayout current="menu" onNavigate={navigate}>
-                <MainMenuPage onPlaySingleplayer={() => navigate("songs")} />
+                <MainMenuPage onPlaySingleplayer={() => navigate("songs")} onViewFriends={() => navigate("friends")} />
               </MenuLayout>
             )}
           </ContextMessageProvider>

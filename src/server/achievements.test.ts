@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   ACHIEVEMENTS,
+  evaluateCompareUnlocks,
   evaluateFailureUnlocks,
+  evaluateFriendAcceptedUnlocks,
   evaluateLoginUnlocks,
   evaluateScoreSubmissionUnlocks,
   evaluateSettingsUnlocks,
@@ -31,8 +33,8 @@ function baseStats(overrides: Partial<ScoreSubmissionStats> = {}): ScoreSubmissi
 
 const CODES = new Set(ACHIEVEMENTS.map((achievement) => achievement.code));
 
-test("achievement catalog has 16 unique, fully-populated entries", () => {
-  assert.equal(ACHIEVEMENTS.length, 16);
+test("achievement catalog has 18 unique, fully-populated entries", () => {
+  assert.equal(ACHIEVEMENTS.length, 18);
   assert.equal(CODES.size, ACHIEVEMENTS.length);
   for (const achievement of ACHIEVEMENTS) {
     assert.ok(achievement.code.length > 0);
@@ -159,6 +161,17 @@ test("login/settings/failure triggers each resolve to a single known code", () =
   assert.deepEqual(evaluateFailureUnlocks(), ["first_fail"]);
 });
 
+test("evaluateFriendAcceptedUnlocks always resolves to squad_goals", () => {
+  assert.deepEqual(evaluateFriendAcceptedUnlocks(), ["squad_goals"]);
+});
+
+test("evaluateCompareUnlocks unlocks friendly_rival only with more wins and at least 3 compared rows", () => {
+  assert.deepEqual(evaluateCompareUnlocks(3, 1, 4), ["friendly_rival"]);
+  assert.deepEqual(evaluateCompareUnlocks(2, 1, 2), []);
+  assert.deepEqual(evaluateCompareUnlocks(1, 3, 4), []);
+  assert.deepEqual(evaluateCompareUnlocks(2, 2, 4), []);
+});
+
 test("every code produced by the evaluators exists in the catalog", () => {
   const produced = [
     ...evaluateScoreSubmissionUnlocks(
@@ -180,6 +193,8 @@ test("every code produced by the evaluators exists in the catalog", () => {
     ...evaluateLoginUnlocks(),
     ...evaluateSettingsUnlocks(),
     ...evaluateFailureUnlocks(),
+    ...evaluateFriendAcceptedUnlocks(),
+    ...evaluateCompareUnlocks(3, 0, 3),
   ];
   for (const code of produced) assert.ok(CODES.has(code), `unknown achievement code: ${code}`);
 });

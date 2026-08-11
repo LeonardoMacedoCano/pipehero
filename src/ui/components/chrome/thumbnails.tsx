@@ -16,15 +16,6 @@ export function NoteLaneThumbnail() {
   );
 }
 
-export function DuoPipesThumbnail() {
-  return (
-    <Highway>
-      <Pipe style={{ left: "28%" }} />
-      <Pipe style={{ left: "58%" }} />
-    </Highway>
-  );
-}
-
 export function FriendsThumbnail() {
   return (
     <Highway>
@@ -65,16 +56,6 @@ const HitLine = styled.div`
   height: 2px;
   background-color: ${({ theme }) => theme.colors.hitLine};
   opacity: 0.6;
-`;
-
-const Pipe = styled.div`
-  position: absolute;
-  top: 10%;
-  bottom: 10%;
-  width: 14px;
-  border-radius: 7px;
-  background: ${({ theme }) => theme.colors.quaternary};
-  opacity: 0.5;
 `;
 
 const Avatar = styled.div`

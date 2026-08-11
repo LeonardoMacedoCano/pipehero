@@ -1,8 +1,14 @@
 import styled from "styled-components";
 import GameModeCard from "../components/chrome/GameModeCard.js";
-import { NoteLaneThumbnail, DuoPipesThumbnail, FriendsThumbnail } from "../components/chrome/thumbnails.js";
+import { NoteLaneThumbnail, FriendsThumbnail } from "../components/chrome/thumbnails.js";
 
-export default function MainMenuPage({ onPlaySingleplayer }: { onPlaySingleplayer: () => void }) {
+export default function MainMenuPage({
+  onPlaySingleplayer,
+  onViewFriends,
+}: {
+  onPlaySingleplayer: () => void;
+  onViewFriends: () => void;
+}) {
   return (
     <CardRow>
       <GameModeCard
@@ -12,18 +18,10 @@ export default function MainMenuPage({ onPlaySingleplayer }: { onPlaySingleplaye
         onClick={onPlaySingleplayer}
       />
       <GameModeCard
-        title="Multiplayer"
-        ctaLabel="Play"
-        thumbnail={<DuoPipesThumbnail />}
-        locked
-        hint="Coming soon — depends on a multiplayer server, not implemented yet."
-      />
-      <GameModeCard
         title="Friends"
         ctaLabel="View"
         thumbnail={<FriendsThumbnail />}
-        locked
-        hint="Coming soon — depends on login and an account system, not implemented yet."
+        onClick={onViewFriends}
       />
     </CardRow>
   );

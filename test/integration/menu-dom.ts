@@ -141,18 +141,21 @@ try {
 
   checks.push({
     name: "main menu shows every expected item",
-    ok: ["Single Player", "Multiplayer", "Log in with Google", "Friends", "Achievements", "Options"].every((label) =>
+    ok: ["Single Player", "Log in with Google", "Friends", "Achievements", "Options"].every((label) =>
       root?.innerHTML.includes(label)
     ),
   });
 
-  const clickedLocked = clickButtonWithText(document, "Multiplayer");
-  await new Promise((r) => setTimeout(r, 100));
-  checks.push({ name: "clicking a locked item exists and is clickable", ok: clickedLocked });
+  const clickedFriends = clickButtonWithText(document, "Friends");
+  await new Promise((r) => setTimeout(r, 200));
+  checks.push({ name: "'Friends' navigates to the Friends screen", ok: clickedFriends });
   checks.push({
-    name: "clicking a locked item shows an explanatory message, doesn't navigate",
-    ok: !!root?.innerHTML.includes("not implemented yet") && document.querySelectorAll("#root canvas").length === 0,
+    name: "Friends screen shows the logged-out banner (no DATABASE_URL in this test env)",
+    ok: !!root?.innerHTML.includes("Log in with Google to add friends"),
   });
+
+  checks.push({ name: "'Home' from the Friends screen returns to the main menu", ok: clickButtonWithText(document, "Home") });
+  await new Promise((r) => setTimeout(r, 200));
 
   checks.push({ name: "'Single Player' navigates to the song list", ok: clickButtonWithText(document, "Single Player") });
   await new Promise((r) => setTimeout(r, 300));

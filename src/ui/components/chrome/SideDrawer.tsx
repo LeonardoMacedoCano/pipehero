@@ -9,6 +9,7 @@ import SupportModal from "./SupportModal.js";
 const NAV_ITEMS: { screen: MenuScreenName; label: string }[] = [
   { screen: "menu", label: "Home" },
   { screen: "achievements", label: "Achievements" },
+  { screen: "friends", label: "Friends" },
   { screen: "options", label: "Options" },
 ];
 
