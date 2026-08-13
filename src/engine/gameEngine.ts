@@ -55,6 +55,7 @@ export function createGameEngine(
   let score = 0;
   let rockMeter = ROCK_METER_START;
   let failed = false;
+  let wrongInputs = 0;
 
   const phraseTotals = starPowerPhrases.map(
     (_, index) => pending.filter((event) => event.starPowerPhraseIndex === index).length
@@ -198,6 +199,7 @@ export function createGameEngine(
 
   function applyWrongInput(time: number): void {
     combo = 0;
+    wrongInputs += 1;
     loseRockMeter(hasNearbyNote(time) ? ROCK_METER_MISS_LOSS : ROCK_METER_STRAY_PRESS_LOSS);
   }
 
@@ -289,6 +291,7 @@ export function createGameEngine(
       multiplier: scoreMultiplier(),
       rockMeter,
       failed,
+      wrongInputs,
     };
   }
 

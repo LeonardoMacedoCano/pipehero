@@ -91,6 +91,20 @@ test("overstrum: pressing wrong-then-correct still scores the correct note, but 
   assert.equal(engine.getState().rockMeter, afterWrong + 1);
 });
 
+test("wrongInputs counts a stray press even when it doesn't cost a note miss, so it still disqualifies a full combo", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0] }), event({ time: 2.0, frets: [0] })]);
+  engine.handleKeyDown(0, 1.0);
+  assert.equal(engine.getState().wrongInputs, 0);
+
+  engine.handleKeyDown(1, 1.5);
+  assert.equal(engine.getState().wrongInputs, 1);
+
+  engine.handleKeyDown(0, 2.0);
+  assert.equal(engine.getState().wrongInputs, 1);
+  assert.equal(engine.getState().misses.length, 0);
+  assert.equal(engine.getState().hits.length, 2);
+});
+
 test("overstrum: releasing the wrong fret before pressing the correct one doesn't avoid the penalty — each key press is judged on its own", () => {
   const engine = createGameEngine([event({ time: 1.0, frets: [0] })]);
   const before = engine.getState().rockMeter;

@@ -109,7 +109,12 @@ export default function GamePage({
     if ((phase !== "results" && phase !== "failed") || !results) return;
     const failed = phase === "failed";
     const stars = failed ? 0 : computeStars(results.hits, results.totalNotes);
-    const fullCombo = !failed && results.misses.length === 0 && results.droppedSustains.length === 0 && results.totalNotes > 0;
+    const fullCombo =
+      !failed &&
+      results.misses.length === 0 &&
+      results.droppedSustains.length === 0 &&
+      results.wrongInputs === 0 &&
+      results.totalNotes > 0;
     const isLateNight = new Date().getHours() < 4;
     submitScore({
       songId: song.id,
