@@ -167,14 +167,19 @@ difficulty, instantly) or **Back to menu**.
 | Stat | What it means |
 |---|---|
 | Score | Total points, boosted by combo multiplier and Star Power |
-| Stars (0–5) | Weighted accuracy — Perfect hits count double, Good hits count once, against the total note count |
+| Stars (0–5) | Your score against the "ideal score" for the chart — the score a full combo with every note Perfect would earn, at the same combo-multiplier ramp, without Star Power |
 | Max combo | Longest streak without a miss or wrong press |
 | Accuracy | % of notes hit (Perfect + Good) |
 | Perfect / Good / Miss | Count of each judgment |
 | Dropped | Sustains released early (only shown if it happened) |
 
-Near-perfect accuracy earns the full 5 stars, dropping down a star at a
-time as accuracy falls off.
+Stars come from `score / idealScore`, not from note accuracy alone: 95%+
+of the ideal score earns 5 stars, 80%+ earns 4, 60%+ earns 3, 40%+ earns
+2, and any run above 0 earns at least 1. Because the ideal score already
+bakes in the multiplier ramp, breaking your combo — whether from missing
+a real note or from a wrong press with nothing to hit — costs you real
+points (you replay part of the song at a lower multiplier while it rebuilds),
+which can cost you a star even at 100% note accuracy.
 
 **Failing** (Rock Meter hit 0) skips the breakdown — you just see your
 Score on a "Booed off stage!" screen, always at 0 stars, with **Try

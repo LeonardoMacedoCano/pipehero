@@ -21,7 +21,7 @@ export default function ResultsOverlay({
   const goodCount = results.hits.filter((hit) => hit.rating === "good").length;
   const missCount = results.misses.length;
   const droppedCount = results.droppedSustains.length;
-  const stars = computeStars(results.hits, totalNotes);
+  const stars = computeStars(results.score, results.idealScore);
 
   return (
     <Backdrop>

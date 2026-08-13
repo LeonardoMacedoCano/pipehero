@@ -105,6 +105,36 @@ test("wrongInputs counts a stray press even when it doesn't cost a note miss, so
   assert.equal(engine.getState().hits.length, 2);
 });
 
+test("idealScore assumes a full combo at 1x-4x multiplier ramp, no Star Power", () => {
+  const events = Array.from({ length: 12 }, (_, i) => event({ time: i + 1, frets: [0] }));
+  const engine = createGameEngine(events);
+  assert.equal(engine.getState().idealScore, 9 * 100 * 1 + 3 * 100 * 2);
+});
+
+test("idealScore includes the sustain hold bonus at the note's multiplier tier", () => {
+  const engine = createGameEngine([event({ time: 1.0, frets: [0], duration: 2 })]);
+  assert.equal(engine.getState().idealScore, 100 * 1 + 50 * 1);
+});
+
+test("a real full combo (perfect, no drops) scores exactly the ideal score", () => {
+  const events = Array.from({ length: 12 }, (_, i) => event({ time: i + 1, frets: [0] }));
+  const engine = createGameEngine(events);
+  for (const e of events) engine.handleKeyDown(0, e.time);
+  const state = engine.getState();
+  assert.equal(state.score, state.idealScore);
+});
+
+test("a wrong press mid-song breaks the multiplier ramp, so the achieved score falls short of the ideal even with every real note hit", () => {
+  const events = Array.from({ length: 20 }, (_, i) => event({ time: i + 1, frets: [0] }));
+  const engine = createGameEngine(events);
+  for (const e of events.slice(0, 10)) engine.handleKeyDown(0, e.time);
+  engine.handleKeyDown(1, 10.5);
+  for (const e of events.slice(10)) engine.handleKeyDown(0, e.time);
+  const state = engine.getState();
+  assert.equal(state.misses.length, 0);
+  assert.ok(state.score < state.idealScore);
+});
+
 test("overstrum: releasing the wrong fret before pressing the correct one doesn't avoid the penalty — each key press is judged on its own", () => {
   const engine = createGameEngine([event({ time: 1.0, frets: [0] })]);
   const before = engine.getState().rockMeter;

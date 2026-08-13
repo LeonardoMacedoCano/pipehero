@@ -108,7 +108,7 @@ export default function GamePage({
   useEffect(() => {
     if ((phase !== "results" && phase !== "failed") || !results) return;
     const failed = phase === "failed";
-    const stars = failed ? 0 : computeStars(results.hits, results.totalNotes);
+    const stars = failed ? 0 : computeStars(results.score, results.idealScore);
     const fullCombo =
       !failed &&
       results.misses.length === 0 &&
