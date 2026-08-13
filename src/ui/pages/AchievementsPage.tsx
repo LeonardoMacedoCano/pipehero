@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Panel, Stack, Loading, HighlightBox, ToggleSwitch } from "lcano-react-ui";
+import { Panel, Stack, Loading, HighlightBox, ToggleSwitch, Modal } from "lcano-react-ui";
 import styled from "styled-components";
 import { useAchievements, type AchievementStatus } from "../hooks/useAchievements.js";
 import { useAuth } from "../hooks/useAuth.js";
@@ -11,6 +11,7 @@ export default function AchievementsPage() {
   const { achievements, isLoading } = useAchievements();
   const { user, googleClientId, login } = useAuth();
   const [tab, setTab] = useState<FilterTab>("unlocked");
+  const [selected, setSelected] = useState<AchievementStatus | null>(null);
 
   const unlockedCount = achievements?.filter((achievement) => achievement.unlocked).length ?? 0;
   const totalCount = achievements?.length ?? 0;
@@ -58,19 +59,46 @@ export default function AchievementsPage() {
           ) : (
             <Grid>
               {visible.map((achievement) => (
-                <AchievementCard key={achievement.code} achievement={achievement} />
+                <AchievementCard key={achievement.code} achievement={achievement} onSelect={setSelected} />
               ))}
             </Grid>
           )}
         </Stack>
       )}
+
+      <Modal
+        isOpen={selected !== null}
+        onClose={() => setSelected(null)}
+        title={selected?.name ?? ""}
+        variant={selected?.unlocked ? "quaternary" : "secondary"}
+        icon={selected ? (selected.unlocked ? selected.icon : "🔒") : undefined}
+        content={
+          selected && (
+            <Stack direction="column" gap="12px">
+              <ModalDescription>{selected.description}</ModalDescription>
+              <CardMeta>
+                {selected.unlocked && selected.unlockedAt && (
+                  <span>Unlocked {new Date(selected.unlockedAt).toLocaleString()}</span>
+                )}
+                <span>{selected.globalUnlockPercent}% of players</span>
+              </CardMeta>
+            </Stack>
+          )
+        }
+      />
     </Panel>
   );
 }
 
-function AchievementCard({ achievement }: { achievement: AchievementStatus }) {
+function AchievementCard({
+  achievement,
+  onSelect,
+}: {
+  achievement: AchievementStatus;
+  onSelect: (achievement: AchievementStatus) => void;
+}) {
   return (
-    <Card $unlocked={achievement.unlocked}>
+    <Card $unlocked={achievement.unlocked} onClick={() => onSelect(achievement)}>
       <CardIcon>{achievement.unlocked ? achievement.icon : "🔒"}</CardIcon>
       <CardBody>
         <CardTitle>{achievement.name}</CardTitle>
@@ -132,6 +160,11 @@ const Card = styled.div<{ $unlocked: boolean }>`
   background-color: ${({ theme }) => theme.colors.secondary};
   opacity: ${({ $unlocked }) => ($unlocked ? 1 : 0.55)};
   overflow: hidden;
+  cursor: pointer;
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.quaternary};
+  }
 `;
 
 const CardIcon = styled.div`
@@ -172,6 +205,11 @@ const CardDescription = styled.div`
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+`;
+
+const ModalDescription = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.white};
 `;
 
 const CardMeta = styled.div`
