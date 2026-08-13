@@ -69,6 +69,18 @@ const FAKE_SONGS = [
     chartUrl: "/songs/other-song/notes.chart",
     audioUrls: ["/songs/other-song/song.wav"],
   },
+  {
+    id: "third-song",
+    name: "Third Track",
+    artist: "Al Ternative",
+    genre: "Alternative Rock",
+    album: "",
+    coverUrl: null,
+    availableDifficulties: ["Easy"],
+    chartFormat: "chart",
+    chartUrl: "/songs/third-song/notes.chart",
+    audioUrls: ["/songs/third-song/song.wav"],
+  },
 ];
 
 const FAKE_CHART_TEXT = `[Song]
@@ -203,6 +215,22 @@ try {
   checks.push({
     name: "adding an 'Artist contains Doe' filter keeps the matching song and filters out the other one",
     ok: !!root?.innerHTML.includes("Test Song") && !root?.innerHTML.includes("Another Track"),
+  });
+
+  const genreFieldPicker = document.querySelectorAll("#root select")[0] as HTMLSelectElement | undefined;
+  if (genreFieldPicker) {
+    genreFieldPicker.value = "genre";
+    genreFieldPicker.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  }
+  await new Promise((r) => setTimeout(r, 100));
+
+  const genreValuePicker = document.querySelectorAll("#root select")[2] as HTMLSelectElement | undefined;
+  const genreOptionValues = genreValuePicker
+    ? [...genreValuePicker.querySelectorAll("option")].map((o) => o.value).filter(Boolean)
+    : [];
+  checks.push({
+    name: "genre filter groups subgenres into base genres (Metal, Rock — not 'Alternative Rock' as a separate option)",
+    ok: genreOptionValues.sort().join(",") === "Metal,Rock",
   });
 
   const difficultyFieldPicker = document.querySelectorAll("#root select")[0] as HTMLSelectElement | undefined;
