@@ -6,6 +6,7 @@ import { DIFFICULTY_ORDER } from "../../engine/availableTracks.js";
 import { useSongs } from "../hooks/useSongs.js";
 import { useScores } from "../hooks/useScores.js";
 import { toPage } from "../utils/paginate.js";
+import { normalizeGenreGroup } from "../utils/genreGroups.js";
 import SongOptionsModal, { type StartGameParams } from "../components/SongOptionsModal.js";
 
 interface RsqlFilter {
@@ -29,6 +30,11 @@ function matchesFilter(song: Song, filter: RsqlFilter): boolean {
   if (filter.field === "availableDifficulties") {
     const hasDifficulty = song.availableDifficulties.some((difficulty) => difficulty.toLowerCase() === filter.value.toLowerCase());
     return filter.operator === "!=" ? !hasDifficulty : hasDifficulty;
+  }
+
+  if (filter.field === "genre") {
+    const matchesGroup = normalizeGenreGroup(song.genre).toLowerCase() === filter.value.toLowerCase();
+    return filter.operator === "!=" ? !matchesGroup : matchesGroup;
   }
 
   const raw = String((song as unknown as Record<string, unknown>)[filter.field] ?? "").toLowerCase();
@@ -75,8 +81,8 @@ export default function SongMenuPage({ onStartGame }: { onStartGame: (params: St
   }, [filters]);
 
   const searchFields: Field[] = useMemo(() => {
-    const genres = Array.from(new Set((songs ?? []).map((song) => song.genre).filter(Boolean))).sort((a, b) =>
-      a.localeCompare(b)
+    const genres = Array.from(new Set((songs ?? []).map((song) => normalizeGenreGroup(song.genre)).filter(Boolean))).sort(
+      (a, b) => a.localeCompare(b)
     );
     const difficulties = [...DIFFICULTY_ORDER].reverse();
     return [
