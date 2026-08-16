@@ -30,6 +30,18 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+function computeIdealScore(events: PlayableEvent[]): number {
+  let combo = 0;
+  let idealScore = 0;
+  for (const event of events) {
+    combo += 1;
+    const multiplier = Math.min(MAX_BASE_MULTIPLIER, 1 + Math.floor(combo / MULTIPLIER_STREAK_STEP));
+    idealScore += Math.round(SCORE_BY_RATING.perfect * multiplier);
+    if (event.duration > 0) idealScore += Math.round(SUSTAIN_HOLD_BONUS * multiplier);
+  }
+  return idealScore;
+}
+
 export function createGameEngine(
   events: PlayableEvent[],
   {
@@ -55,6 +67,8 @@ export function createGameEngine(
   let score = 0;
   let rockMeter = ROCK_METER_START;
   let failed = false;
+  let wrongInputs = 0;
+  const idealScore = computeIdealScore(events);
 
   const phraseTotals = starPowerPhrases.map(
     (_, index) => pending.filter((event) => event.starPowerPhraseIndex === index).length
@@ -198,6 +212,7 @@ export function createGameEngine(
 
   function applyWrongInput(time: number): void {
     combo = 0;
+    wrongInputs += 1;
     loseRockMeter(hasNearbyNote(time) ? ROCK_METER_MISS_LOSS : ROCK_METER_STRAY_PRESS_LOSS);
   }
 
@@ -289,6 +304,8 @@ export function createGameEngine(
       multiplier: scoreMultiplier(),
       rockMeter,
       failed,
+      wrongInputs,
+      idealScore,
     };
   }
 

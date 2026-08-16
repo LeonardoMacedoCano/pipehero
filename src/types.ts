@@ -60,6 +60,8 @@ export interface GameState {
   multiplier: number;
   rockMeter: number;
   failed: boolean;
+  wrongInputs: number;
+  idealScore: number;
 }
 
 export type KeyDownResult =
