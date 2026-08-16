@@ -90,6 +90,19 @@ try {
     ),
   });
 
+  const [{ rank: userARank }] = await query<{ rank: string }>(
+    `SELECT ranked.rank FROM (
+       SELECT ss.user_id, RANK() OVER (ORDER BY SUM(ss.stars * CASE ss.difficulty WHEN 'Expert' THEN 4 WHEN 'Hard' THEN 3 WHEN 'Medium' THEN 2 WHEN 'Easy' THEN 1 END) DESC) AS rank
+       FROM song_scores ss
+       GROUP BY ss.user_id
+     ) ranked WHERE ranked.user_id = $1`,
+    [userA.id]
+  );
+  checks.push({
+    name: "global_first unlocks exactly when the score puts the player at global rank 1",
+    ok: unlockedCodes.includes("global_first") === (Number(userARank) === 1),
+  });
+
   const scoreRepeatRes = await fetch(`${BASE_URL}/api/scores`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookieA },

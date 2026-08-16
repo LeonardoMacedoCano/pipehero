@@ -2,6 +2,8 @@ import type { Difficulty } from "../types.js";
 
 export const DIFFICULTY_WEIGHT: Record<Difficulty, number> = { Expert: 4, Hard: 3, Medium: 2, Easy: 1 };
 
+export const WEIGHT_CASE_SQL = "CASE ss.difficulty WHEN 'Expert' THEN 4 WHEN 'Hard' THEN 3 WHEN 'Medium' THEN 2 WHEN 'Easy' THEN 1 END";
+
 export interface ScoreEntry {
   songId: string;
   difficulty: Difficulty;
