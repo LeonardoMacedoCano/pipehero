@@ -27,14 +27,15 @@ function baseStats(overrides: Partial<ScoreSubmissionStats> = {}): ScoreSubmissi
     starPowerPhraseBroken: [],
     survivedCritical: false,
     isLateNight: false,
+    isGlobalRank1: false,
     ...overrides,
   };
 }
 
 const CODES = new Set(ACHIEVEMENTS.map((achievement) => achievement.code));
 
-test("achievement catalog has 18 unique, fully-populated entries", () => {
-  assert.equal(ACHIEVEMENTS.length, 18);
+test("achievement catalog has 19 unique, fully-populated entries", () => {
+  assert.equal(ACHIEVEMENTS.length, 19);
   assert.equal(CODES.size, ACHIEVEMENTS.length);
   for (const achievement of ACHIEVEMENTS) {
     assert.ok(achievement.code.length > 0);
@@ -155,6 +156,11 @@ test("night_owl unlocks only for late-night submissions", () => {
   assert.ok(!evaluateScoreSubmissionUnlocks(baseStats({ isLateNight: false })).includes("night_owl"));
 });
 
+test("global_first unlocks only when the submission puts the player at rank 1", () => {
+  assert.ok(evaluateScoreSubmissionUnlocks(baseStats({ isGlobalRank1: true })).includes("global_first"));
+  assert.ok(!evaluateScoreSubmissionUnlocks(baseStats({ isGlobalRank1: false })).includes("global_first"));
+});
+
 test("login/settings/failure triggers each resolve to a single known code", () => {
   assert.deepEqual(evaluateLoginUnlocks(), ["first_login"]);
   assert.deepEqual(evaluateSettingsUnlocks(), ["personal_touch"]);
@@ -188,6 +194,7 @@ test("every code produced by the evaluators exists in the catalog", () => {
         scoredPairCount: 10,
         totalLibraryPairCount: 10,
         isLateNight: true,
+        isGlobalRank1: true,
       })
     ),
     ...evaluateLoginUnlocks(),

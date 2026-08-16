@@ -9,14 +9,19 @@ import {
   evaluateFriendAcceptedUnlocks,
   unlockMany,
 } from "./achievements.js";
-import { buildCompareRows, buildStarDistribution, computeWeightedScore, countWins, type ScoreEntry } from "./friendsCompare.js";
+import {
+  buildCompareRows,
+  buildStarDistribution,
+  computeWeightedScore,
+  countWins,
+  WEIGHT_CASE_SQL,
+  type ScoreEntry,
+} from "./friendsCompare.js";
 import type { Difficulty } from "../types.js";
 
 const FRIEND_SEARCH_MIN_QUERY_LENGTH = 2;
 const FRIEND_SEARCH_LIMIT = 10;
 const FRIEND_FEED_LIMIT = 50;
-
-const WEIGHT_CASE_SQL = "CASE ss.difficulty WHEN 'Expert' THEN 4 WHEN 'Hard' THEN 3 WHEN 'Medium' THEN 2 WHEN 'Easy' THEN 1 END";
 
 interface PublicUserRow {
   id: number;

@@ -9,7 +9,7 @@ all of them: a **X / Y unlocked** counter, an **Unlocked / Locked**
 toggle, and — on unlocked ones — when you got it and what percentage
 of all players have it too.
 
-## Full list (18)
+## Full list (19)
 
 ### Getting started
 
@@ -39,6 +39,12 @@ of all players have it too.
 | 🎶 | Setlist Regular | Score results on 5 different songs. |
 | 🥇 | Difficulty Master | Score results on all 4 difficulties of the same song. |
 | 🏆 | Full Setlist | Score a result on every difficulty of every song currently in the library. |
+
+### Ranking
+
+| | Achievement | How to unlock |
+|---|---|---|
+| 🌍 | Top of the World | Reach #1 on the global leaderboard. |
 
 ### Special
 

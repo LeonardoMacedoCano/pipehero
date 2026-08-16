@@ -1,5 +1,6 @@
 import { query } from "./db.js";
 import { getSongLibrary } from "./songLibrary.js";
+import { WEIGHT_CASE_SQL } from "./friendsCompare.js";
 import type { Difficulty } from "../types.js";
 
 export interface Achievement {
@@ -44,6 +45,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     name: "Full Setlist",
     description: "Score a result on every difficulty of every song currently in the library.",
   },
+  { code: "global_first", icon: "🌍", name: "Top of the World", description: "Reach #1 on the global leaderboard." },
   { code: "first_fail", icon: "💥", name: "That's Rock and Roll", description: "Fail a song for the first time." },
   { code: "night_owl", icon: "🌙", name: "Night Owl", description: "Finish a song between midnight and 4 AM." },
   { code: "squad_goals", icon: "🤝", name: "Squad Goals", description: "Add your first friend." },
@@ -70,6 +72,7 @@ export interface ScoreSubmissionStats {
   starPowerPhraseBroken: boolean[];
   survivedCritical: boolean;
   isLateNight: boolean;
+  isGlobalRank1: boolean;
 }
 
 const ROCK_METER_CRITICAL_THRESHOLD = 10;
@@ -93,6 +96,7 @@ export function evaluateScoreSubmissionUnlocks(stats: ScoreSubmissionStats): str
   if (stats.maxCombo >= COMBO_ON_A_ROLL_THRESHOLD) unlocked.push("combo_100");
   if (stats.maxCombo >= COMBO_UNSTOPPABLE_THRESHOLD) unlocked.push("combo_300");
   if (stats.totalLibraryPairCount > 0 && stats.scoredPairCount >= stats.totalLibraryPairCount) unlocked.push("completionist");
+  if (stats.isGlobalRank1) unlocked.push("global_first");
   if (stats.isLateNight) unlocked.push("night_owl");
 
   return unlocked;
@@ -178,6 +182,15 @@ export async function gatherScoreSubmissionStats(
 
   const totalLibraryPairCount = getSongLibrary().reduce((sum, song) => sum + song.availableDifficulties.length, 0);
 
+  const [globalRank] = await query<{ rank: string }>(
+    `SELECT ranked.rank FROM (
+       SELECT ss.user_id, RANK() OVER (ORDER BY SUM(ss.stars * ${WEIGHT_CASE_SQL}) DESC) AS rank
+       FROM song_scores ss
+       GROUP BY ss.user_id
+     ) ranked WHERE ranked.user_id = $1`,
+    [userId]
+  );
+
   return {
     totalScoredCount: Number(totalScoredCount),
     distinctSongCount: Number(distinctSongCount),
@@ -191,6 +204,7 @@ export async function gatherScoreSubmissionStats(
     starPowerPhraseBroken: payload.starPowerPhraseBroken,
     survivedCritical: isRockMeterSurvivor(payload.minRockMeter, payload.failed),
     isLateNight: payload.isLateNight,
+    isGlobalRank1: Number(globalRank?.rank) === 1,
   };
 }
 
