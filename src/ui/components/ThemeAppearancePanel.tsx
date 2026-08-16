@@ -2,23 +2,41 @@ import styled from "styled-components";
 import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
 
 export default function ThemeAppearancePanel() {
-  const { themeId, availableThemes, setThemeId } = useThemeControl();
+  const { themeId, availableThemes, setThemeId, themeEffectId, availableThemeEffects, setThemeEffectId } = useThemeControl();
 
   return (
-    <Grid>
-      {availableThemes.map((option) => (
-        <ThemeCard key={option.id} type="button" $active={option.id === themeId} onClick={() => setThemeId(option.id)}>
-          <Swatch>
-            {option.swatch.map((color, i) => (
-              <SwatchSlice key={i} style={{ backgroundColor: color }} />
-            ))}
-          </Swatch>
-          <Label>{option.label}</Label>
-          <Description>{option.description}</Description>
-          {option.id === themeId && <Badge>Selected</Badge>}
-        </ThemeCard>
-      ))}
-    </Grid>
+    <>
+      <Grid>
+        {availableThemes.map((option) => (
+          <ThemeCard key={option.id} type="button" $active={option.id === themeId} onClick={() => setThemeId(option.id)}>
+            <Swatch>
+              {option.swatch.map((color, i) => (
+                <SwatchSlice key={i} style={{ backgroundColor: color }} />
+              ))}
+            </Swatch>
+            <Label>{option.label}</Label>
+            <Description>{option.description}</Description>
+            {option.id === themeId && <Badge>Selected</Badge>}
+          </ThemeCard>
+        ))}
+      </Grid>
+
+      <SectionTitle>Effect</SectionTitle>
+      <Grid>
+        {availableThemeEffects.map((option) => (
+          <ThemeCard
+            key={option.id}
+            type="button"
+            $active={option.id === themeEffectId}
+            onClick={() => setThemeEffectId(option.id)}
+          >
+            <Label>{option.label}</Label>
+            <Description>{option.description}</Description>
+            {option.id === themeEffectId && <Badge>Selected</Badge>}
+          </ThemeCard>
+        ))}
+      </Grid>
+    </>
   );
 }
 
@@ -70,4 +88,11 @@ const Badge = styled.span`
   text-transform: uppercase;
   background-color: ${({ theme }) => theme.colors.quaternary};
   color: ${({ theme }) => theme.colors.white};
+`;
+
+const SectionTitle = styled.h3`
+  margin-top: 24px;
+  margin-bottom: 12px;
+  font-size: 0.9em;
+  color: ${({ theme }) => theme.colors.tertiary};
 `;
