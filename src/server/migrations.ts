@@ -85,4 +85,10 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS friendships_requester_status_idx ON friendships (requester_id, status);
     `,
   },
+  {
+    name: "0006_user_settings_theme_effect",
+    sql: `
+      ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS theme_effect_id TEXT;
+    `,
+  },
 ];

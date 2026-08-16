@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ContextMessageProvider } from "lcano-react-ui";
-import { ThemeControlProvider } from "./contexts/theme/ThemeControlProvider.js";
+import { ThemeControlProvider, useThemeControl } from "./contexts/theme/ThemeControlProvider.js";
 import { AuthProvider } from "./hooks/useAuth.js";
 import { AchievementToastProvider, AchievementToastStack } from "./components/chrome/AchievementToastProvider.js";
 import { GlobalStyles } from "./GlobalStyles.js";
@@ -16,6 +16,11 @@ import type { StartGameParams } from "./components/SongOptionsModal.js";
 
 type Screen = { name: MenuScreenName } | { name: "game"; params: StartGameParams };
 
+function AppGlobalStyles() {
+  const { themeEffectId } = useThemeControl();
+  return <GlobalStyles $themeEffectId={themeEffectId} />;
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: "menu" });
 
@@ -27,7 +32,7 @@ export default function App() {
     <AchievementToastProvider>
       <AuthProvider>
         <ThemeControlProvider>
-          <GlobalStyles />
+          <AppGlobalStyles />
           <AchievementToastStack onView={() => navigate("achievements")} />
           <ContextMessageProvider>
             {screen.name === "game" && (

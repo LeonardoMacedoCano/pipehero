@@ -31,6 +31,19 @@ This isn't just a menu skin — **each theme also recolors the 5 lanes
 and pipes in-game**, not only the surrounding UI. Pick whichever set of
 5 colors you find easiest to tell apart at a glance.
 
+**Effect** — an optional animated overlay on top of whichever theme
+you picked, applied to the whole site (menus and gameplay alike).
+Off (`None`) by default.
+
+| Effect | What it does |
+|---|---|
+| **None** (default) | No animation. |
+| **End Cycle** | A slow, subtle hue drift that eases back and forth, inspired by the color cycling in Minecraft's End portal. |
+| **Breathing** | A gentle brightness pulse across the whole site, like it's slowly breathing in and out. |
+| **Bloom** | A very soft wash of the theme's accent color breathes across the whole screen. |
+
+All effects respect your OS's "reduce motion" setting (disabled automatically if you have that on).
+
 ## Graphics quality
 
 | Level | What you get |
@@ -54,15 +67,16 @@ and pipes in-game**, not only the surrounding UI. Pick whichever set of
 
 ### What syncs with your account
 
-Five settings save to your browser's local storage immediately, on
+Six settings save to your browser's local storage immediately, on
 every device, logged in or not — and additionally sync to your Google
 account (so they follow you to a new device) once you're logged in:
 
 - Key / gamepad bindings
 - Tap vs. Strum bar mode
 - Theme
+- Theme effect
 - Graphics quality
 - Latency calibration
 
-Log in from a second device and these five pull down automatically the
+Log in from a second device and these six pull down automatically the
 first time you open Options or Account there.

@@ -11,6 +11,7 @@ const MAX_THEME_ID_LENGTH = 64;
 interface SettingsRow {
   calibration_ms: number;
   theme_id: string | null;
+  theme_effect_id: string | null;
   key_bindings: Record<string, unknown> | null;
   strum_mode_enabled: boolean | null;
   graphics_quality: string | null;
@@ -19,6 +20,7 @@ interface SettingsRow {
 interface SettingsPayload {
   calibrationMs?: number;
   themeId?: string;
+  themeEffectId?: string;
   keyBindings?: Record<string, unknown>;
   strumModeEnabled?: boolean;
   graphicsQuality?: string;
@@ -28,6 +30,7 @@ function toResponseBody(row: SettingsRow | undefined) {
   return {
     calibrationMs: row?.calibration_ms ?? null,
     themeId: row?.theme_id ?? null,
+    themeEffectId: row?.theme_effect_id ?? null,
     keyBindings: row?.key_bindings ?? null,
     strumModeEnabled: row?.strum_mode_enabled ?? null,
     graphicsQuality: row?.graphics_quality ?? null,
@@ -59,7 +62,7 @@ export async function handleSettingsRequest(req: IncomingMessage, res: ServerRes
     }
 
     const rows = await query<SettingsRow>(
-      "SELECT calibration_ms, theme_id, key_bindings, strum_mode_enabled, graphics_quality FROM user_settings WHERE user_id = $1",
+      "SELECT calibration_ms, theme_id, theme_effect_id, key_bindings, strum_mode_enabled, graphics_quality FROM user_settings WHERE user_id = $1",
       [user.id]
     );
     sendJson(res, 200, toResponseBody(rows[0]));
@@ -99,6 +102,15 @@ export async function handleSettingsRequest(req: IncomingMessage, res: ServerRes
       }
       columns.push("theme_id");
       values.push(body.themeId);
+    }
+
+    if (body.themeEffectId !== undefined) {
+      if (typeof body.themeEffectId !== "string" || body.themeEffectId.length === 0 || body.themeEffectId.length > MAX_THEME_ID_LENGTH) {
+        sendJson(res, 400, { error: "Invalid themeEffectId" });
+        return true;
+      }
+      columns.push("theme_effect_id");
+      values.push(body.themeEffectId);
     }
 
     if (body.keyBindings !== undefined) {

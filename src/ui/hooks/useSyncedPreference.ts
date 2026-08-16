@@ -5,6 +5,7 @@ import { useAchievementToast, type UnlockedAchievement } from "../components/chr
 export interface SettingsResponse {
   calibrationMs: number | null;
   themeId: string | null;
+  themeEffectId: string | null;
   keyBindings: Record<string, unknown> | null;
   strumModeEnabled: boolean | null;
   graphicsQuality: string | null;
@@ -15,6 +16,7 @@ type SettingsField = keyof SettingsResponse;
 const EMPTY_SETTINGS: SettingsResponse = {
   calibrationMs: null,
   themeId: null,
+  themeEffectId: null,
   keyBindings: null,
   strumModeEnabled: null,
   graphicsQuality: null,
