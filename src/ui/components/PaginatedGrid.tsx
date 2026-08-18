@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { SearchPagination, Stack } from "lcano-react-ui";
 import styled from "styled-components";
-import { toPage } from "../../utils/paginate.js";
+import { toPage } from "../utils/paginate.js";
 
 const GRID_GAP_PX = 10;
 const DEFAULT_ROWS_PER_PAGE = 3;
