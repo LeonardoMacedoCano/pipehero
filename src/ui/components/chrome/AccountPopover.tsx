@@ -1,7 +1,6 @@
+import { AccountSummary, GoogleSignInButton } from "lcano-react-ui";
 import styled from "styled-components";
 import { useAuth } from "../../hooks/useAuth.js";
-import AccountSummary from "../AccountSummary.js";
-import GoogleSignInButton from "../GoogleSignInButton.js";
 import LockedMenuItem from "../LockedMenuItem.js";
 
 export default function AccountPopover() {
@@ -9,7 +8,14 @@ export default function AccountPopover() {
 
   return (
     <Popover>
-      {!isLoading && user && <AccountSummary user={user} onLogout={logout} showEmail />}
+      {!isLoading && user && (
+        <AccountSummary
+          user={{ name: user.name, email: user.email, avatarUrl: user.avatarUrl ?? undefined }}
+          onLogout={logout}
+          showEmail
+          locale="en"
+        />
+      )}
       {!isLoading && !user && googleClientId && <GoogleSignInButton clientId={googleClientId} onCredential={login} />}
       {!isLoading && !user && !googleClientId && (
         <LockedMenuItem

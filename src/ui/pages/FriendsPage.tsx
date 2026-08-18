@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Button, Panel, Stack, Tabs } from "lcano-react-ui";
+import { Button, GoogleSignInButton, Panel, Stack, Tabs } from "lcano-react-ui";
 import styled from "styled-components";
 import { useAuth } from "../hooks/useAuth.js";
-import GoogleSignInButton from "../components/GoogleSignInButton.js";
 import FriendsListPanel from "../components/friends/FriendsListPanel.js";
 import FriendsFeedPanel from "../components/friends/FriendsFeedPanel.js";
 import RankingsPanel from "../components/friends/RankingsPanel.js";
