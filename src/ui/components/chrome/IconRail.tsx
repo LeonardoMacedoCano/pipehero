@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { IconButton, useFullscreen } from "lcano-react-ui";
 import styled from "styled-components";
 import type { MenuScreenName } from "./navigation.js";
-import { useFullscreen } from "../../hooks/useFullscreen.js";
-import IconButton from "./IconButton.js";
 import AccountPopover from "./AccountPopover.js";
 
 export default function IconRail({

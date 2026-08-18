@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import type { ParsedChart } from "parsehero";
 import styled, { ThemeProvider, css } from "styled-components";
-import { Button } from "lcano-react-ui";
+import { Button, useMediaQuery } from "lcano-react-ui";
 import type { Difficulty, Song } from "../../types.js";
 import { loadTrack } from "../../engine/chartTrack.js";
 import { trackNameForDifficulty } from "../../engine/availableTracks.js";
@@ -10,7 +10,6 @@ import { computeStars } from "../../scoring/stars.js";
 import { useGamePlaythrough } from "../hooks/useGamePlaythrough.js";
 import { useAchievementToast, type UnlockedAchievement } from "../components/chrome/AchievementToastProvider.js";
 import { useControlScheme } from "../hooks/useControlScheme.js";
-import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
 import { getStrumModeEnabled } from "../../game/strumModeStore.js";
 import { HIT_LINE_Y_RATIO, TOUCH_HIT_LINE_Y_RATIO_LANDSCAPE, TOUCH_HIT_LINE_Y_RATIO_PORTRAIT } from "../../render/layout.js";
