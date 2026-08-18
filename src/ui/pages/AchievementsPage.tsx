@@ -1,10 +1,8 @@
 import { useMemo, useState } from "react";
-import { Panel, Stack, Loading, HighlightBox, ToggleSwitch, Modal } from "lcano-react-ui";
+import { Panel, Stack, Loading, HighlightBox, ToggleSwitch, Modal, BadgeCard, PaginatedGrid, GoogleSignInButton } from "lcano-react-ui";
 import styled from "styled-components";
 import { useAchievements, type AchievementStatus } from "../hooks/useAchievements.js";
 import { useAuth } from "../hooks/useAuth.js";
-import GoogleSignInButton from "../components/GoogleSignInButton.js";
-import PaginatedGrid from "../components/PaginatedGrid.js";
 
 type FilterTab = "unlocked" | "locked";
 
@@ -59,7 +57,23 @@ export default function AchievementsPage() {
             emptyMessage={tab === "unlocked" ? "No achievements unlocked yet — go play!" : "Nothing left to unlock. Well played."}
             minItemWidth="260px"
             rowsPerPage={2}
-            renderItem={(achievement) => <AchievementCard achievement={achievement} onSelect={setSelected} />}
+            renderItem={(achievement) => (
+              <BadgeCard
+                icon={achievement.unlocked ? achievement.icon : "🔒"}
+                title={achievement.name}
+                description={achievement.description}
+                active={achievement.unlocked}
+                onClick={() => setSelected(achievement)}
+                meta={
+                  <>
+                    {achievement.unlocked && achievement.unlockedAt && (
+                      <span>Unlocked {new Date(achievement.unlockedAt).toLocaleString()}</span>
+                    )}
+                    <span>{achievement.globalUnlockPercent}% of players</span>
+                  </>
+                }
+              />
+            )}
           />
         </Stack>
       )}
@@ -88,28 +102,6 @@ export default function AchievementsPage() {
   );
 }
 
-function AchievementCard({
-  achievement,
-  onSelect,
-}: {
-  achievement: AchievementStatus;
-  onSelect: (achievement: AchievementStatus) => void;
-}) {
-  return (
-    <Card $unlocked={achievement.unlocked} onClick={() => onSelect(achievement)}>
-      <CardIcon>{achievement.unlocked ? achievement.icon : "🔒"}</CardIcon>
-      <CardBody>
-        <CardTitle>{achievement.name}</CardTitle>
-        <CardDescription>{achievement.description}</CardDescription>
-        <CardMeta>
-          {achievement.unlocked && achievement.unlockedAt && <span>Unlocked {new Date(achievement.unlockedAt).toLocaleString()}</span>}
-          <span>{achievement.globalUnlockPercent}% of players</span>
-        </CardMeta>
-      </CardBody>
-    </Card>
-  );
-}
-
 const LoginBanner = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -133,64 +125,6 @@ const HeaderRow = styled.div`
 
 const ShrinkToFit = styled.div`
   display: inline-flex;
-`;
-
-const CARD_HEIGHT = "150px";
-
-const Card = styled.div<{ $unlocked: boolean }>`
-  display: flex;
-  align-items: stretch;
-  height: ${CARD_HEIGHT};
-  border: 1px solid ${({ theme }) => theme.colors.gray};
-  border-radius: 8px;
-  background-color: ${({ theme }) => theme.colors.secondary};
-  opacity: ${({ $unlocked }) => ($unlocked ? 1 : 0.55)};
-  overflow: hidden;
-  cursor: pointer;
-
-  &:hover {
-    border-color: ${({ theme }) => theme.colors.quaternary};
-  }
-`;
-
-const CardIcon = styled.div`
-  flex-shrink: 0;
-  aspect-ratio: 1 / 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.6rem;
-  line-height: 1;
-  background-color: ${({ theme }) => theme.colors.primary};
-  border-right: 1px solid ${({ theme }) => theme.colors.gray};
-`;
-
-const CardBody = styled.div`
-  min-width: 0;
-  flex: 1;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  overflow: hidden;
-`;
-
-const CardTitle = styled.div`
-  font-weight: bold;
-  color: ${({ theme }) => theme.colors.white};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const CardDescription = styled.div`
-  font-size: 0.85em;
-  color: ${({ theme }) => theme.colors.white};
-  margin-top: 4px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 `;
 
 const ModalDescription = styled.p`

@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { Column, Loading, PAGE_SIZE_DEFAULT, Stack, Table, ToggleSwitch } from "lcano-react-ui";
+import { Column, Loading, PAGE_SIZE_DEFAULT, Stack, Table, ToggleSwitch, paginateClientSide } from "lcano-react-ui";
 import styled from "styled-components";
 import { useLeaderboard, type LeaderboardEntry, type LeaderboardScope } from "../../hooks/useLeaderboard.js";
-import { toPage } from "../../utils/paginate.js";
 
 export default function RankingsPanel() {
   const [scope, setScope] = useState<LeaderboardScope>("global");
@@ -25,7 +24,7 @@ export default function RankingsPanel() {
       {!isLoading && leaderboard.length === 0 && <Muted>Nobody has scored anything yet.</Muted>}
       {leaderboard.length > 0 && (
         <Table<LeaderboardEntry>
-          values={toPage(leaderboard, pageIndex, PAGE_SIZE_DEFAULT)}
+          values={paginateClientSide(leaderboard, pageIndex, PAGE_SIZE_DEFAULT)}
           keyExtractor={(entry) => entry.userId}
           rowSelected={(entry) => entry.isMe}
           loadPage={(nextPageIndex) => setPageIndex(nextPageIndex)}

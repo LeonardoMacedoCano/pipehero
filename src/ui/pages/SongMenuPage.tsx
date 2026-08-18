@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Panel, Stack, Loading, SearchFilterRSQL, Table, Column, type Field } from "lcano-react-ui";
+import { Panel, Stack, Loading, SearchFilterRSQL, Table, Column, paginateClientSide, type Field } from "lcano-react-ui";
 import styled from "styled-components";
 import type { Difficulty, Song } from "../../types.js";
 import { DIFFICULTY_ORDER } from "../../engine/availableTracks.js";
 import { useSongs } from "../hooks/useSongs.js";
 import { useScores } from "../hooks/useScores.js";
-import { toPage } from "../utils/paginate.js";
 import { normalizeGenreGroup } from "../utils/genreGroups.js";
 import SongOptionsModal, { type StartGameParams } from "../components/SongOptionsModal.js";
 
@@ -105,7 +104,7 @@ export default function SongMenuPage({ onStartGame }: { onStartGame: (params: St
   }, [songs, filters]);
 
   const pagedSongs = useMemo(
-    () => (filteredSongs ? toPage(filteredSongs, pageIndex, SONGS_PER_PAGE) : null),
+    () => (filteredSongs ? paginateClientSide(filteredSongs, pageIndex, SONGS_PER_PAGE) : null),
     [filteredSongs, pageIndex]
   );
 

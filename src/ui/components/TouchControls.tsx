@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
+import { useMediaQuery } from "lcano-react-ui";
 import styled from "styled-components";
 import type { Fret } from "../../types.js";
 import {
@@ -8,7 +9,6 @@ import {
   highwayWidthFraction,
   laneBarrelBoundaryFractions,
 } from "../../render/layout.js";
-import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { LANDSCAPE_MEDIA_QUERY } from "../responsive.js";
 
 type LaneColorKey = "lane1" | "lane2" | "lane3" | "lane4" | "lane5";
