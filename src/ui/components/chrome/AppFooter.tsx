@@ -17,11 +17,7 @@ export default function AppFooter() {
 }
 
 const Footer = styled.footer`
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
+  width: 100%;
   display: flex;
   justify-content: center;
   padding: 6px 12px 4px;

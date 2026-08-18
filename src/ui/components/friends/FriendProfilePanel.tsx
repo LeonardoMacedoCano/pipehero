@@ -4,7 +4,7 @@ import styled from "styled-components";
 import { useFriendProfile, type FriendProfileScore } from "../../hooks/useFriendProfile.js";
 import { useSongs } from "../../hooks/useSongs.js";
 import { toPage } from "../../utils/paginate.js";
-import PaginatedGrid from "./PaginatedGrid.js";
+import PaginatedGrid from "../PaginatedGrid.js";
 import type { AchievementStatus } from "../../hooks/useAchievements.js";
 
 const SCORES_PAGE_SIZE = 5;

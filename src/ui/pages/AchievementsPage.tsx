@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { useAchievements, type AchievementStatus } from "../hooks/useAchievements.js";
 import { useAuth } from "../hooks/useAuth.js";
 import GoogleSignInButton from "../components/GoogleSignInButton.js";
+import PaginatedGrid from "../components/PaginatedGrid.js";
 
 type FilterTab = "unlocked" | "locked";
 
@@ -52,17 +53,14 @@ export default function AchievementsPage() {
             />
           </HeaderRow>
 
-          {visible.length === 0 ? (
-            <EmptyState>
-              {tab === "unlocked" ? "No achievements unlocked yet — go play!" : "Nothing left to unlock. Well played."}
-            </EmptyState>
-          ) : (
-            <Grid>
-              {visible.map((achievement) => (
-                <AchievementCard key={achievement.code} achievement={achievement} onSelect={setSelected} />
-              ))}
-            </Grid>
-          )}
+          <PaginatedGrid<AchievementStatus>
+            items={visible}
+            keyExtractor={(achievement) => achievement.code}
+            emptyMessage={tab === "unlocked" ? "No achievements unlocked yet — go play!" : "Nothing left to unlock. Well played."}
+            minItemWidth="260px"
+            rowsPerPage={2}
+            renderItem={(achievement) => <AchievementCard achievement={achievement} onSelect={setSelected} />}
+          />
         </Stack>
       )}
 
@@ -135,18 +133,6 @@ const HeaderRow = styled.div`
 
 const ShrinkToFit = styled.div`
   display: inline-flex;
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 24px 0;
-  color: ${({ theme }) => theme.colors.tertiary};
-`;
-
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
 `;
 
 const CARD_HEIGHT = "150px";
