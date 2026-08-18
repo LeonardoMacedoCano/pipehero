@@ -16,37 +16,45 @@ export default function MenuLayout({
   onNavigate: (screen: MenuScreenName) => void;
 }) {
   return (
-    <Screen>
-      <SideDrawer current={current} onNavigate={onNavigate} />
-      <IconRail current={current} onNavigate={onNavigate} />
+    <Root>
+      <Screen>
+        <SideDrawer current={current} onNavigate={onNavigate} />
+        <IconRail current={current} onNavigate={onNavigate} />
 
-      <Header as={current === "menu" ? "div" : "button"} type={current === "menu" ? undefined : "button"} onClick={current === "menu" ? undefined : () => onNavigate("menu")} $clickable={current !== "menu"}>
-        <LogoRow>
-          <Logo src="/pipehero-icon.png" alt="" width={56} height={56} />
-          <Wordmark>PipeHero</Wordmark>
-        </LogoRow>
-        <VersionTag>
-          <Dash />
-          Rhythm game &middot; v{__APP_VERSION__}
-          <Dash />
-        </VersionTag>
-        <PipeBeam width="clamp(200px, 60vw, 420px)" />
-      </Header>
+        <Header as={current === "menu" ? "div" : "button"} type={current === "menu" ? undefined : "button"} onClick={current === "menu" ? undefined : () => onNavigate("menu")} $clickable={current !== "menu"}>
+          <LogoRow>
+            <Logo src="/pipehero-icon.png" alt="" width={56} height={56} />
+            <Wordmark>PipeHero</Wordmark>
+          </LogoRow>
+          <VersionTag>
+            <Dash />
+            Rhythm game &middot; v{__APP_VERSION__}
+            <Dash />
+          </VersionTag>
+          <PipeBeam width="clamp(200px, 60vw, 420px)" />
+        </Header>
 
-      <ContentArea>{children}</ContentArea>
+        <ContentArea>{children}</ContentArea>
+      </Screen>
 
       <AppFooter />
-    </Screen>
+    </Root>
   );
 }
 
-const Screen = styled.div`
+const Root = styled.div`
   min-height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
+const Screen = styled.div`
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: clamp(12px, 3vh, 24px);
-  padding: clamp(10px, 2vh, 18px) clamp(12px, 4vw, 32px) clamp(28px, 5vh, 40px);
+  padding: clamp(10px, 2vh, 18px) clamp(12px, 4vw, 32px);
   background:
     radial-gradient(circle at 50% -10%, ${({ theme }) => theme.colors.secondary} 0%, ${({ theme }) => theme.colors.primary} 55%, ${({ theme }) => theme.colors.black} 100%),
     repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0px, rgba(255, 255, 255, 0.025) 2px, transparent 2px, transparent 8px);
