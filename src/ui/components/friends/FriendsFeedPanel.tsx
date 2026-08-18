@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Loading, SearchPagination, Stack } from "lcano-react-ui";
+import { Loading, SearchPagination, Stack, paginateClientSide } from "lcano-react-ui";
 import styled from "styled-components";
 import { useFriendsFeed } from "../../hooks/useFriendsFeed.js";
 import { useSongs } from "../../hooks/useSongs.js";
-import { toPage } from "../../utils/paginate.js";
 
 const FEED_PAGE_SIZE = 5;
 
@@ -23,7 +22,7 @@ export default function FriendsFeedPanel() {
   const { songs } = useSongs();
   const songNameById = new Map((songs ?? []).map((song) => [song.id, song.name]));
   const [pageIndex, setPageIndex] = useState(0);
-  const page = toPage(feed, pageIndex, FEED_PAGE_SIZE);
+  const page = paginateClientSide(feed, pageIndex, FEED_PAGE_SIZE);
 
   return (
     <Stack direction="column" gap="10px">

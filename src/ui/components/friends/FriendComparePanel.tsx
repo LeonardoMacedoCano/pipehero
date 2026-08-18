@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
-import { Loading, Stack, Tabs, ToggleSwitch } from "lcano-react-ui";
+import { Loading, PaginatedGrid, Stack, Tabs, ToggleSwitch } from "lcano-react-ui";
 import styled from "styled-components";
 import type { Difficulty } from "../../../types.js";
 import { DIFFICULTY_ORDER } from "../../../engine/availableTracks.js";
 import { useFriendCompare, type CompareRow } from "../../hooks/useFriendCompare.js";
 import { useSongs } from "../../hooks/useSongs.js";
-import PaginatedGrid from "../PaginatedGrid.js";
 import CompareStarRow from "./CompareStarRow.js";
 
 const STAR_TIERS = [5, 4, 3, 2, 1];
