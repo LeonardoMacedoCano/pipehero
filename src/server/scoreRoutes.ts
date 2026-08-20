@@ -11,8 +11,15 @@ import {
   unlockMany,
   type Achievement,
 } from "./achievements.js";
-import { toUtcDateString } from "./economy.js";
-import { completeMissionsForToday, evaluateScoreSubmissionMissions, gatherDailyMissionStats } from "./missions.js";
+import { toUtcDateString, toUtcWeekStart } from "./economy.js";
+import {
+  completeMissionsForToday,
+  completeWeeklyMissions,
+  evaluateScoreSubmissionMissions,
+  evaluateScoreSubmissionWeeklyMissions,
+  gatherDailyMissionStats,
+  gatherWeeklyMissionStats,
+} from "./missions.js";
 import { DIFFICULTY_ORDER } from "../engine/availableTracks.js";
 import type { Difficulty } from "../types.js";
 
@@ -116,14 +123,24 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
       today
     );
 
+    const weekStart = toUtcWeekStart();
+    const weeklyStats = await gatherWeeklyMissionStats(user.id, weekStart);
+    const weeklyResult = await completeWeeklyMissions(
+      user.id,
+      evaluateScoreSubmissionWeeklyMissions(weeklyStats),
+      weekStart
+    );
+
     sendJson(res, 200, {
       ok: true,
       unlockedAchievements,
       economy: {
-        coins: missionResult.coinsBalance,
-        coinsAwarded: missionResult.coinsAwarded,
+        coins: weeklyResult.coinsBalance,
+        coinsAwarded: missionResult.coinsAwarded + weeklyResult.coinsAwarded,
         completedMissions: missionResult.completed,
         allClearBonusAwarded: missionResult.allClearBonusAwarded,
+        completedWeeklyMissions: weeklyResult.completed,
+        weeklyAllClearBonusAwarded: weeklyResult.allClearBonusAwarded,
       },
     });
     return true;

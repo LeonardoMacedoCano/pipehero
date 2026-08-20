@@ -1,7 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { DAILY_MISSIONS, evaluateScoreSubmissionMissions, type DailyMissionStats } from "./missions.js";
+import {
+  DAILY_MISSIONS,
+  WEEKLY_MISSIONS,
+  evaluateScoreSubmissionMissions,
+  evaluateScoreSubmissionWeeklyMissions,
+  type DailyMissionStats,
+  type WeeklyMissionStats,
+} from "./missions.js";
 
 function baseStats(overrides: Partial<DailyMissionStats> = {}): DailyMissionStats {
   return { failed: false, stars: 0, isFirstStarForSongDifficulty: false, distinctSongsPlayedToday: 1, ...overrides };
@@ -71,4 +78,54 @@ test("a great run on a brand-new song completes every eligible mission at once",
     baseStats({ failed: false, stars: 5, isFirstStarForSongDifficulty: true, distinctSongsPlayedToday: 3 })
   );
   assert.deepEqual(new Set(completed), new Set(["play_any_song", "no_fail_finish", "three_star_song", "three_distinct_songs", "first_star_new_song"]));
+});
+
+const WEEKLY_CODES = new Set(WEEKLY_MISSIONS.map((mission) => mission.code));
+
+test("weekly mission catalog has 3 unique, fully-populated entries with a valid tier", () => {
+  assert.equal(WEEKLY_MISSIONS.length, 3);
+  assert.equal(WEEKLY_CODES.size, WEEKLY_MISSIONS.length);
+  for (const mission of WEEKLY_MISSIONS) {
+    assert.ok(mission.code.length > 0);
+    assert.ok(mission.name.length > 0);
+    assert.ok(mission.description.length > 0);
+    assert.ok(mission.icon.length > 0);
+    assert.ok(mission.rewardCoins > 0);
+    assert.ok(["small", "medium", "large"].includes(mission.tier));
+  }
+});
+
+test("every weekly mission's name and description is documented in ECONOMY.md", () => {
+  const docs = readFileSync(new URL("../../ECONOMY.md", import.meta.url), "utf-8");
+  for (const mission of WEEKLY_MISSIONS) {
+    assert.ok(
+      docs.includes(mission.name),
+      `ECONOMY.md is missing the name "${mission.name}" (code: ${mission.code}) — update the doc when the catalog changes.`
+    );
+    assert.ok(
+      docs.includes(mission.description),
+      `ECONOMY.md is missing the description for "${mission.name}" (code: ${mission.code}) — update the doc when the catalog changes.`
+    );
+  }
+});
+
+function weeklyStats(distinctDaysPlayedThisWeek: number): WeeklyMissionStats {
+  return { distinctDaysPlayedThisWeek };
+}
+
+test("weekly mission thresholds unlock at exactly 2, 4, and 6 distinct days played", () => {
+  assert.deepEqual(evaluateScoreSubmissionWeeklyMissions(weeklyStats(0)), []);
+  assert.deepEqual(evaluateScoreSubmissionWeeklyMissions(weeklyStats(1)), []);
+  assert.deepEqual(evaluateScoreSubmissionWeeklyMissions(weeklyStats(2)), ["weekly_play_2_days"]);
+  assert.deepEqual(evaluateScoreSubmissionWeeklyMissions(weeklyStats(3)), ["weekly_play_2_days"]);
+  assert.deepEqual(evaluateScoreSubmissionWeeklyMissions(weeklyStats(4)), ["weekly_play_2_days", "weekly_play_4_days"]);
+  assert.deepEqual(evaluateScoreSubmissionWeeklyMissions(weeklyStats(5)), ["weekly_play_2_days", "weekly_play_4_days"]);
+  assert.deepEqual(
+    evaluateScoreSubmissionWeeklyMissions(weeklyStats(6)),
+    ["weekly_play_2_days", "weekly_play_4_days", "weekly_play_6_days"]
+  );
+  assert.deepEqual(
+    evaluateScoreSubmissionWeeklyMissions(weeklyStats(7)),
+    ["weekly_play_2_days", "weekly_play_4_days", "weekly_play_6_days"]
+  );
 });

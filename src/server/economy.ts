@@ -30,6 +30,13 @@ function daysBetweenUtc(from: string, to: string): number {
   return Math.round((toMs - fromMs) / (24 * 60 * 60 * 1000));
 }
 
+export function toUtcWeekStart(date: Date = new Date()): string {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const isoDay = d.getUTCDay() === 0 ? 7 : d.getUTCDay(); // 1=Mon..7=Sun
+  d.setUTCDate(d.getUTCDate() - (isoDay - 1));
+  return d.toISOString().slice(0, 10);
+}
+
 function computeStreakCoinReward(streak: number): { total: number; milestoneHit: number | null } {
   const explicitBonus = STREAK_MILESTONE_BONUSES[streak];
   if (explicitBonus !== undefined) return { total: BASE_DAILY_LOGIN_COINS + explicitBonus, milestoneHit: streak };

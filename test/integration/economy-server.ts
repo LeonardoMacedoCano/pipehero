@@ -34,11 +34,12 @@ interface Check {
 const checks: Check[] = [];
 let userAId: number | null = null;
 let userBId: number | null = null;
+let userDId: number | null = null;
 
 try {
   const { findOrCreateUser, createSession, signValue } = await import("../../src/server/session.js");
   const { query } = await import("../../src/server/db.js");
-  const { toUtcDateString } = await import("../../src/server/economy.js");
+  const { toUtcDateString, toUtcWeekStart } = await import("../../src/server/economy.js");
 
   const userA = await findOrCreateUser({
     sub: `economy-test-a-${Date.now()}`,
@@ -159,6 +160,87 @@ try {
   const finalCheckin = await finalCheckinRes.json();
   const expectedCoins = 5 /* day-1 checkin */ + 5 /* consecutive day */ + 5 /* saved day */ + 5 /* reset day */ + 10 + 10 + 15 + 15 + 20 + 20; /* missions + all-clear */
   checks.push({ name: "GET-equivalent checkin reports a coin balance matching every award granted so far", ok: finalCheckin.coins === expectedCoins });
+
+  // --- Weekly missions: seed distinct play days across the current week, independent of what day it is today ---
+  const userD = await findOrCreateUser({
+    sub: `economy-test-d-${Date.now()}`,
+    email: "economy-test-d@example.com",
+    name: "Economy Test D",
+    picture: null,
+  });
+  userDId = userD.id;
+  const sessionD = await createSession(userD.id);
+  const cookieD = `pipehero_session=${encodeURIComponent(signValue(sessionD, SESSION_SECRET))}`;
+
+  const weekStart = toUtcWeekStart();
+  const todayStr = toUtcDateString();
+  const weekDates: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    weekDates.push(toUtcDateString(new Date(Date.parse(`${weekStart}T00:00:00Z`) + i * 24 * 60 * 60 * 1000)));
+  }
+  const nonTodayWeekDates = weekDates.filter((day) => day !== todayStr).slice(0, 5);
+
+  async function seedWeeklyPlayDays(days: string[]): Promise<void> {
+    for (const day of days) {
+      await query(
+        "INSERT INTO user_daily_song_plays (user_id, play_day, song_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+        [userD.id, day, "weekly-seed-song"]
+      );
+    }
+  }
+
+  // 1 seeded day + today's submission = 2 distinct days this week
+  await seedWeeklyPlayDays(nonTodayWeekDates.slice(0, 1));
+  const weekly1Res = await fetch(`${BASE_URL}/api/scores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieD },
+    body: JSON.stringify({ songId: "economy-test-weekly-1", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  });
+  const weekly1Body = await weekly1Res.json();
+  const weekly1Codes: string[] = (weekly1Body.economy?.completedWeeklyMissions ?? []).map((m: { code: string }) => m.code);
+  checks.push({ name: "2 distinct play days this week completes weekly_play_2_days, not the higher tiers yet", ok: weekly1Codes.length === 1 && weekly1Codes.includes("weekly_play_2_days") });
+
+  // +2 seeded days = 4 distinct days this week
+  await seedWeeklyPlayDays(nonTodayWeekDates.slice(1, 3));
+  const weekly2Res = await fetch(`${BASE_URL}/api/scores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieD },
+    body: JSON.stringify({ songId: "economy-test-weekly-2", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  });
+  const weekly2Body = await weekly2Res.json();
+  const weekly2Codes: string[] = (weekly2Body.economy?.completedWeeklyMissions ?? []).map((m: { code: string }) => m.code);
+  checks.push({ name: "4 distinct play days this week newly completes weekly_play_4_days only", ok: weekly2Codes.length === 1 && weekly2Codes.includes("weekly_play_4_days") });
+
+  // +2 seeded days = 6 distinct days this week -> completes the top tier and the weekly all-clear bonus
+  await seedWeeklyPlayDays(nonTodayWeekDates.slice(3, 5));
+  const weekly3Res = await fetch(`${BASE_URL}/api/scores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieD },
+    body: JSON.stringify({ songId: "economy-test-weekly-3", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  });
+  const weekly3Body = await weekly3Res.json();
+  const weekly3Codes: string[] = (weekly3Body.economy?.completedWeeklyMissions ?? []).map((m: { code: string }) => m.code);
+  checks.push({ name: "6 distinct play days this week newly completes weekly_play_6_days", ok: weekly3Codes.includes("weekly_play_6_days") });
+  checks.push({ name: "completing all 3 weekly missions triggers the weekly all-clear bonus exactly once", ok: weekly3Body.economy?.weeklyAllClearBonusAwarded === true });
+
+  const weekly4Res = await fetch(`${BASE_URL}/api/scores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieD },
+    body: JSON.stringify({ songId: "economy-test-weekly-4", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  });
+  const weekly4Body = await weekly4Res.json();
+  checks.push({
+    name: "no weekly mission or all-clear bonus repeats once every weekly mission is already done",
+    ok: (weekly4Body.economy?.completedWeeklyMissions ?? []).length === 0 && weekly4Body.economy?.weeklyAllClearBonusAwarded === false,
+  });
+
+  const weeklyCheckinRes = await fetch(`${BASE_URL}/api/economy/checkin`, { method: "POST", headers: { Cookie: cookieD } });
+  const weeklyCheckin = await weeklyCheckinRes.json();
+  const weeklyCheckinCompleted = (weeklyCheckin.missionsThisWeek ?? []).every((m: { completed: boolean }) => m.completed);
+  checks.push({
+    name: "checkin reports all 3 weekly missions completed and the weekly all-clear flag set",
+    ok: weeklyCheckinCompleted && weeklyCheckin.weeklyAllClearCompletedThisWeek === true,
+  });
 } catch (err) {
   checks.push({ name: `unexpected error: ${err instanceof Error ? err.message : String(err)}`, ok: false });
 } finally {
@@ -192,4 +274,5 @@ async function cleanup(): Promise<void> {
   const { query } = await import("../../src/server/db.js");
   if (userAId) await query("DELETE FROM users WHERE id = $1", [userAId]).catch(() => {});
   if (userBId) await query("DELETE FROM users WHERE id = $1", [userBId]).catch(() => {});
+  if (userDId) await query("DELETE FROM users WHERE id = $1", [userDId]).catch(() => {});
 }

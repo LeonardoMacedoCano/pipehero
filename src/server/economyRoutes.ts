@@ -1,8 +1,17 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJson } from "./authRoutes.js";
 import { getRequestUser } from "./requestUser.js";
-import { applyLoginStreak, toUtcDateString } from "./economy.js";
-import { DAILY_MISSIONS, DAILY_MISSION_ALL_CLEAR_BONUS_COINS, getCompletedMissionCodesForToday, isAllClearCode } from "./missions.js";
+import { applyLoginStreak, toUtcDateString, toUtcWeekStart } from "./economy.js";
+import {
+  DAILY_MISSIONS,
+  DAILY_MISSION_ALL_CLEAR_BONUS_COINS,
+  WEEKLY_MISSIONS,
+  WEEKLY_MISSION_ALL_CLEAR_BONUS_COINS,
+  getCompletedMissionCodesForToday,
+  getCompletedWeeklyMissionCodesForWeek,
+  isAllClearCode,
+  isWeeklyAllClearCode,
+} from "./missions.js";
 
 function emptyEconomySnapshot() {
   return {
@@ -16,6 +25,9 @@ function emptyEconomySnapshot() {
     missionsToday: DAILY_MISSIONS.map((mission) => ({ ...mission, completed: false })),
     allClearBonusCoins: DAILY_MISSION_ALL_CLEAR_BONUS_COINS,
     allClearCompletedToday: false,
+    missionsThisWeek: WEEKLY_MISSIONS.map((mission) => ({ ...mission, completed: false })),
+    weeklyAllClearBonusCoins: WEEKLY_MISSION_ALL_CLEAR_BONUS_COINS,
+    weeklyAllClearCompletedThisWeek: false,
   };
 }
 
@@ -32,6 +44,8 @@ export async function handleEconomyRequest(req: IncomingMessage, res: ServerResp
     const streakResult = await applyLoginStreak(user.id);
     const today = toUtcDateString();
     const completedCodes = await getCompletedMissionCodesForToday(user.id, today);
+    const weekStart = toUtcWeekStart();
+    const completedWeeklyCodes = await getCompletedWeeklyMissionCodesForWeek(user.id, weekStart);
 
     sendJson(res, 200, {
       coins: streakResult.coinsBalance,
@@ -44,6 +58,9 @@ export async function handleEconomyRequest(req: IncomingMessage, res: ServerResp
       missionsToday: DAILY_MISSIONS.map((mission) => ({ ...mission, completed: completedCodes.has(mission.code) })),
       allClearBonusCoins: DAILY_MISSION_ALL_CLEAR_BONUS_COINS,
       allClearCompletedToday: [...completedCodes].some(isAllClearCode),
+      missionsThisWeek: WEEKLY_MISSIONS.map((mission) => ({ ...mission, completed: completedWeeklyCodes.has(mission.code) })),
+      weeklyAllClearBonusCoins: WEEKLY_MISSION_ALL_CLEAR_BONUS_COINS,
+      weeklyAllClearCompletedThisWeek: [...completedWeeklyCodes].some(isWeeklyAllClearCode),
     });
     return true;
   }

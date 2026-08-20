@@ -47,3 +47,21 @@ of **20 coins**.
 Completing a mission pops up a toast immediately, the same way
 unlocking an achievement does. Your coin balance and today's mission
 progress are shown from the account menu.
+
+## Weekly missions
+
+Alongside the daily set, 3 missions reset every Monday (midnight UTC)
+and stay available all week. They're all about the same thing — coming
+back to play across multiple days — just at three levels of commitment.
+Completing all 3 in the same week also pays out an all-clear bonus of
+**50 coins**.
+
+| | Mission | Tier | How to complete | Coins |
+|---|---|---|---|---|
+| 🗓️ | Stopping By | Small | Play on 2 different days this week. | 30 |
+| 📅 | Regular Visitor | Medium | Play on 4 different days this week. | 60 |
+| 🏅 | Weekly Dedication | Large | Play on 6 different days this week. | 120 |
+
+Same as daily missions: a toast pops up when you complete one, and your
+progress for the week is shown from the account menu next to today's
+missions.

@@ -124,4 +124,20 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    name: "0008_weekly_missions",
+    sql: `
+      CREATE TABLE IF NOT EXISTS user_weekly_missions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        mission_code TEXT NOT NULL,
+        week_start DATE NOT NULL,
+        completed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE (user_id, mission_code, week_start)
+      );
+
+      CREATE INDEX IF NOT EXISTS user_weekly_missions_user_week_idx
+        ON user_weekly_missions (user_id, week_start);
+    `,
+  },
 ];
