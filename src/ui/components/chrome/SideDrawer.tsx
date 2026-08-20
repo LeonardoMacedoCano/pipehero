@@ -5,12 +5,12 @@ import type { MenuScreenName } from "./navigation.js";
 import AccountPopover from "./AccountPopover.js";
 import CoinBalanceBadge from "./CoinBalanceBadge.js";
 import CreditsModal from "./CreditsModal.js";
-import MissionsPanel from "./MissionsPanel.js";
 import SupportModal from "./SupportModal.js";
 
 const NAV_ITEMS: { screen: MenuScreenName; label: string }[] = [
   { screen: "menu", label: "Home" },
   { screen: "achievements", label: "Achievements" },
+  { screen: "missions", label: "Missions" },
   { screen: "friends", label: "Friends" },
   { screen: "options", label: "Options" },
 ];
@@ -25,7 +25,6 @@ export default function SideDrawer({
   const [isOpen, setIsOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
-  const [missionsOpen, setMissionsOpen] = useState(false);
   const drawerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -75,13 +74,12 @@ export default function SideDrawer({
         </NavList>
 
         <AccountSection>
-          <AccountPopover onOpenMissions={() => setMissionsOpen(true)} />
+          <AccountPopover />
         </AccountSection>
       </Drawer>
 
       <CreditsModal isOpen={creditsOpen} onClose={() => setCreditsOpen(false)} />
       <SupportModal isOpen={supportOpen} onClose={() => setSupportOpen(false)} />
-      <MissionsPanel isOpen={missionsOpen} onClose={() => setMissionsOpen(false)} />
     </>
   );
 }

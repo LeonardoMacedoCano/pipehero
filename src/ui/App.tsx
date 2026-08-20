@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ContextMessageProvider } from "lcano-react-ui";
+import { ContextMessageProvider, type ToastStackItem } from "lcano-react-ui";
 import { ThemeControlProvider, useThemeControl } from "./contexts/theme/ThemeControlProvider.js";
 import { AuthProvider } from "./hooks/useAuth.js";
 import { EconomyProvider } from "./hooks/useEconomy.js";
@@ -11,6 +11,7 @@ import MainMenuPage from "./pages/MainMenuPage.js";
 import SongMenuPage from "./pages/SongMenuPage.js";
 import OptionsPage from "./pages/OptionsPage.js";
 import AchievementsPage from "./pages/AchievementsPage.js";
+import MissionsPage from "./pages/MissionsPage.js";
 import FriendsPage from "./pages/FriendsPage.js";
 import GamePage from "./pages/GamePage.js";
 import type { StartGameParams } from "./components/SongOptionsModal.js";
@@ -29,13 +30,17 @@ export default function App() {
     setScreen({ name });
   }
 
+  function handleToastClick(item: ToastStackItem) {
+    navigate(item.eyebrow === "Achievement Unlocked" ? "achievements" : "missions");
+  }
+
   return (
     <AchievementToastProvider>
       <AuthProvider>
         <EconomyProvider>
           <ThemeControlProvider>
             <AppGlobalStyles />
-            <AchievementToastStack onView={() => navigate("achievements")} />
+            <AchievementToastStack onView={handleToastClick} />
             <ContextMessageProvider>
               {screen.name === "game" && (
                 <GamePage
@@ -58,6 +63,11 @@ export default function App() {
               {screen.name === "achievements" && (
                 <MenuLayout current="achievements" onNavigate={navigate}>
                   <AchievementsPage />
+                </MenuLayout>
+              )}
+              {screen.name === "missions" && (
+                <MenuLayout current="missions" onNavigate={navigate}>
+                  <MissionsPage />
                 </MenuLayout>
               )}
               {screen.name === "friends" && (
