@@ -1,8 +1,66 @@
-import { Panel, Stack, HighlightBox, Button, useMessage } from "lcano-react-ui";
-import styled from "styled-components";
+import {
+  Panel,
+  Stack,
+  HighlightBox,
+  Button,
+  useMessage,
+  Tabs,
+  OptionGridContainer,
+  OptionGridCard,
+  OptionGridSwatch,
+  OptionGridSwatchSlice,
+  OptionGridLabel,
+  OptionGridDescription,
+  OptionGridBadge,
+} from "lcano-react-ui";
 import { useShop, type ShopItem } from "../hooks/useShop.js";
+import { THEME_OPTIONS } from "../themes/registry.js";
 
-const SLOT_LABEL: Record<ShopItem["slot"], string> = { theme: "Themes", effect: "Effects" };
+const SWATCH_BY_REF_ID = new Map(THEME_OPTIONS.map((option) => [option.id, [...option.swatch]]));
+
+function ShopGrid({
+  items,
+  showSwatch,
+  coins,
+  onBuy,
+}: {
+  items: ShopItem[];
+  showSwatch: boolean;
+  coins: number;
+  onBuy: (item: ShopItem) => void;
+}) {
+  return (
+    <OptionGridContainer $minItemWidth="180px">
+      {items.map((item) => {
+        const swatch = showSwatch ? SWATCH_BY_REF_ID.get(item.refId) : undefined;
+        return (
+          <OptionGridCard as="div" $active={false} key={item.id}>
+            {swatch && (
+              <OptionGridSwatch>
+                {swatch.map((color, i) => (
+                  <OptionGridSwatchSlice key={i} style={{ backgroundColor: color }} />
+                ))}
+              </OptionGridSwatch>
+            )}
+            <OptionGridLabel>{item.name}</OptionGridLabel>
+            <OptionGridDescription>{item.description}</OptionGridDescription>
+            {item.owned ? (
+              <OptionGridBadge>Owned</OptionGridBadge>
+            ) : (
+              <Button
+                description={`Buy — ${item.priceCoins} coins`}
+                variant="quaternary"
+                width="auto"
+                disabled={coins < item.priceCoins}
+                onClick={() => onBuy(item)}
+              />
+            )}
+          </OptionGridCard>
+        );
+      })}
+    </OptionGridContainer>
+  );
+}
 
 export default function ShopPage() {
   const { coins, items, purchase } = useShop();
@@ -19,7 +77,8 @@ export default function ShopPage() {
     }
   }
 
-  const slots: ShopItem["slot"][] = ["theme", "effect"];
+  const themeItems = items.filter((item) => item.slot === "theme");
+  const effectItems = items.filter((item) => item.slot === "effect");
 
   return (
     <Panel title="Shop" maxWidth="720px" style={{ margin: "16px" }}>
@@ -28,79 +87,13 @@ export default function ShopPage() {
           🪙 {coins} coins
         </HighlightBox>
 
-        {slots.map((slot) => (
-          <Stack key={slot} direction="column" gap="8px">
-            <SectionTitle>{SLOT_LABEL[slot]}</SectionTitle>
-            {items
-              .filter((item) => item.slot === slot)
-              .map((item) => (
-                <ItemRow key={item.id}>
-                  <ItemText>
-                    <ItemName>{item.name}</ItemName>
-                    <ItemDescription>{item.description}</ItemDescription>
-                  </ItemText>
-                  {item.owned ? (
-                    <OwnedBadge>Owned</OwnedBadge>
-                  ) : (
-                    <Button
-                      description={`Buy — ${item.priceCoins} coins`}
-                      variant="quaternary"
-                      width="auto"
-                      disabled={coins < item.priceCoins}
-                      onClick={() => handleBuy(item)}
-                    />
-                  )}
-                </ItemRow>
-              ))}
-          </Stack>
-        ))}
+        <Tabs
+          tabs={[
+            { label: "Themes", content: <ShopGrid items={themeItems} showSwatch coins={coins} onBuy={handleBuy} /> },
+            { label: "Effects", content: <ShopGrid items={effectItems} showSwatch={false} coins={coins} onBuy={handleBuy} /> },
+          ]}
+        />
       </Stack>
     </Panel>
   );
 }
-
-const SectionTitle = styled.h3`
-  margin: 0;
-  font-size: 0.85em;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: ${({ theme }) => theme.colors.gray};
-`;
-
-const ItemRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background-color: ${({ theme }) => theme.colors.secondary};
-  border: 1px solid ${({ theme }) => theme.colors.gray};
-`;
-
-const ItemText = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const ItemName = styled.p`
-  margin: 0;
-  font-weight: 700;
-  color: ${({ theme }) => theme.colors.white};
-`;
-
-const ItemDescription = styled.p`
-  margin: 0;
-  color: ${({ theme }) => theme.colors.gray};
-  font-size: 0.85em;
-`;
-
-const OwnedBadge = styled.span`
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 0.8em;
-  font-weight: 700;
-  white-space: nowrap;
-  color: ${({ theme }) => theme.colors.white};
-  background-color: ${({ theme }) => theme.colors.success};
-`;
