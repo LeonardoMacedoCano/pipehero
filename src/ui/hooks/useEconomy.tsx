@@ -11,6 +11,10 @@ export interface EconomyMission {
   completed: boolean;
 }
 
+export interface EconomyWeeklyMission extends EconomyMission {
+  tier: "small" | "medium" | "large";
+}
+
 interface EconomySnapshot {
   coins: number;
   currentStreak: number;
@@ -19,6 +23,9 @@ interface EconomySnapshot {
   missionsToday: EconomyMission[];
   allClearBonusCoins: number;
   allClearCompletedToday: boolean;
+  missionsThisWeek: EconomyWeeklyMission[];
+  weeklyAllClearBonusCoins: number;
+  weeklyAllClearCompletedThisWeek: boolean;
 }
 
 interface CheckinResponse extends EconomySnapshot {
@@ -32,6 +39,8 @@ export interface ScoreEconomyResult {
   coinsAwarded: number;
   completedMissions: Array<{ code: string; name: string; description: string; icon: string; rewardCoins: number }>;
   allClearBonusAwarded: boolean;
+  completedWeeklyMissions: Array<{ code: string; name: string; description: string; icon: string; rewardCoins: number }>;
+  weeklyAllClearBonusAwarded: boolean;
 }
 
 interface EconomyContextValue extends EconomySnapshot {
@@ -47,6 +56,9 @@ const EMPTY_SNAPSHOT: EconomySnapshot = {
   missionsToday: [],
   allClearBonusCoins: 0,
   allClearCompletedToday: false,
+  missionsThisWeek: [],
+  weeklyAllClearBonusCoins: 0,
+  weeklyAllClearCompletedThisWeek: false,
 };
 
 const EconomyContext = createContext<EconomyContextValue | undefined>(undefined);
@@ -82,6 +94,9 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
           missionsToday: data.missionsToday,
           allClearBonusCoins: data.allClearBonusCoins,
           allClearCompletedToday: data.allClearCompletedToday,
+          missionsThisWeek: data.missionsThisWeek,
+          weeklyAllClearBonusCoins: data.weeklyAllClearBonusCoins,
+          weeklyAllClearCompletedThisWeek: data.weeklyAllClearCompletedThisWeek,
         });
         if (data.streakCoinsAwardedNow > 0) {
           toastRef.current.notifyStreak(data.streakCoinsAwardedNow, data.currentStreak, data.streakSaved, data.milestoneHit);
@@ -102,6 +117,7 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
   const applyScoreEconomyResult = useCallback((result: ScoreEconomyResult) => {
     setSnapshot((prev) => {
       const completedCodes = new Set(result.completedMissions.map((mission) => mission.code));
+      const completedWeeklyCodes = new Set(result.completedWeeklyMissions.map((mission) => mission.code));
       return {
         ...prev,
         coins: result.coins,
@@ -109,9 +125,16 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
           completedCodes.has(mission.code) ? { ...mission, completed: true } : mission
         ),
         allClearCompletedToday: prev.allClearCompletedToday || result.allClearBonusAwarded,
+        missionsThisWeek: prev.missionsThisWeek.map((mission) =>
+          completedWeeklyCodes.has(mission.code) ? { ...mission, completed: true } : mission
+        ),
+        weeklyAllClearCompletedThisWeek: prev.weeklyAllClearCompletedThisWeek || result.weeklyAllClearBonusAwarded,
       };
     });
     if (result.completedMissions.length > 0) toastRef.current.notifyMissions(result.completedMissions);
+    if (result.completedWeeklyMissions.length > 0) {
+      toastRef.current.notifyMissions(result.completedWeeklyMissions, "Weekly Mission Complete");
+    }
   }, []);
 
   const value = useMemo(

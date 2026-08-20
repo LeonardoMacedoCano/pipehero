@@ -34,11 +34,12 @@ interface Check {
 const checks: Check[] = [];
 let userAId: number | null = null;
 let userBId: number | null = null;
+let userDId: number | null = null;
 
 try {
   const { findOrCreateUser, createSession, signValue } = await import("../../src/server/session.js");
   const { query } = await import("../../src/server/db.js");
-  const { toUtcDateString } = await import("../../src/server/economy.js");
+  const { toUtcDateString, toUtcWeekStart } = await import("../../src/server/economy.js");
 
   const userA = await findOrCreateUser({
     sub: `economy-test-a-${Date.now()}`,
@@ -67,10 +68,14 @@ try {
   const checkin1Res = await fetch(`${BASE_URL}/api/economy/checkin`, { method: "POST", headers: { Cookie: cookieA } });
   const checkin1 = await checkin1Res.json();
   checks.push({ name: "first checkin starts streak at 1 and awards the base 5 coins", ok: checkin1.currentStreak === 1 && checkin1.streakCoinsAwardedNow === 5 && checkin1.coins === 5 });
+  checks.push({ name: "checkin's daily_login mission is always reported as completed", ok: checkin1.missionsToday?.[0]?.code === "daily_login" && checkin1.missionsToday[0].completed === true });
 
+  // --- This is the exact scenario the reported bug ("refreshing the page re-awards 5 coins") lives in:
+  // Postgres DATE columns come back as JS Date objects by default, which silently broke the
+  // same-day idempotency check. Regression test for src/server/db.ts's DATE type parser fix. ---
   const checkin1RepeatRes = await fetch(`${BASE_URL}/api/economy/checkin`, { method: "POST", headers: { Cookie: cookieA } });
   const checkin1Repeat = await checkin1RepeatRes.json();
-  checks.push({ name: "checking in again the same day does not award coins twice", ok: checkin1Repeat.currentStreak === 1 && checkin1Repeat.streakCoinsAwardedNow === 0 && checkin1Repeat.coins === 5 });
+  checks.push({ name: "checking in again the same day does not award coins twice (DATE-parsing regression)", ok: checkin1Repeat.currentStreak === 1 && checkin1Repeat.streakCoinsAwardedNow === 0 && checkin1Repeat.coins === 5 });
 
   // --- Streak: consecutive day ---
   await query("UPDATE user_economy SET last_login_date = $1 WHERE user_id = $2", [yesterday, userA.id]);
@@ -93,9 +98,18 @@ try {
   // --- Checkin without a session ---
   const anonCheckinRes = await fetch(`${BASE_URL}/api/economy/checkin`, { method: "POST" });
   const anonCheckin = await anonCheckinRes.json();
-  checks.push({ name: "checkin without a session returns a zeroed snapshot", ok: anonCheckin.coins === 0 && anonCheckin.currentStreak === 0 && anonCheckin.missionsToday.length === 5 });
+  checks.push({
+    name: "checkin without a session returns a zeroed snapshot (daily_login + 3 gameplay missions)",
+    ok: anonCheckin.coins === 0 && anonCheckin.currentStreak === 0 && anonCheckin.missionsToday.length === 4 && anonCheckin.missionsToday[0].code === "daily_login",
+  });
 
-  // --- Missions: a failed run only completes play_any_song ---
+  // userA only ever checked in (no gameplay missions) — streak-only coin total.
+  const userAFinalCheckinRes = await fetch(`${BASE_URL}/api/economy/checkin`, { method: "POST", headers: { Cookie: cookieA } });
+  const userAFinalCheckin = await userAFinalCheckinRes.json();
+  const userAExpectedCoins = 5 /* day 1 */ + 5 /* day 2 */ + 20 /* day 3 milestone (5 base + 15) */ + 5 /* reset to day 1 */;
+  checks.push({ name: "userA's coin balance matches the streak-only awards granted so far", ok: userAFinalCheckin.coins === userAExpectedCoins });
+
+  // --- Daily gameplay missions (userB), and proving the all-clear needs the login too ---
   const failScoreRes = await fetch(`${BASE_URL}/api/scores`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookieB },
@@ -105,60 +119,131 @@ try {
   const failCompletedCodes: string[] = (failScoreBody.economy?.completedMissions ?? []).map((m: { code: string }) => m.code);
   checks.push({ name: "a failed run only completes play_any_song", ok: failCompletedCodes.length === 1 && failCompletedCodes.includes("play_any_song") });
 
-  // --- Missions: a strong run on a brand-new song completes several missions at once ---
   const score1Res = await fetch(`${BASE_URL}/api/scores`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: cookieA },
-    body: JSON.stringify({ songId: "economy-test-song-1", difficulty: "Medium", stars: 4, fullCombo: false, maxCombo: 10, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+    headers: { "Content-Type": "application/json", Cookie: cookieB },
+    body: JSON.stringify({ songId: "economy-test-song-1", difficulty: "Medium", stars: 5, fullCombo: false, maxCombo: 10, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
   });
   const score1Body = await score1Res.json();
   const score1Codes: string[] = (score1Body.economy?.completedMissions ?? []).map((m: { code: string }) => m.code);
   checks.push({
-    name: "a 4-star finish on a never-starred song completes play_any_song/no_fail_finish/three_star_song/first_star_new_song",
-    ok: ["play_any_song", "no_fail_finish", "three_star_song", "first_star_new_song"].every((code) => score1Codes.includes(code)),
+    name: "a 5-star finish on a never-starred song completes three_star_song/first_star_new_song (no_fail_finish and three_distinct_songs moved to weekly)",
+    ok: ["three_star_song", "first_star_new_song"].every((code) => score1Codes.includes(code)),
+  });
+  checks.push({ name: "moved-to-weekly codes never appear in a daily completedMissions list", ok: !score1Codes.includes("no_fail_finish") && !score1Codes.includes("three_distinct_songs") });
+  checks.push({
+    name: "the daily all-clear does NOT fire yet — 3 gameplay missions done, but userB hasn't checked in (logged in) today",
+    ok: score1Body.economy?.allClearBonusAwarded === false,
   });
 
   const score1RepeatRes = await fetch(`${BASE_URL}/api/scores`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: cookieA },
-    body: JSON.stringify({ songId: "economy-test-song-1", difficulty: "Medium", stars: 4, fullCombo: false, maxCombo: 10, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+    headers: { "Content-Type": "application/json", Cookie: cookieB },
+    body: JSON.stringify({ songId: "economy-test-song-1", difficulty: "Medium", stars: 5, fullCombo: false, maxCombo: 10, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
   });
   const score1RepeatBody = await score1RepeatRes.json();
-  checks.push({ name: "resubmitting the same score does not repeat any mission", ok: (score1RepeatBody.economy?.completedMissions ?? []).length === 0 });
+  checks.push({ name: "resubmitting the same score does not repeat any daily mission", ok: (score1RepeatBody.economy?.completedMissions ?? []).length === 0 });
 
-  // --- Missions: a 2nd distinct song does not yet complete three_distinct_songs ---
-  const score2Res = await fetch(`${BASE_URL}/api/scores`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: cookieA },
-    body: JSON.stringify({ songId: "economy-test-song-2", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  const userBCheckinRes = await fetch(`${BASE_URL}/api/economy/checkin`, { method: "POST", headers: { Cookie: cookieB } });
+  const userBCheckin = await userBCheckinRes.json();
+  checks.push({
+    name: "checking in as the 4th and final piece of the day triggers the daily all-clear bonus",
+    ok: userBCheckin.allClearCompletedToday === true,
   });
-  const score2Body = await score2Res.json();
-  const score2Codes: string[] = (score2Body.economy?.completedMissions ?? []).map((m: { code: string }) => m.code);
-  checks.push({ name: "a 2nd distinct song today does not complete three_distinct_songs yet", ok: !score2Codes.includes("three_distinct_songs") });
 
-  // --- Missions: a 3rd distinct song completes three_distinct_songs and the all-clear bonus ---
-  const score3Res = await fetch(`${BASE_URL}/api/scores`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: cookieA },
-    body: JSON.stringify({ songId: "economy-test-song-3", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  const userBCheckinRepeatRes = await fetch(`${BASE_URL}/api/economy/checkin`, { method: "POST", headers: { Cookie: cookieB } });
+  const userBCheckinRepeat = await userBCheckinRepeatRes.json();
+  checks.push({
+    name: "the daily all-clear stays claimed and doesn't re-trigger on a later checkin",
+    ok: userBCheckinRepeat.allClearCompletedToday === true && userBCheckinRepeat.coins === userBCheckin.coins,
   });
-  const score3Body = await score3Res.json();
-  const score3Codes: string[] = (score3Body.economy?.completedMissions ?? []).map((m: { code: string }) => m.code);
-  checks.push({ name: "a 3rd distinct song today completes three_distinct_songs", ok: score3Codes.includes("three_distinct_songs") });
-  checks.push({ name: "completing all 5 daily missions triggers the all-clear bonus exactly once", ok: score3Body.economy?.allClearBonusAwarded === true });
 
-  const score4Res = await fetch(`${BASE_URL}/api/scores`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: cookieA },
-    body: JSON.stringify({ songId: "economy-test-song-4", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  // --- Weekly missions: seed distinct play days across the current week, independent of what day it is today ---
+  const userD = await findOrCreateUser({
+    sub: `economy-test-d-${Date.now()}`,
+    email: "economy-test-d@example.com",
+    name: "Economy Test D",
+    picture: null,
   });
-  const score4Body = await score4Res.json();
-  checks.push({ name: "the all-clear bonus does not repeat once every mission is already done today", ok: score4Body.economy?.allClearBonusAwarded === false });
+  userDId = userD.id;
+  const sessionD = await createSession(userD.id);
+  const cookieD = `pipehero_session=${encodeURIComponent(signValue(sessionD, SESSION_SECRET))}`;
 
-  const finalCheckinRes = await fetch(`${BASE_URL}/api/economy/checkin`, { method: "POST", headers: { Cookie: cookieA } });
-  const finalCheckin = await finalCheckinRes.json();
-  const expectedCoins = 5 /* day-1 checkin */ + 5 /* consecutive day */ + 5 /* saved day */ + 5 /* reset day */ + 10 + 10 + 15 + 15 + 20 + 20; /* missions + all-clear */
-  checks.push({ name: "GET-equivalent checkin reports a coin balance matching every award granted so far", ok: finalCheckin.coins === expectedCoins });
+  const weekStart = toUtcWeekStart();
+  const todayStr = toUtcDateString();
+  const weekDates: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    weekDates.push(toUtcDateString(new Date(Date.parse(`${weekStart}T00:00:00Z`) + i * 24 * 60 * 60 * 1000)));
+  }
+  const nonTodayWeekDates = weekDates.filter((day) => day !== todayStr).slice(0, 5);
+
+  async function seedWeeklyPlayDays(days: string[]): Promise<void> {
+    for (const day of days) {
+      await query(
+        "INSERT INTO user_daily_song_plays (user_id, play_day, song_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+        [userD.id, day, "weekly-seed-song"]
+      );
+    }
+  }
+
+  // 1 seeded day + today's submission (1st distinct song, not failed) = 2 distinct days, 1 distinct song, no-fail
+  await seedWeeklyPlayDays(nonTodayWeekDates.slice(0, 1));
+  const weekly1Res = await fetch(`${BASE_URL}/api/scores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieD },
+    body: JSON.stringify({ songId: "economy-test-weekly-1", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  });
+  const weekly1Body = await weekly1Res.json();
+  const weekly1Codes: string[] = (weekly1Body.economy?.completedWeeklyMissions ?? []).map((m: { code: string }) => m.code);
+  checks.push({
+    name: "2 distinct play days + a non-failed run completes weekly_play_2_days and weekly_no_fail_finish, not the higher tiers yet",
+    ok: new Set(weekly1Codes).size === 2 && weekly1Codes.includes("weekly_play_2_days") && weekly1Codes.includes("weekly_no_fail_finish"),
+  });
+
+  // +2 seeded days = 4 distinct days this week (2nd distinct song, no_fail_finish already claimed)
+  await seedWeeklyPlayDays(nonTodayWeekDates.slice(1, 3));
+  const weekly2Res = await fetch(`${BASE_URL}/api/scores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieD },
+    body: JSON.stringify({ songId: "economy-test-weekly-2", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  });
+  const weekly2Body = await weekly2Res.json();
+  const weekly2Codes: string[] = (weekly2Body.economy?.completedWeeklyMissions ?? []).map((m: { code: string }) => m.code);
+  checks.push({ name: "4 distinct play days this week newly completes weekly_play_4_days only", ok: weekly2Codes.length === 1 && weekly2Codes.includes("weekly_play_4_days") });
+
+  // +2 seeded days = 6 distinct days, 3rd distinct song -> completes the top tier, the song-variety mission, and the weekly all-clear
+  await seedWeeklyPlayDays(nonTodayWeekDates.slice(3, 5));
+  const weekly3Res = await fetch(`${BASE_URL}/api/scores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieD },
+    body: JSON.stringify({ songId: "economy-test-weekly-3", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  });
+  const weekly3Body = await weekly3Res.json();
+  const weekly3Codes: string[] = (weekly3Body.economy?.completedWeeklyMissions ?? []).map((m: { code: string }) => m.code);
+  checks.push({
+    name: "6 distinct play days and a 3rd distinct song newly complete weekly_play_6_days and weekly_three_distinct_songs together",
+    ok: weekly3Codes.includes("weekly_play_6_days") && weekly3Codes.includes("weekly_three_distinct_songs"),
+  });
+  checks.push({ name: "completing all 5 weekly missions triggers the weekly all-clear bonus exactly once", ok: weekly3Body.economy?.weeklyAllClearBonusAwarded === true });
+
+  const weekly4Res = await fetch(`${BASE_URL}/api/scores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieD },
+    body: JSON.stringify({ songId: "economy-test-weekly-4", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  });
+  const weekly4Body = await weekly4Res.json();
+  checks.push({
+    name: "no weekly mission or all-clear bonus repeats once every weekly mission is already done",
+    ok: (weekly4Body.economy?.completedWeeklyMissions ?? []).length === 0 && weekly4Body.economy?.weeklyAllClearBonusAwarded === false,
+  });
+
+  const weeklyCheckinRes = await fetch(`${BASE_URL}/api/economy/checkin`, { method: "POST", headers: { Cookie: cookieD } });
+  const weeklyCheckin = await weeklyCheckinRes.json();
+  const weeklyCheckinCompleted = (weeklyCheckin.missionsThisWeek ?? []).every((m: { completed: boolean }) => m.completed);
+  checks.push({
+    name: "checkin reports all 5 weekly missions completed and the weekly all-clear flag set",
+    ok: weeklyCheckinCompleted && (weeklyCheckin.missionsThisWeek ?? []).length === 5 && weeklyCheckin.weeklyAllClearCompletedThisWeek === true,
+  });
 } catch (err) {
   checks.push({ name: `unexpected error: ${err instanceof Error ? err.message : String(err)}`, ok: false });
 } finally {
@@ -192,4 +277,5 @@ async function cleanup(): Promise<void> {
   const { query } = await import("../../src/server/db.js");
   if (userAId) await query("DELETE FROM users WHERE id = $1", [userAId]).catch(() => {});
   if (userBId) await query("DELETE FROM users WHERE id = $1", [userBId]).catch(() => {});
+  if (userDId) await query("DELETE FROM users WHERE id = $1", [userDId]).catch(() => {});
 }

@@ -1,8 +1,19 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJson } from "./authRoutes.js";
 import { getRequestUser } from "./requestUser.js";
-import { applyLoginStreak, toUtcDateString } from "./economy.js";
-import { DAILY_MISSIONS, DAILY_MISSION_ALL_CLEAR_BONUS_COINS, getCompletedMissionCodesForToday, isAllClearCode } from "./missions.js";
+import { applyLoginStreak, computeStreakCoinReward, toUtcDateString, toUtcWeekStart } from "./economy.js";
+import {
+  DAILY_LOGIN_CODE,
+  DAILY_MISSIONS,
+  DAILY_MISSION_ALL_CLEAR_BONUS_COINS,
+  WEEKLY_MISSIONS,
+  WEEKLY_MISSION_ALL_CLEAR_BONUS_COINS,
+  getCompletedMissionCodesForToday,
+  getCompletedWeeklyMissionCodesForWeek,
+  isAllClearCode,
+  isWeeklyAllClearCode,
+  recordDailyLoginCompletion,
+} from "./missions.js";
 
 function emptyEconomySnapshot() {
   return {
@@ -13,9 +24,22 @@ function emptyEconomySnapshot() {
     streakCoinsAwardedNow: 0,
     streakSaved: false,
     milestoneHit: null,
-    missionsToday: DAILY_MISSIONS.map((mission) => ({ ...mission, completed: false })),
+    missionsToday: [
+      {
+        code: DAILY_LOGIN_CODE,
+        icon: "🔥",
+        name: "Daily Login",
+        description: "Log in to start (or keep) your streak.",
+        rewardCoins: 5,
+        completed: false,
+      },
+      ...DAILY_MISSIONS.map((mission) => ({ ...mission, completed: false })),
+    ],
     allClearBonusCoins: DAILY_MISSION_ALL_CLEAR_BONUS_COINS,
     allClearCompletedToday: false,
+    missionsThisWeek: WEEKLY_MISSIONS.map((mission) => ({ ...mission, completed: false })),
+    weeklyAllClearBonusCoins: WEEKLY_MISSION_ALL_CLEAR_BONUS_COINS,
+    weeklyAllClearCompletedThisWeek: false,
   };
 }
 
@@ -31,19 +55,37 @@ export async function handleEconomyRequest(req: IncomingMessage, res: ServerResp
 
     const streakResult = await applyLoginStreak(user.id);
     const today = toUtcDateString();
+    const loginResult = await recordDailyLoginCompletion(user.id, today);
     const completedCodes = await getCompletedMissionCodesForToday(user.id, today);
+    const weekStart = toUtcWeekStart();
+    const completedWeeklyCodes = await getCompletedWeeklyMissionCodesForWeek(user.id, weekStart);
+
+    const loginMission = {
+      code: DAILY_LOGIN_CODE,
+      icon: "🔥",
+      name: "Daily Login",
+      description: `Open the game today to keep your streak going (day ${streakResult.state.currentStreak}).`,
+      rewardCoins: computeStreakCoinReward(streakResult.state.currentStreak).total,
+      completed: true,
+    };
 
     sendJson(res, 200, {
-      coins: streakResult.coinsBalance,
+      coins: loginResult.coinsBalance,
       currentStreak: streakResult.state.currentStreak,
       longestStreak: streakResult.state.longestStreak,
       streakGraceAvailable: streakResult.state.graceAvailable,
       streakCoinsAwardedNow: streakResult.alreadyCreditedToday ? 0 : streakResult.coinsAwarded,
       streakSaved: streakResult.streakSaved,
       milestoneHit: streakResult.milestoneHit,
-      missionsToday: DAILY_MISSIONS.map((mission) => ({ ...mission, completed: completedCodes.has(mission.code) })),
+      missionsToday: [
+        loginMission,
+        ...DAILY_MISSIONS.map((mission) => ({ ...mission, completed: completedCodes.has(mission.code) })),
+      ],
       allClearBonusCoins: DAILY_MISSION_ALL_CLEAR_BONUS_COINS,
       allClearCompletedToday: [...completedCodes].some(isAllClearCode),
+      missionsThisWeek: WEEKLY_MISSIONS.map((mission) => ({ ...mission, completed: completedWeeklyCodes.has(mission.code) })),
+      weeklyAllClearBonusCoins: WEEKLY_MISSION_ALL_CLEAR_BONUS_COINS,
+      weeklyAllClearCompletedThisWeek: [...completedWeeklyCodes].some(isWeeklyAllClearCode),
     });
     return true;
   }
