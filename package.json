@@ -26,6 +26,7 @@
     "test:integration:auth-server": "tsx test/integration/auth-server.ts",
     "test:integration:achievements-server": "tsx test/integration/achievements-server.ts",
     "test:integration:friends-server": "tsx test/integration/friends-server.ts",
+    "test:integration:economy-server": "tsx test/integration/economy-server.ts",
     "test:integration:menu-dom": "tsx test/integration/menu-dom.ts",
     "test:integration:docker-build-simulation": "tsx test/integration/docker-build-simulation.ts",
     "test:integration:real-song-compatibility": "tsx test/integration/real-song-compatibility.ts",

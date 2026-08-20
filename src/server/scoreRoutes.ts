@@ -11,6 +11,8 @@ import {
   unlockMany,
   type Achievement,
 } from "./achievements.js";
+import { toUtcDateString } from "./economy.js";
+import { completeMissionsForToday, evaluateScoreSubmissionMissions, gatherDailyMissionStats } from "./missions.js";
 import { DIFFICULTY_ORDER } from "../engine/availableTracks.js";
 import type { Difficulty } from "../types.js";
 
@@ -67,6 +69,12 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
       return true;
     }
 
+    const [priorScoreRow] = await query<{ stars: number }>(
+      "SELECT stars FROM song_scores WHERE user_id = $1 AND song_id = $2 AND difficulty = $3",
+      [user.id, songId, difficulty]
+    );
+    const priorStars = priorScoreRow?.stars ?? 0;
+
     let unlockedAchievements: Achievement[];
 
     if (isFailedSubmission) {
@@ -96,7 +104,28 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
       unlockedAchievements = await unlockMany(user.id, evaluateScoreSubmissionUnlocks(stats));
     }
 
-    sendJson(res, 200, { ok: true, unlockedAchievements });
+    const today = toUtcDateString();
+    const missionStats = await gatherDailyMissionStats(
+      user.id,
+      { songId, failed: isFailedSubmission, stars: isFailedSubmission ? 0 : stars!, priorStars },
+      today
+    );
+    const missionResult = await completeMissionsForToday(
+      user.id,
+      evaluateScoreSubmissionMissions(missionStats),
+      today
+    );
+
+    sendJson(res, 200, {
+      ok: true,
+      unlockedAchievements,
+      economy: {
+        coins: missionResult.coinsBalance,
+        coinsAwarded: missionResult.coinsAwarded,
+        completedMissions: missionResult.completed,
+        allClearBonusAwarded: missionResult.allClearBonusAwarded,
+      },
+    });
     return true;
   }
 

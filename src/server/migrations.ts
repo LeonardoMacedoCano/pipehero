@@ -91,4 +91,37 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS theme_effect_id TEXT;
     `,
   },
+  {
+    name: "0007_economy_core",
+    sql: `
+      CREATE TABLE IF NOT EXISTS user_economy (
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        coins INTEGER NOT NULL DEFAULT 0 CHECK (coins >= 0),
+        current_streak INTEGER NOT NULL DEFAULT 0,
+        longest_streak INTEGER NOT NULL DEFAULT 0,
+        last_login_date DATE,
+        streak_grace_available BOOLEAN NOT NULL DEFAULT true,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+
+      CREATE TABLE IF NOT EXISTS user_daily_missions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        mission_code TEXT NOT NULL,
+        mission_day DATE NOT NULL,
+        completed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE (user_id, mission_code, mission_day)
+      );
+
+      CREATE INDEX IF NOT EXISTS user_daily_missions_user_day_idx
+        ON user_daily_missions (user_id, mission_day);
+
+      CREATE TABLE IF NOT EXISTS user_daily_song_plays (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        play_day DATE NOT NULL,
+        song_id TEXT NOT NULL,
+        PRIMARY KEY (user_id, play_day, song_id)
+      );
+    `,
+  },
 ];
