@@ -7,6 +7,7 @@ import { handleScoreRequest } from "./src/server/scoreRoutes.js";
 import { handleFriendsRequest } from "./src/server/friendsRoutes.js";
 import { handleSettingsRequest } from "./src/server/settingsRoutes.js";
 import { handleEconomyRequest } from "./src/server/economyRoutes.js";
+import { handleShopRequest } from "./src/server/shopRoutes.js";
 import { runMigrations } from "./src/server/migrate.js";
 import { cleanupExpiredSessions } from "./src/server/session.js";
 import { isInsideDir } from "./src/server/pathGuard.js";
@@ -110,6 +111,10 @@ const server = createServer(async (req, res) => {
 
     if (req.url?.startsWith("/api/economy")) {
       if (await handleEconomyRequest(req, res)) return;
+    }
+
+    if (req.url?.startsWith("/api/shop")) {
+      if (await handleShopRequest(req, res)) return;
     }
 
     if (req.url === "/api/songs") {

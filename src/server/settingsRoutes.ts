@@ -4,6 +4,7 @@ import { readJsonBody, sendJson } from "./authRoutes.js";
 import { getRequestUser } from "./requestUser.js";
 import { isGraphicsQuality } from "../render/graphicsQuality.js";
 import { evaluateSettingsUnlocks, unlockMany } from "./achievements.js";
+import { isValidThemeEffectId, isValidThemeId, ownsThemeEffectId, ownsThemeId } from "./shop.js";
 
 const MAX_CALIBRATION_MS = 1000;
 const MAX_THEME_ID_LENGTH = 64;
@@ -96,8 +97,17 @@ export async function handleSettingsRequest(req: IncomingMessage, res: ServerRes
     }
 
     if (body.themeId !== undefined) {
-      if (typeof body.themeId !== "string" || body.themeId.length === 0 || body.themeId.length > MAX_THEME_ID_LENGTH) {
+      if (
+        typeof body.themeId !== "string" ||
+        body.themeId.length === 0 ||
+        body.themeId.length > MAX_THEME_ID_LENGTH ||
+        !isValidThemeId(body.themeId)
+      ) {
         sendJson(res, 400, { error: "Invalid themeId" });
+        return true;
+      }
+      if (!(await ownsThemeId(user.id, body.themeId))) {
+        sendJson(res, 403, { error: "You don't own this theme yet" });
         return true;
       }
       columns.push("theme_id");
@@ -105,8 +115,17 @@ export async function handleSettingsRequest(req: IncomingMessage, res: ServerRes
     }
 
     if (body.themeEffectId !== undefined) {
-      if (typeof body.themeEffectId !== "string" || body.themeEffectId.length === 0 || body.themeEffectId.length > MAX_THEME_ID_LENGTH) {
+      if (
+        typeof body.themeEffectId !== "string" ||
+        body.themeEffectId.length === 0 ||
+        body.themeEffectId.length > MAX_THEME_ID_LENGTH ||
+        !isValidThemeEffectId(body.themeEffectId)
+      ) {
         sendJson(res, 400, { error: "Invalid themeEffectId" });
+        return true;
+      }
+      if (!(await ownsThemeEffectId(user.id, body.themeEffectId))) {
+        sendJson(res, 403, { error: "You don't own this effect yet" });
         return true;
       }
       columns.push("theme_effect_id");

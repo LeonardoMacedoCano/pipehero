@@ -3,7 +3,8 @@
 Open **Options** from the gear icon (⚙️, top-right rail on desktop) or
 the **☰** menu (mobile drawer). Four tabs: [Controls](#controls) ·
 [Appearance](#appearance-themes) · [Graphics](#graphics-quality) ·
-[Account](#account).
+[Account](#account). Paid appearance options are bought separately from
+the [Shop](#shop) page.
 
 ## Controls
 
@@ -21,11 +22,16 @@ the **☰** menu (mobile drawer). Four tabs: [Controls](#controls) ·
 
 ## Appearance (themes)
 
-| Theme | Feel |
-|---|---|
-| **Dark Carbon Green** (default) | Brushed carbon with a vivid green edge — the classic green/red/yellow/blue/orange lane colors. |
-| **Dark Onyx Amber** | Brushed carbon with a warm amber edge — amber/red/green/blue/purple lanes. |
-| **Dracula Dark** | The classic Dracula color scheme — purple/red/yellow/cyan/orange lanes. |
+Only **Dark Carbon Green** and the **None** effect are free — everything else in this section is
+sold in the [Shop](#shop) for coins (see [`ECONOMY.md`](./ECONOMY.md) for how to earn them). If you
+already had a paid theme/effect equipped before the Shop existed, you keep it for free — only new
+selections need to be bought.
+
+| Theme | Feel | Price |
+|---|---|---|
+| **Dark Carbon Green** (default) | Brushed carbon with a vivid green edge — the classic green/red/yellow/blue/orange lane colors. | Free |
+| **Dark Onyx Amber** | Brushed carbon with a warm amber edge — amber/red/green/blue/purple lanes. | 300 coins |
+| **Dracula Dark** | The classic Dracula color scheme — purple/red/yellow/cyan/orange lanes. | 300 coins |
 
 This isn't just a menu skin — **each theme also recolors the 5 lanes
 and pipes in-game**, not only the surrounding UI. Pick whichever set of
@@ -35,14 +41,20 @@ and pipes in-game**, not only the surrounding UI. Pick whichever set of
 you picked, applied to the whole site (menus and gameplay alike).
 Off (`None`) by default.
 
-| Effect | What it does |
-|---|---|
-| **None** (default) | No animation. |
-| **End Cycle** | A slow, subtle hue drift that eases back and forth, inspired by the color cycling in Minecraft's End portal. |
-| **Breathing** | A gentle brightness pulse across the whole site, like it's slowly breathing in and out. |
-| **Bloom** | A very soft wash of the theme's accent color breathes across the whole screen. |
+| Effect | What it does | Price |
+|---|---|---|
+| **None** (default) | No animation. | Free |
+| **End Cycle** | A slow, subtle hue drift that eases back and forth, inspired by the color cycling in Minecraft's End portal. | 150 coins |
+| **Breathing** | A gentle brightness pulse across the whole site, like it's slowly breathing in and out. | 150 coins |
+| **Bloom** | A very soft wash of the theme's accent color breathes across the whole screen. | 150 coins |
 
 All effects respect your OS's "reduce motion" setting (disabled automatically if you have that on).
+
+## Shop
+
+Open the **🛍️ Shop** page (same rail/drawer as Missions) to spend coins on the paid themes/effects
+above. Buying one adds it to Appearance — locked options there show a 🔒 and the price; owning one
+just means it's now selectable, you still pick it from Appearance like any other option.
 
 ## Graphics quality
 

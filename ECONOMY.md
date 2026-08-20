@@ -4,9 +4,10 @@ Coins require being **logged in with Google** — see
 [`SETTINGS.md`](./SETTINGS.md#account). Everything below is tracked per
 account; playing while logged out doesn't earn anything.
 
-There's no shop yet — coins just accumulate for now. Spending them on
-cosmetics (themes, effects, profile customization) is coming in a later
-update.
+Spend coins in the **🛍️ Shop** page on paid themes and effects — see
+[`SETTINGS.md`](./SETTINGS.md#appearance-themes) for what's free vs. paid and how much each
+costs. More cosmetic categories (profile picture, borders, backgrounds, player tags) are coming in
+a later update.
 
 Open the **🎯 Missions** page (same rail/drawer as Achievements) to see
 your coin balance and two tabs — **Daily** and **Weekly** — each with

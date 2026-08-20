@@ -140,4 +140,27 @@ export const MIGRATIONS: Migration[] = [
         ON user_weekly_missions (user_id, week_start);
     `,
   },
+  {
+    name: "0009_shop_core",
+    sql: `
+      CREATE TABLE IF NOT EXISTS user_cosmetic_unlocks (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        item_id TEXT NOT NULL,
+        unlocked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (user_id, item_id)
+      );
+
+      -- Grandfather cirúrgico: só o que cada usuário já tinha equipado antes da loja existir,
+      -- não o catálogo inteiro pra todo mundo.
+      INSERT INTO user_cosmetic_unlocks (user_id, item_id)
+      SELECT user_id, 'theme_' || theme_id FROM user_settings
+      WHERE theme_id IS NOT NULL AND theme_id <> 'darkCarbonGreen'
+      ON CONFLICT DO NOTHING;
+
+      INSERT INTO user_cosmetic_unlocks (user_id, item_id)
+      SELECT user_id, 'effect_' || theme_effect_id FROM user_settings
+      WHERE theme_effect_id IS NOT NULL AND theme_effect_id <> 'none'
+      ON CONFLICT DO NOTHING;
+    `,
+  },
 ];
