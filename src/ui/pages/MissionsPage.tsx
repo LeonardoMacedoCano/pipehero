@@ -1,14 +1,9 @@
-import { useState } from "react";
-import { Panel, Stack, HighlightBox, ToggleSwitch } from "lcano-react-ui";
+import { Panel, Stack, HighlightBox, Tabs } from "lcano-react-ui";
 import styled from "styled-components";
 import { useEconomy } from "../hooks/useEconomy.js";
 
-type MissionsTab = "daily" | "weekly";
-
 export default function MissionsPage() {
-  const [tab, setTab] = useState<MissionsTab>("daily");
   const {
-    coins,
     currentStreak,
     longestStreak,
     streakGraceAvailable,
@@ -22,95 +17,74 @@ export default function MissionsPage() {
 
   return (
     <Panel title="Missions" maxWidth="720px" style={{ margin: "16px" }}>
-      <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
-        <HeaderRow>
-          <ShrinkToFit>
-            <HighlightBox variant="quaternary" bordered width="auto" style={{ padding: "6px 18px" }}>
-              🪙 {coins} coins
-            </HighlightBox>
-          </ShrinkToFit>
-          <ToggleSwitch
-            optionA={{ label: "Daily", value: "daily" }}
-            optionB={{ label: "Weekly", value: "weekly" }}
-            value={tab}
-            onChange={setTab}
-          />
-        </HeaderRow>
+      <Tabs
+        tabs={[
+          {
+            label: "Daily",
+            content: (
+              <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
+                <StreakRow>
+                  <HighlightBox variant="secondary" bordered width="auto" style={{ padding: "6px 18px" }}>
+                    🔥 Day {currentStreak} streak
+                  </HighlightBox>
+                  <StreakDetail>
+                    Best streak: {longestStreak} · {streakGraceAvailable ? "grace available" : "grace already used"}
+                  </StreakDetail>
+                </StreakRow>
 
-        {tab === "daily" && (
-          <>
-            <StreakRow>
-              <HighlightBox variant="secondary" bordered width="auto" style={{ padding: "6px 18px" }}>
-                🔥 Day {currentStreak} streak
-              </HighlightBox>
-              <StreakDetail>
-                Best streak: {longestStreak} · {streakGraceAvailable ? "grace available" : "grace already used"}
-              </StreakDetail>
-            </StreakRow>
+                <Stack direction="column" gap="8px">
+                  {missionsToday.map((mission) => (
+                    <MissionRow key={mission.code}>
+                      <MissionIcon aria-hidden>{mission.icon}</MissionIcon>
+                      <MissionText>
+                        <MissionName>{mission.name}</MissionName>
+                        <MissionDescription>{mission.description}</MissionDescription>
+                      </MissionText>
+                      <MissionReward>+{mission.rewardCoins}</MissionReward>
+                      <StatusBadge $completed={mission.completed}>{mission.completed ? "✓ Done" : "Pending"}</StatusBadge>
+                    </MissionRow>
+                  ))}
+                </Stack>
 
-            <Stack direction="column" gap="8px">
-              {missionsToday.map((mission) => (
-                <MissionRow key={mission.code}>
-                  <MissionIcon aria-hidden>{mission.icon}</MissionIcon>
-                  <MissionText>
-                    <MissionName>{mission.name}</MissionName>
-                    <MissionDescription>{mission.description}</MissionDescription>
-                  </MissionText>
-                  <MissionReward>+{mission.rewardCoins}</MissionReward>
-                  <StatusBadge $completed={mission.completed}>{mission.completed ? "✓ Done" : "Pending"}</StatusBadge>
-                </MissionRow>
-              ))}
-            </Stack>
+                <AllClearRow $completed={allClearCompletedToday}>
+                  All-clear bonus: +{allClearBonusCoins} coins for finishing every mission today
+                  {allClearCompletedToday ? " — claimed!" : ""}
+                </AllClearRow>
+              </Stack>
+            ),
+          },
+          {
+            label: "Weekly",
+            content: (
+              <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
+                <Stack direction="column" gap="8px">
+                  {missionsThisWeek.map((mission) => (
+                    <MissionRow key={mission.code}>
+                      <MissionIcon aria-hidden>{mission.icon}</MissionIcon>
+                      <MissionText>
+                        <MissionName>
+                          {mission.name} <TierBadge $tier={mission.tier}>{mission.tier}</TierBadge>
+                        </MissionName>
+                        <MissionDescription>{mission.description}</MissionDescription>
+                      </MissionText>
+                      <MissionReward>+{mission.rewardCoins}</MissionReward>
+                      <StatusBadge $completed={mission.completed}>{mission.completed ? "✓ Done" : "Pending"}</StatusBadge>
+                    </MissionRow>
+                  ))}
+                </Stack>
 
-            <AllClearRow $completed={allClearCompletedToday}>
-              All-clear bonus: +{allClearBonusCoins} coins for finishing every mission today
-              {allClearCompletedToday ? " — claimed!" : ""}
-            </AllClearRow>
-          </>
-        )}
-
-        {tab === "weekly" && (
-          <>
-            <Stack direction="column" gap="8px">
-              {missionsThisWeek.map((mission) => (
-                <MissionRow key={mission.code}>
-                  <MissionIcon aria-hidden>{mission.icon}</MissionIcon>
-                  <MissionText>
-                    <MissionName>
-                      {mission.name} <TierBadge $tier={mission.tier}>{mission.tier}</TierBadge>
-                    </MissionName>
-                    <MissionDescription>{mission.description}</MissionDescription>
-                  </MissionText>
-                  <MissionReward>+{mission.rewardCoins}</MissionReward>
-                  <StatusBadge $completed={mission.completed}>{mission.completed ? "✓ Done" : "Pending"}</StatusBadge>
-                </MissionRow>
-              ))}
-            </Stack>
-
-            <AllClearRow $completed={weeklyAllClearCompletedThisWeek}>
-              All-clear bonus: +{weeklyAllClearBonusCoins} coins for finishing every mission this week
-              {weeklyAllClearCompletedThisWeek ? " — claimed!" : ""}
-            </AllClearRow>
-          </>
-        )}
-
-        <FootNote>No shop yet — coins just accumulate for now.</FootNote>
-      </Stack>
+                <AllClearRow $completed={weeklyAllClearCompletedThisWeek}>
+                  All-clear bonus: +{weeklyAllClearBonusCoins} coins for finishing every mission this week
+                  {weeklyAllClearCompletedThisWeek ? " — claimed!" : ""}
+                </AllClearRow>
+              </Stack>
+            ),
+          },
+        ]}
+      />
     </Panel>
   );
 }
-
-const HeaderRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-`;
-
-const ShrinkToFit = styled.div`
-  display: inline-flex;
-`;
 
 const TIER_COLORS: Record<"small" | "medium" | "large", (theme: import("styled-components").DefaultTheme) => string> = {
   small: (theme) => theme.colors.gray,
@@ -138,7 +112,7 @@ const StreakRow = styled.div`
 `;
 
 const StreakDetail = styled.span`
-  color: ${({ theme }) => theme.colors.tertiary};
+  color: ${({ theme }) => theme.colors.gray};
   font-size: 0.9em;
 `;
 
@@ -169,7 +143,7 @@ const MissionName = styled.p`
 
 const MissionDescription = styled.p`
   margin: 0;
-  color: ${({ theme }) => theme.colors.tertiary};
+  color: ${({ theme }) => theme.colors.gray};
   font-size: 0.85em;
 `;
 
@@ -196,10 +170,4 @@ const AllClearRow = styled.p<{ $completed: boolean }>`
   font-size: 0.9em;
   color: ${({ theme }) => theme.colors.white};
   background-color: ${({ theme, $completed }) => ($completed ? theme.colors.success : theme.colors.primary)};
-`;
-
-const FootNote = styled.p`
-  margin: 0;
-  color: ${({ theme }) => theme.colors.tertiary};
-  font-size: 0.85em;
 `;
