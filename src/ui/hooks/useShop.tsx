@@ -2,9 +2,12 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { useAuth } from "./useAuth.js";
 import { useEconomy } from "./useEconomy.js";
 
+export type CosmeticSlot = "theme" | "effect" | "avatar" | "border" | "background" | "tag";
+export type EquippableSlot = "avatar" | "border" | "background" | "tag";
+
 export interface ShopItem {
   id: string;
-  slot: "theme" | "effect";
+  slot: CosmeticSlot;
   refId: string;
   name: string;
   description: string;
@@ -12,18 +15,44 @@ export interface ShopItem {
   owned: boolean;
 }
 
+export interface EquippedCosmetics {
+  avatarId: string | null;
+  borderId: string | null;
+  backgroundId: string | null;
+  tagId: string | null;
+}
+
+const EMPTY_EQUIPPED: EquippedCosmetics = { avatarId: null, borderId: null, backgroundId: null, tagId: null };
+
 interface ShopMeResponse {
   coins: number;
   items: ShopItem[];
+  equipped: EquippedCosmetics;
 }
 
 export type PurchaseOutcome = { ok: true } | { ok: false; error: string };
 
+const SLOT_TO_SETTINGS_FIELD: Record<EquippableSlot, string> = {
+  avatar: "equippedAvatarId",
+  border: "equippedBorderId",
+  background: "equippedBackgroundId",
+  tag: "equippedTagId",
+};
+
+const SLOT_TO_EQUIPPED_KEY: Record<EquippableSlot, keyof EquippedCosmetics> = {
+  avatar: "avatarId",
+  border: "borderId",
+  background: "backgroundId",
+  tag: "tagId",
+};
+
 interface ShopContextValue {
   coins: number;
   items: ShopItem[];
+  equipped: EquippedCosmetics;
   isLoading: boolean;
   purchase: (itemId: string) => Promise<PurchaseOutcome>;
+  equip: (slot: EquippableSlot, refId: string | null) => Promise<boolean>;
 }
 
 const ShopContext = createContext<ShopContextValue | undefined>(undefined);
@@ -34,6 +63,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
 
   const [coins, setCoins] = useState(0);
   const [items, setItems] = useState<ShopItem[]>([]);
+  const [equipped, setEquipped] = useState<EquippedCosmetics>(EMPTY_EQUIPPED);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -42,6 +72,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     if (!user) {
       setCoins(0);
       setItems([]);
+      setEquipped(EMPTY_EQUIPPED);
       setIsLoading(false);
       return;
     }
@@ -53,11 +84,13 @@ export function ShopProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         setCoins(data.coins);
         setItems(data.items);
+        setEquipped(data.equipped);
       })
       .catch(() => {
         if (!cancelled) {
           setCoins(0);
           setItems([]);
+          setEquipped(EMPTY_EQUIPPED);
         }
       })
       .finally(() => {
@@ -88,7 +121,20 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     [setCoinsBalance]
   );
 
-  return <ShopContext.Provider value={{ coins, items, isLoading, purchase }}>{children}</ShopContext.Provider>;
+  const equip = useCallback(async (slot: EquippableSlot, refId: string | null): Promise<boolean> => {
+    const response = await fetch("/api/settings/me", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [SLOT_TO_SETTINGS_FIELD[slot]]: refId }),
+    });
+    if (!response.ok) return false;
+    setEquipped((prev) => ({ ...prev, [SLOT_TO_EQUIPPED_KEY[slot]]: refId }));
+    return true;
+  }, []);
+
+  return (
+    <ShopContext.Provider value={{ coins, items, equipped, isLoading, purchase, equip }}>{children}</ShopContext.Provider>
+  );
 }
 
 export function useShop(): ShopContextValue {

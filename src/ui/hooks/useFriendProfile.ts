@@ -10,7 +10,15 @@ export interface FriendProfileScore {
 }
 
 export interface FriendProfile {
-  friend: { id: number; name: string; avatarUrl: string | null };
+  friend: {
+    id: number;
+    name: string;
+    avatarUrl: string | null;
+    equippedAvatarId: string | null;
+    equippedBorderId: string | null;
+    equippedBackgroundId: string | null;
+    equippedTagId: string | null;
+  };
   scores: FriendProfileScore[];
   achievements: AchievementStatus[];
 }

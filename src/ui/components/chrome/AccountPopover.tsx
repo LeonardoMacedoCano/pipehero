@@ -1,20 +1,29 @@
 import { AccountSummary, GoogleSignInButton } from "lcano-react-ui";
 import styled from "styled-components";
 import { useAuth } from "../../hooks/useAuth.js";
+import { useShop } from "../../hooks/useShop.js";
 import LockedMenuItem from "../LockedMenuItem.js";
+import ProfileHeader from "./ProfileHeader.js";
 
 export default function AccountPopover() {
   const { user, googleClientId, isLoading, login, logout } = useAuth();
+  const { equipped } = useShop();
 
   return (
     <Popover>
       {!isLoading && user && (
-        <AccountSummary
-          user={{ name: user.name, email: user.email, avatarUrl: user.avatarUrl ?? undefined }}
-          onLogout={logout}
-          showEmail
-          locale="en"
-        />
+        <>
+          <ProfileHeader
+            name={user.name}
+            avatarUrl={user.avatarUrl}
+            equippedAvatarId={equipped.avatarId}
+            equippedBorderId={equipped.borderId}
+            equippedBackgroundId={equipped.backgroundId}
+            equippedTagId={equipped.tagId}
+            showName={false}
+          />
+          <AccountSummary user={{ name: user.name, email: user.email }} onLogout={logout} showEmail locale="en" />
+        </>
       )}
       {!isLoading && !user && googleClientId && <GoogleSignInButton clientId={googleClientId} onCredential={login} />}
       {!isLoading && !user && !googleClientId && (

@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { useFriendProfile, type FriendProfileScore } from "../../hooks/useFriendProfile.js";
 import { useSongs } from "../../hooks/useSongs.js";
 import type { AchievementStatus } from "../../hooks/useAchievements.js";
+import ProfileHeader from "../chrome/ProfileHeader.js";
 
 const SCORES_PAGE_SIZE = 5;
 
@@ -27,6 +28,16 @@ export default function FriendProfilePanel({ friendId }: { friendId: number; fri
   return (
     <Stack direction="column" gap="12px">
       <Loading isLoading={isLoading} />
+      {profile && (
+        <ProfileHeader
+          name={profile.friend.name}
+          avatarUrl={profile.friend.avatarUrl}
+          equippedAvatarId={profile.friend.equippedAvatarId}
+          equippedBorderId={profile.friend.equippedBorderId}
+          equippedBackgroundId={profile.friend.equippedBackgroundId}
+          equippedTagId={profile.friend.equippedTagId}
+        />
+      )}
       {profile && (
         <Tabs
           tabs={[
