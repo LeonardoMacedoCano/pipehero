@@ -24,7 +24,7 @@ export default function MissionsPage() {
             content: (
               <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
                 <StreakRow>
-                  <HighlightBox variant="secondary" bordered width="auto" style={{ padding: "6px 18px" }}>
+                  <HighlightBox variant="quaternary" bordered width="auto" style={{ padding: "6px 18px" }}>
                     🔥 Day {currentStreak} streak
                   </HighlightBox>
                   <StreakDetail>
