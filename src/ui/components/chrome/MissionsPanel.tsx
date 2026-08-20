@@ -3,8 +3,18 @@ import styled from "styled-components";
 import { useEconomy } from "../../hooks/useEconomy.js";
 
 export default function MissionsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const { coins, currentStreak, longestStreak, streakGraceAvailable, missionsToday, allClearBonusCoins, allClearCompletedToday } =
-    useEconomy();
+  const {
+    coins,
+    currentStreak,
+    longestStreak,
+    streakGraceAvailable,
+    missionsToday,
+    allClearBonusCoins,
+    allClearCompletedToday,
+    missionsThisWeek,
+    weeklyAllClearBonusCoins,
+    weeklyAllClearCompletedThisWeek,
+  } = useEconomy();
 
   return (
     <Modal
@@ -43,12 +53,62 @@ export default function MissionsPanel({ isOpen, onClose }: { isOpen: boolean; on
             {allClearCompletedToday ? " — claimed!" : ""}
           </AllClearRow>
 
+          <SectionTitle>This Week</SectionTitle>
+
+          <Stack direction="column" gap="8px">
+            {missionsThisWeek.map((mission) => (
+              <MissionRow key={mission.code}>
+                <MissionIcon aria-hidden>{mission.icon}</MissionIcon>
+                <MissionText>
+                  <MissionName>
+                    {mission.name} <TierBadge $tier={mission.tier}>{mission.tier}</TierBadge>
+                  </MissionName>
+                  <MissionDescription>{mission.description}</MissionDescription>
+                </MissionText>
+                <MissionReward>+{mission.rewardCoins}</MissionReward>
+                <StatusBadge $completed={mission.completed}>{mission.completed ? "✓ Done" : "Pending"}</StatusBadge>
+              </MissionRow>
+            ))}
+          </Stack>
+
+          <AllClearRow $completed={weeklyAllClearCompletedThisWeek}>
+            All-clear bonus: +{weeklyAllClearBonusCoins} coins for finishing every mission this week
+            {weeklyAllClearCompletedThisWeek ? " — claimed!" : ""}
+          </AllClearRow>
+
           <FootNote>Coin balance: {coins}. No shop yet — coins just accumulate for now.</FootNote>
         </Stack>
       }
     />
   );
 }
+
+const SectionTitle = styled.h3`
+  margin: 0;
+  font-size: 0.85em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: ${({ theme }) => theme.colors.tertiary};
+`;
+
+const TIER_COLORS: Record<"small" | "medium" | "large", (theme: import("styled-components").DefaultTheme) => string> = {
+  small: (theme) => theme.colors.gray,
+  medium: (theme) => theme.colors.info,
+  large: (theme) => theme.colors.warning,
+};
+
+const TierBadge = styled.span<{ $tier: "small" | "medium" | "large" }>`
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.7em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: ${({ theme }) => theme.colors.black};
+  background-color: ${({ theme, $tier }) => TIER_COLORS[$tier](theme)};
+`;
 
 const StreakRow = styled.div`
   display: flex;

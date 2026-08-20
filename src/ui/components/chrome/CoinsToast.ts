@@ -21,11 +21,11 @@ export function useCoinsToast() {
         },
       ]);
     },
-    notifyMissions: (missions: MissionAward[]) =>
+    notifyMissions: (missions: MissionAward[], eyebrow: string = "Daily Mission Complete") =>
       notify(
         missions.map((mission) => ({
           icon: mission.icon,
-          eyebrow: "Daily Mission Complete",
+          eyebrow,
           title: mission.name,
           description: `+${mission.rewardCoins} coins — ${mission.description}`,
         }))
