@@ -38,6 +38,7 @@ export default function IconRail({
       </AccountWrapper>
       <IconButton icon="🏆" label="Achievements" onClick={() => onNavigate("achievements")} active={current === "achievements"} />
       <IconButton icon="🎯" label="Missions" onClick={() => onNavigate("missions")} active={current === "missions"} />
+      <IconButton icon="🛍️" label="Shop" onClick={() => onNavigate("shop")} active={current === "shop"} />
       <IconButton icon="🤝" label="Friends" onClick={() => onNavigate("friends")} active={current === "friends"} />
       <IconButton icon="⚙️" label="Options" onClick={() => onNavigate("options")} active={current === "options"} />
       {fullscreenSupported && (

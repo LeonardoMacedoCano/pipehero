@@ -11,6 +11,7 @@ const NAV_ITEMS: { screen: MenuScreenName; label: string }[] = [
   { screen: "menu", label: "Home" },
   { screen: "achievements", label: "Achievements" },
   { screen: "missions", label: "Missions" },
+  { screen: "shop", label: "Shop" },
   { screen: "friends", label: "Friends" },
   { screen: "options", label: "Options" },
 ];
