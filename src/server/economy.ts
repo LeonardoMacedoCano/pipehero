@@ -37,7 +37,7 @@ export function toUtcWeekStart(date: Date = new Date()): string {
   return d.toISOString().slice(0, 10);
 }
 
-function computeStreakCoinReward(streak: number): { total: number; milestoneHit: number | null } {
+export function computeStreakCoinReward(streak: number): { total: number; milestoneHit: number | null } {
   const explicitBonus = STREAK_MILESTONE_BONUSES[streak];
   if (explicitBonus !== undefined) return { total: BASE_DAILY_LOGIN_COINS + explicitBonus, milestoneHit: streak };
   if (streak > 30 && streak % RECURRING_MILESTONE_INTERVAL === 0) {

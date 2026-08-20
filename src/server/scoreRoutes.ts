@@ -124,7 +124,7 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
     );
 
     const weekStart = toUtcWeekStart();
-    const weeklyStats = await gatherWeeklyMissionStats(user.id, weekStart);
+    const weeklyStats = await gatherWeeklyMissionStats(user.id, weekStart, isFailedSubmission);
     const weeklyResult = await completeWeeklyMissions(
       user.id,
       evaluateScoreSubmissionWeeklyMissions(weeklyStats),

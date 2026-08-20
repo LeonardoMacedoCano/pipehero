@@ -8,11 +8,18 @@ There's no shop yet — coins just accumulate for now. Spending them on
 cosmetics (themes, effects, profile customization) is coming in a later
 update.
 
+Open the **🎯 Missions** page (same rail/drawer as Achievements) to see
+your coin balance and two tabs — **Daily** and **Weekly** — each with
+its own list of missions and an all-clear bonus for finishing every one
+of them.
+
 ## Daily login streak
 
 Opening the game credits your account **once per calendar day** (server
-time, UTC) with a small coin reward. Reward for logging in day after day
-scales with how long your streak is:
+time, UTC) with a small coin reward, and shows up as the first entry in
+the Daily tab — it's always already "done" for the day the moment you
+open the app, since just opening it is what completes it. Reward for
+logging in day after day scales with how long your streak is:
 
 | Streak day | Coins |
 |---|---|
@@ -32,36 +39,32 @@ always resets the streak back to day 1.
 
 ## Daily missions
 
-A fresh set of 5 missions is available every day (resets at midnight
-UTC). Completing all 5 in the same day also pays out an all-clear bonus
-of **20 coins**.
+Alongside the login, 3 more missions are available every day (resets at
+midnight UTC). Completing everything — the login plus all 3 — pays out
+an all-clear bonus of **20 coins**.
 
 | | Mission | How to complete | Coins |
 |---|---|---|---|
+| 🔥 | Daily Login | Open the game today. | Scales with your streak (see above) |
 | 🎵 | Warm Up | Play any song to the end today, win or lose. | 10 |
-| 🎯 | Clean Finish | Finish a song today without failing. | 10 |
 | ⭐ | Solid Performance | Score at least 3 stars on a song today. | 15 |
-| 🎶 | Mixing It Up | Play 3 different songs today. | 15 |
 | 🆕 | New Territory | Star a song/difficulty you'd never starred before. | 20 |
 
 Completing a mission pops up a toast immediately, the same way
-unlocking an achievement does. Your coin balance and today's mission
-progress are shown from the account menu.
+unlocking an achievement does.
 
 ## Weekly missions
 
-Alongside the daily set, 3 missions reset every Monday (midnight UTC)
-and stay available all week. They're all about the same thing — coming
-back to play across multiple days — just at three levels of commitment.
-Completing all 3 in the same week also pays out an all-clear bonus of
-**50 coins**.
+Alongside the daily set, 5 missions reset every Monday (midnight UTC)
+and stay available all week, across three tiers. Completing all 5 in
+the same week also pays out an all-clear bonus of **70 coins**.
 
 | | Mission | Tier | How to complete | Coins |
 |---|---|---|---|---|
+| 🎯 | Clean Finish | Small | Finish a song without failing at least once this week. | 30 |
+| 🎶 | Mixing It Up | Small | Play 3 different songs this week. | 30 |
 | 🗓️ | Stopping By | Small | Play on 2 different days this week. | 30 |
 | 📅 | Regular Visitor | Medium | Play on 4 different days this week. | 60 |
 | 🏅 | Weekly Dedication | Large | Play on 6 different days this week. | 120 |
 
-Same as daily missions: a toast pops up when you complete one, and your
-progress for the week is shown from the account menu next to today's
-missions.
+Same as daily missions: a toast pops up when you complete one.

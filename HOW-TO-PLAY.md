@@ -7,7 +7,8 @@ In this guide: [Basic flow](#basic-flow) · [Controls](#controls) · [Tap vs. St
 
 For remapping keys, themes, graphics quality and your account, see
 [`SETTINGS.md`](./SETTINGS.md). For the full achievement list, see
-[`ACHIEVEMENTS.md`](./ACHIEVEMENTS.md).
+[`ACHIEVEMENTS.md`](./ACHIEVEMENTS.md). For coins, daily/weekly missions and the login streak, see
+[`ECONOMY.md`](./ECONOMY.md).
 
 ## Basic flow
 

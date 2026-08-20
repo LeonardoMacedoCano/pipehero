@@ -1,4 +1,8 @@
-import { Pool, type QueryResultRow } from "pg";
+import { Pool, types, type QueryResultRow } from "pg";
+
+// DATE (OID 1082): keep as 'YYYY-MM-DD' text instead of node-postgres's default JS Date —
+// economy.ts does its own UTC date-string math and a Date object here silently breaks it.
+types.setTypeParser(1082, (value) => value);
 
 let pool: Pool | null = null;
 
