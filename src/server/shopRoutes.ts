@@ -8,6 +8,15 @@ interface PurchaseBody {
   itemId?: string;
 }
 
+interface EquippedCosmetics {
+  avatarId: string | null;
+  borderId: string | null;
+  backgroundId: string | null;
+  tagId: string | null;
+}
+
+const EMPTY_EQUIPPED: EquippedCosmetics = { avatarId: null, borderId: null, backgroundId: null, tagId: null };
+
 const PURCHASE_ERROR_STATUS: Record<string, number> = {
   not_found: 400,
   already_owned: 400,
@@ -20,15 +29,30 @@ export async function handleShopRequest(req: IncomingMessage, res: ServerRespons
   if (url === "/api/shop/me" && req.method === "GET") {
     const user = await getRequestUser(req);
     if (!user) {
-      sendJson(res, 200, { coins: 0, items: SHOP_ITEMS.map((item) => ({ ...item, owned: false })) });
+      sendJson(res, 200, { coins: 0, items: SHOP_ITEMS.map((item) => ({ ...item, owned: false })), equipped: EMPTY_EQUIPPED });
       return true;
     }
 
     const [walletRow] = await query<{ coins: number }>("SELECT coins FROM user_economy WHERE user_id = $1", [user.id]);
+    const [settingsRow] = await query<{
+      equipped_avatar_id: string | null;
+      equipped_border_id: string | null;
+      equipped_background_id: string | null;
+      equipped_tag_id: string | null;
+    }>(
+      "SELECT equipped_avatar_id, equipped_border_id, equipped_background_id, equipped_tag_id FROM user_settings WHERE user_id = $1",
+      [user.id]
+    );
     const ownedIds = await getOwnedItemIds(user.id);
     sendJson(res, 200, {
       coins: walletRow?.coins ?? 0,
       items: SHOP_ITEMS.map((item) => ({ ...item, owned: ownedIds.has(item.id) })),
+      equipped: {
+        avatarId: settingsRow?.equipped_avatar_id ?? null,
+        borderId: settingsRow?.equipped_border_id ?? null,
+        backgroundId: settingsRow?.equipped_background_id ?? null,
+        tagId: settingsRow?.equipped_tag_id ?? null,
+      },
     });
     return true;
   }

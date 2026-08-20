@@ -163,4 +163,13 @@ export const MIGRATIONS: Migration[] = [
       ON CONFLICT DO NOTHING;
     `,
   },
+  {
+    name: "0010_profile_cosmetics_equipped",
+    sql: `
+      ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS equipped_avatar_id TEXT;
+      ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS equipped_border_id TEXT;
+      ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS equipped_background_id TEXT;
+      ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS equipped_tag_id TEXT;
+    `,
+  },
 ];
