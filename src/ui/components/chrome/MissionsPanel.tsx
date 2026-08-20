@@ -1,0 +1,125 @@
+import { Modal, Stack, HighlightBox } from "lcano-react-ui";
+import styled from "styled-components";
+import { useEconomy } from "../../hooks/useEconomy.js";
+
+export default function MissionsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const { coins, currentStreak, longestStreak, streakGraceAvailable, missionsToday, allClearBonusCoins, allClearCompletedToday } =
+    useEconomy();
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      title="Daily Missions"
+      onClose={onClose}
+      variant="info"
+      closeButtonHint="Close"
+      content={
+        <Stack direction="column" gap="16px">
+          <StreakRow>
+            <HighlightBox variant="quaternary" bordered width="auto" style={{ padding: "6px 18px" }}>
+              🔥 Day {currentStreak} streak
+            </HighlightBox>
+            <StreakDetail>
+              Best streak: {longestStreak} · {streakGraceAvailable ? "grace available" : "grace already used"}
+            </StreakDetail>
+          </StreakRow>
+
+          <Stack direction="column" gap="8px">
+            {missionsToday.map((mission) => (
+              <MissionRow key={mission.code}>
+                <MissionIcon aria-hidden>{mission.icon}</MissionIcon>
+                <MissionText>
+                  <MissionName>{mission.name}</MissionName>
+                  <MissionDescription>{mission.description}</MissionDescription>
+                </MissionText>
+                <MissionReward>+{mission.rewardCoins}</MissionReward>
+                <StatusBadge $completed={mission.completed}>{mission.completed ? "✓ Done" : "Pending"}</StatusBadge>
+              </MissionRow>
+            ))}
+          </Stack>
+
+          <AllClearRow $completed={allClearCompletedToday}>
+            All-clear bonus: +{allClearBonusCoins} coins for finishing every mission today
+            {allClearCompletedToday ? " — claimed!" : ""}
+          </AllClearRow>
+
+          <FootNote>Coin balance: {coins}. No shop yet — coins just accumulate for now.</FootNote>
+        </Stack>
+      }
+    />
+  );
+}
+
+const StreakRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+`;
+
+const StreakDetail = styled.span`
+  color: ${({ theme }) => theme.colors.tertiary};
+  font-size: 0.9em;
+`;
+
+const MissionRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: ${({ theme }) => theme.colors.secondary};
+  border: 1px solid ${({ theme }) => theme.colors.gray};
+`;
+
+const MissionIcon = styled.span`
+  font-size: 1.4em;
+`;
+
+const MissionText = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const MissionName = styled.p`
+  margin: 0;
+  font-weight: 700;
+  color: ${({ theme }) => theme.colors.white};
+`;
+
+const MissionDescription = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.tertiary};
+  font-size: 0.85em;
+`;
+
+const MissionReward = styled.span`
+  color: ${({ theme }) => theme.colors.warning};
+  font-weight: 700;
+  white-space: nowrap;
+`;
+
+const StatusBadge = styled.span<{ $completed: boolean }>`
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8em;
+  font-weight: 700;
+  white-space: nowrap;
+  color: ${({ theme }) => theme.colors.white};
+  background-color: ${({ theme, $completed }) => ($completed ? theme.colors.success : theme.colors.gray)};
+`;
+
+const AllClearRow = styled.p<{ $completed: boolean }>`
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.9em;
+  color: ${({ theme }) => theme.colors.white};
+  background-color: ${({ theme, $completed }) => ($completed ? theme.colors.success : theme.colors.primary)};
+`;
+
+const FootNote = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.tertiary};
+  font-size: 0.85em;
+`;

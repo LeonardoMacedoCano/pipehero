@@ -9,6 +9,7 @@ import { extractStarPowerPhrases, synthesizeStarPowerPhrases } from "../../engin
 import { computeStars } from "../../scoring/stars.js";
 import { useGamePlaythrough } from "../hooks/useGamePlaythrough.js";
 import { useAchievementToast, type UnlockedAchievement } from "../components/chrome/AchievementToastProvider.js";
+import { useEconomy, type ScoreEconomyResult } from "../hooks/useEconomy.js";
 import { useControlScheme } from "../hooks/useControlScheme.js";
 import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
 import { getStrumModeEnabled } from "../../game/strumModeStore.js";
@@ -37,17 +38,22 @@ interface SubmitScorePayload {
   isLateNight: boolean;
 }
 
-async function submitScore(payload: SubmitScorePayload): Promise<UnlockedAchievement[]> {
+interface SubmitScoreResult {
+  unlockedAchievements: UnlockedAchievement[];
+  economy: ScoreEconomyResult | null;
+}
+
+async function submitScore(payload: SubmitScorePayload): Promise<SubmitScoreResult> {
   try {
     const response = await fetch("/api/scores", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const data = (await response.json()) as { unlockedAchievements?: UnlockedAchievement[] };
-    return data.unlockedAchievements ?? [];
+    const data = (await response.json()) as { unlockedAchievements?: UnlockedAchievement[]; economy?: ScoreEconomyResult };
+    return { unlockedAchievements: data.unlockedAchievements ?? [], economy: data.economy ?? null };
   } catch {
-    return [];
+    return { unlockedAchievements: [], economy: null };
   }
 }
 
@@ -103,6 +109,7 @@ export default function GamePage({
   const showTouchControls = isTouch && phase === "playing";
   const strumModeEnabled = getStrumModeEnabled();
   const { notify } = useAchievementToast();
+  const { applyScoreEconomyResult } = useEconomy();
 
   useEffect(() => {
     if ((phase !== "results" && phase !== "failed") || !results) return;
@@ -125,8 +132,11 @@ export default function GamePage({
       minRockMeter: minRockMeterRef.current,
       failed,
       isLateNight,
-    }).then(notify);
-  }, [phase, results, song.id, difficulty, notify, minRockMeterRef]);
+    }).then((result) => {
+      notify(result.unlockedAchievements);
+      if (result.economy) applyScoreEconomyResult(result.economy);
+    });
+  }, [phase, results, song.id, difficulty, notify, minRockMeterRef, applyScoreEconomyResult]);
 
   return (
     <Screen>
