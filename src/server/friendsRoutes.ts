@@ -363,11 +363,14 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
         equipped_border_id: string | null;
         equipped_background_id: string | null;
         equipped_tag_id: string | null;
+        equipped_achievement_frame_id: string | null;
+        equipped_achievement_effect_id: string | null;
       }
     >(
       `SELECT users.id, users.name, users.avatar_url,
               user_settings.equipped_avatar_id, user_settings.equipped_border_id,
-              user_settings.equipped_background_id, user_settings.equipped_tag_id
+              user_settings.equipped_background_id, user_settings.equipped_tag_id,
+              user_settings.equipped_achievement_frame_id, user_settings.equipped_achievement_effect_id
        FROM users
        LEFT JOIN user_settings ON user_settings.user_id = users.id
        WHERE users.id = $1`,
@@ -392,6 +395,8 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
         equippedBorderId: friendRows[0].equipped_border_id,
         equippedBackgroundId: friendRows[0].equipped_background_id,
         equippedTagId: friendRows[0].equipped_tag_id,
+        equippedAchievementFrameId: friendRows[0].equipped_achievement_frame_id,
+        equippedAchievementEffectId: friendRows[0].equipped_achievement_effect_id,
       },
       scores,
       achievements: ACHIEVEMENTS.map((achievement) => ({

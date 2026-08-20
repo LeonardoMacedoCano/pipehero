@@ -172,4 +172,11 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS equipped_tag_id TEXT;
     `,
   },
+  {
+    name: "0011_achievement_cosmetics_equipped",
+    sql: `
+      ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS equipped_achievement_frame_id TEXT;
+      ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS equipped_achievement_effect_id TEXT;
+    `,
+  },
 ];

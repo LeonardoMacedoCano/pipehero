@@ -20,6 +20,8 @@ interface SettingsRow {
   equipped_border_id: string | null;
   equipped_background_id: string | null;
   equipped_tag_id: string | null;
+  equipped_achievement_frame_id: string | null;
+  equipped_achievement_effect_id: string | null;
 }
 
 interface SettingsPayload {
@@ -33,6 +35,8 @@ interface SettingsPayload {
   equippedBorderId?: string | null;
   equippedBackgroundId?: string | null;
   equippedTagId?: string | null;
+  equippedAchievementFrameId?: string | null;
+  equippedAchievementEffectId?: string | null;
 }
 
 function toResponseBody(row: SettingsRow | undefined) {
@@ -47,6 +51,8 @@ function toResponseBody(row: SettingsRow | undefined) {
     equippedBorderId: row?.equipped_border_id ?? null,
     equippedBackgroundId: row?.equipped_background_id ?? null,
     equippedTagId: row?.equipped_tag_id ?? null,
+    equippedAchievementFrameId: row?.equipped_achievement_frame_id ?? null,
+    equippedAchievementEffectId: row?.equipped_achievement_effect_id ?? null,
   };
 }
 
@@ -91,7 +97,8 @@ export async function handleSettingsRequest(req: IncomingMessage, res: ServerRes
 
     const rows = await query<SettingsRow>(
       `SELECT calibration_ms, theme_id, theme_effect_id, key_bindings, strum_mode_enabled, graphics_quality,
-              equipped_avatar_id, equipped_border_id, equipped_background_id, equipped_tag_id
+              equipped_avatar_id, equipped_border_id, equipped_background_id, equipped_tag_id,
+              equipped_achievement_frame_id, equipped_achievement_effect_id
        FROM user_settings WHERE user_id = $1`,
       [user.id]
     );
@@ -199,6 +206,26 @@ export async function handleSettingsRequest(req: IncomingMessage, res: ServerRes
       }
       columns.push("equipped_tag_id");
       values.push(body.equippedTagId);
+    }
+
+    if (body.equippedAchievementFrameId !== undefined) {
+      const result = await validateEquippedField("achievementFrame", body.equippedAchievementFrameId, user.id);
+      if (!result.ok) {
+        sendJson(res, result.status, { error: result.error });
+        return true;
+      }
+      columns.push("equipped_achievement_frame_id");
+      values.push(body.equippedAchievementFrameId);
+    }
+
+    if (body.equippedAchievementEffectId !== undefined) {
+      const result = await validateEquippedField("achievementEffect", body.equippedAchievementEffectId, user.id);
+      if (!result.ok) {
+        sendJson(res, result.status, { error: result.error });
+        return true;
+      }
+      columns.push("equipped_achievement_effect_id");
+      values.push(body.equippedAchievementEffectId);
     }
 
     if (body.keyBindings !== undefined) {

@@ -9,7 +9,7 @@ all of them: a **X / Y unlocked** counter, an **Unlocked / Locked**
 toggle, and — on unlocked ones — when you got it and what percentage
 of all players have it too.
 
-## Full list (19)
+## Full list (20)
 
 ### Getting started
 
@@ -52,6 +52,7 @@ of all players have it too.
 |---|---|---|
 | 💥 | That's Rock and Roll | Fail a song for the first time. |
 | 🌙 | Night Owl | Finish a song between midnight and 4 AM. |
+| 💸 | Big Spender | Buy something from the Shop. |
 
 ### Friends
 

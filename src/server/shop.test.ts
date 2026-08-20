@@ -4,7 +4,18 @@ import { readFileSync } from "node:fs";
 import { SHOP_ITEMS, isValidCosmeticId, type CosmeticSlot } from "./shop.js";
 
 const IDS = new Set(SHOP_ITEMS.map((item) => item.id));
-const SLOTS: CosmeticSlot[] = ["theme", "effect", "avatar", "border", "background", "tag"];
+const SLOTS: CosmeticSlot[] = [
+  "theme",
+  "effect",
+  "avatar",
+  "border",
+  "background",
+  "tag",
+  "achievementFrame",
+  "achievementEffect",
+];
+const NO_FREE_DEFAULT_SLOTS: CosmeticSlot[] = ["avatar", "border", "background", "tag", "achievementFrame", "achievementEffect"];
+const PROFILE_DOC_SLOTS: CosmeticSlot[] = ["avatar", "border", "background", "tag", "achievementFrame", "achievementEffect"];
 
 test("shop catalog has unique, fully-populated entries with a positive price", () => {
   assert.equal(IDS.size, SHOP_ITEMS.length);
@@ -29,9 +40,9 @@ test("every theme/effect item's name and price are documented in SETTINGS.md", (
   }
 });
 
-test("every profile cosmetic's name and description are documented in PROFILE.md", () => {
+test("every profile/achievement cosmetic's name and description are documented in PROFILE.md", () => {
   const docs = readFileSync(new URL("../../PROFILE.md", import.meta.url), "utf-8");
-  for (const item of SHOP_ITEMS.filter((i) => i.slot === "avatar" || i.slot === "border" || i.slot === "background" || i.slot === "tag")) {
+  for (const item of SHOP_ITEMS.filter((i) => PROFILE_DOC_SLOTS.includes(i.slot))) {
     assert.ok(docs.includes(item.name), `PROFILE.md is missing "${item.name}" (id: ${item.id}) — update the doc when the catalog changes.`);
     assert.ok(
       docs.includes(item.description),
@@ -56,8 +67,8 @@ test("isValidCosmeticId accepts every catalog refId for its own slot, rejects it
   }
 });
 
-test("avatar/border/background/tag slots have no free default — every non-empty id must be in the catalog", () => {
-  for (const slot of ["avatar", "border", "background", "tag"] as const) {
+test("avatar/border/background/tag/achievementFrame/achievementEffect slots have no free default — every non-empty id must be in the catalog", () => {
+  for (const slot of NO_FREE_DEFAULT_SLOTS) {
     assert.ok(!isValidCosmeticId(slot, ""));
     assert.ok(!isValidCosmeticId(slot, "not-a-real-id"));
   }

@@ -9,6 +9,7 @@ import {
   evaluateLoginUnlocks,
   evaluateScoreSubmissionUnlocks,
   evaluateSettingsUnlocks,
+  evaluateShopPurchaseUnlocks,
   isRockMeterSurvivor,
   type ScoreSubmissionStats,
 } from "./achievements.js";
@@ -34,8 +35,8 @@ function baseStats(overrides: Partial<ScoreSubmissionStats> = {}): ScoreSubmissi
 
 const CODES = new Set(ACHIEVEMENTS.map((achievement) => achievement.code));
 
-test("achievement catalog has 19 unique, fully-populated entries", () => {
-  assert.equal(ACHIEVEMENTS.length, 19);
+test("achievement catalog has 20 unique, fully-populated entries", () => {
+  assert.equal(ACHIEVEMENTS.length, 20);
   assert.equal(CODES.size, ACHIEVEMENTS.length);
   for (const achievement of ACHIEVEMENTS) {
     assert.ok(achievement.code.length > 0);
@@ -171,6 +172,10 @@ test("evaluateFriendAcceptedUnlocks always resolves to squad_goals", () => {
   assert.deepEqual(evaluateFriendAcceptedUnlocks(), ["squad_goals"]);
 });
 
+test("evaluateShopPurchaseUnlocks always resolves to big_spender", () => {
+  assert.deepEqual(evaluateShopPurchaseUnlocks(), ["big_spender"]);
+});
+
 test("evaluateCompareUnlocks unlocks friendly_rival only with more wins and at least 3 compared rows", () => {
   assert.deepEqual(evaluateCompareUnlocks(3, 1, 4), ["friendly_rival"]);
   assert.deepEqual(evaluateCompareUnlocks(2, 1, 2), []);
@@ -202,6 +207,7 @@ test("every code produced by the evaluators exists in the catalog", () => {
     ...evaluateFailureUnlocks(),
     ...evaluateFriendAcceptedUnlocks(),
     ...evaluateCompareUnlocks(3, 0, 3),
+    ...evaluateShopPurchaseUnlocks(),
   ];
   for (const code of produced) assert.ok(CODES.has(code), `unknown achievement code: ${code}`);
 });

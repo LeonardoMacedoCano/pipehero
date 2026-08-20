@@ -1,11 +1,12 @@
 # Profile
 
 Beyond themes and effects (see [`SETTINGS.md`](./SETTINGS.md#appearance-themes)), the **🛍️ Shop**
-sells 4 more cosmetic categories that customize how your profile looks to your friends — none of
-them are free, all of them are bought with coins (see [`ECONOMY.md`](./ECONOMY.md)). Unlike themes
-and effects, these equip **right there in the Shop** (an owned item shows an "Equip" button; equip
-it again to unequip). What you equip shows up both in your own account popover and on your profile
-page when a friend opens it.
+sells 6 more cosmetic categories — none of them are free, all of them are bought with coins (see
+[`ECONOMY.md`](./ECONOMY.md)). Unlike themes and effects, these equip **right there in the Shop**
+(an owned item shows an "Equip" button; equip it again to unequip). Avatar, border, background and
+player tag customize how your profile looks to your friends; achievement frame and achievement
+effect customize the [`ACHIEVEMENTS.md`](./ACHIEVEMENTS.md) cards themselves, both on the
+Achievements page (unlocked ones only) and on your profile when a friend opens it.
 
 ## Avatar
 
@@ -51,6 +52,26 @@ A short label shown next to your name. 80 coins each.
 | Speed Demon | ⚡ Speed Demon — shown next to your name. |
 | Completionist | 🏆 Completionist — shown next to your name. |
 | Night Owl | 🌙 Night Owl — shown next to your name. |
+
+## Achievement frame
+
+A frame around your unlocked achievement cards. 150 coins each.
+
+| Name | Look |
+|---|---|
+| Bronze Frame | A bronze frame around your unlocked achievement cards. |
+| Silver Frame | A silver frame around your unlocked achievement cards. |
+| Gold Frame | A gold frame around your unlocked achievement cards. |
+
+## Achievement effect
+
+An animation on your unlocked achievement cards (respects your OS's "reduce motion" setting, same
+as theme effects). 150 coins each.
+
+| Name | Look |
+|---|---|
+| Shimmer | A light sweep animation across your unlocked achievement cards. |
+| Pulse | A gentle glow pulse on your unlocked achievement cards. |
 
 These are placeholder icons/styles generated in code (no external art yet) — the categories and
 the equip mechanics are what's real; swapping in real artwork later doesn't need any code changes,
