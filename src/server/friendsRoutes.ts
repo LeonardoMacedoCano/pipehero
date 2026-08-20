@@ -357,7 +357,22 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
       sendJson(res, 403, { error: "Not friends with this user" });
       return true;
     }
-    const friendRows = await query<PublicUserRow>("SELECT id, name, avatar_url FROM users WHERE id = $1", [friendId]);
+    const friendRows = await query<
+      PublicUserRow & {
+        equipped_avatar_id: string | null;
+        equipped_border_id: string | null;
+        equipped_background_id: string | null;
+        equipped_tag_id: string | null;
+      }
+    >(
+      `SELECT users.id, users.name, users.avatar_url,
+              user_settings.equipped_avatar_id, user_settings.equipped_border_id,
+              user_settings.equipped_background_id, user_settings.equipped_tag_id
+       FROM users
+       LEFT JOIN user_settings ON user_settings.user_id = users.id
+       WHERE users.id = $1`,
+      [friendId]
+    );
     if (friendRows.length === 0) {
       sendJson(res, 404, { error: "User not found" });
       return true;
@@ -371,7 +386,13 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
     const globalUnlockPercents = await computeGlobalUnlockPercents();
 
     sendJson(res, 200, {
-      friend: toPublicFriend(friendRows[0]),
+      friend: {
+        ...toPublicFriend(friendRows[0]),
+        equippedAvatarId: friendRows[0].equipped_avatar_id,
+        equippedBorderId: friendRows[0].equipped_border_id,
+        equippedBackgroundId: friendRows[0].equipped_background_id,
+        equippedTagId: friendRows[0].equipped_tag_id,
+      },
       scores,
       achievements: ACHIEVEMENTS.map((achievement) => ({
         ...achievement,

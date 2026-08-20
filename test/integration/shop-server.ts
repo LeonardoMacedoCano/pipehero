@@ -34,11 +34,13 @@ interface Check {
 const checks: Check[] = [];
 let userAId: number | null = null;
 let userBId: number | null = null;
+let userCId: number | null = null;
+let userDId: number | null = null;
 
 try {
   const { findOrCreateUser, createSession, signValue } = await import("../../src/server/session.js");
   const { query } = await import("../../src/server/db.js");
-  const { ownsThemeEffectId } = await import("../../src/server/shop.js");
+  const { ownsCosmeticId } = await import("../../src/server/shop.js");
 
   const userA = await findOrCreateUser({
     sub: `shop-test-a-${Date.now()}`,
@@ -56,7 +58,8 @@ try {
   // --- Anonymous browsing ---
   const anonRes = await fetch(`${BASE_URL}/api/shop/me`);
   const anon = await anonRes.json();
-  checks.push({ name: "anonymous GET /api/shop/me returns 0 coins and everything unowned", ok: anon.coins === 0 && anon.items.length === 5 && anon.items.every((i: { owned: boolean }) => !i.owned) });
+  checks.push({ name: "anonymous GET /api/shop/me returns 0 coins and everything unowned", ok: anon.coins === 0 && anon.items.length === 22 && anon.items.every((i: { owned: boolean }) => !i.owned) });
+  checks.push({ name: "anonymous GET /api/shop/me reports every equipped slot as null", ok: Object.values(anon.equipped).every((v) => v === null) });
 
   // --- Starting state for userA ---
   const meRes = await fetch(`${BASE_URL}/api/shop/me`, { headers: { Cookie: cookieA } });
@@ -149,7 +152,7 @@ try {
      ON CONFLICT (user_id) DO UPDATE SET theme_effect_id = 'breathing'`,
     [userB.id]
   );
-  const ownedBeforeGrandfather = await ownsThemeEffectId(userB.id, "breathing");
+  const ownedBeforeGrandfather = await ownsCosmeticId(userB.id, "effect", "breathing");
   checks.push({ name: "before the grandfather backfill, a pre-existing equipped effect is NOT yet owned", ok: ownedBeforeGrandfather === false });
 
   // Same backfill the migration runs, applied here directly since the real migration already ran once for the DB.
@@ -160,8 +163,127 @@ try {
      ON CONFLICT DO NOTHING`,
     [userB.id]
   );
-  const ownedAfterGrandfather = await ownsThemeEffectId(userB.id, "breathing");
+  const ownedAfterGrandfather = await ownsCosmeticId(userB.id, "effect", "breathing");
   checks.push({ name: "after the grandfather backfill, the pre-existing equipped effect is owned", ok: ownedAfterGrandfather === true });
+
+  // --- Profile cosmetics: ownership-gated equip, unequip, and multi-slot equip ---
+  const userC = await findOrCreateUser({
+    sub: `shop-test-c-${Date.now()}`,
+    email: "shop-test-c@example.com",
+    name: "Shop Test C",
+    picture: null,
+  });
+  userCId = userC.id;
+  const sessionC = await createSession(userC.id);
+  const cookieC = `pipehero_session=${encodeURIComponent(signValue(sessionC, SESSION_SECRET))}`;
+  await query("INSERT INTO user_economy (user_id, coins) VALUES ($1, 1000) ON CONFLICT (user_id) DO UPDATE SET coins = 1000", [
+    userC.id,
+  ]);
+
+  const equipUnownedRes = await fetch(`${BASE_URL}/api/settings/me`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Cookie: cookieC },
+    body: JSON.stringify({ equippedAvatarId: "guitar" }),
+  });
+  checks.push({ name: "equipping an avatar not owned yet is rejected with 403", ok: equipUnownedRes.status === 403 });
+
+  const buyAvatarRes = await fetch(`${BASE_URL}/api/shop/purchase`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieC },
+    body: JSON.stringify({ itemId: "avatar_guitar" }),
+  });
+  const buyAvatar = await buyAvatarRes.json();
+  checks.push({ name: "buying the Guitarist avatar (100 coins) succeeds", ok: buyAvatar.ok === true && buyAvatar.coinsBalance === 900 });
+
+  const equipAvatarRes = await fetch(`${BASE_URL}/api/settings/me`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Cookie: cookieC },
+    body: JSON.stringify({ equippedAvatarId: "guitar" }),
+  });
+  checks.push({ name: "equipping an owned avatar succeeds", ok: equipAvatarRes.status === 200 });
+
+  const afterEquipRes = await fetch(`${BASE_URL}/api/shop/me`, { headers: { Cookie: cookieC } });
+  const afterEquip = await afterEquipRes.json();
+  checks.push({ name: "GET /api/shop/me reflects the equipped avatar", ok: afterEquip.equipped.avatarId === "guitar" });
+
+  const settingsAfterEquipRes = await fetch(`${BASE_URL}/api/settings/me`, { headers: { Cookie: cookieC } });
+  const settingsAfterEquip = await settingsAfterEquipRes.json();
+  checks.push({ name: "GET /api/settings/me reflects the equipped avatar", ok: settingsAfterEquip.equippedAvatarId === "guitar" });
+
+  const unequipRes = await fetch(`${BASE_URL}/api/settings/me`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Cookie: cookieC },
+    body: JSON.stringify({ equippedAvatarId: null }),
+  });
+  checks.push({ name: "unequipping (null) always succeeds, no ownership check needed", ok: unequipRes.status === 200 });
+
+  const afterUnequipRes = await fetch(`${BASE_URL}/api/shop/me`, { headers: { Cookie: cookieC } });
+  const afterUnequip = await afterUnequipRes.json();
+  checks.push({ name: "GET /api/shop/me reflects the unequip", ok: afterUnequip.equipped.avatarId === null });
+
+  await fetch(`${BASE_URL}/api/shop/purchase`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieC },
+    body: JSON.stringify({ itemId: "border_gold" }),
+  });
+  await fetch(`${BASE_URL}/api/shop/purchase`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieC },
+    body: JSON.stringify({ itemId: "background_stage" }),
+  });
+  await fetch(`${BASE_URL}/api/shop/purchase`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieC },
+    body: JSON.stringify({ itemId: "tag_rockstar" }),
+  });
+  const equipAllRes = await fetch(`${BASE_URL}/api/settings/me`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Cookie: cookieC },
+    body: JSON.stringify({
+      equippedAvatarId: "guitar",
+      equippedBorderId: "gold",
+      equippedBackgroundId: "stage",
+      equippedTagId: "rockstar",
+    }),
+  });
+  checks.push({ name: "equipping all 4 profile slots at once succeeds", ok: equipAllRes.status === 200 });
+
+  const afterEquipAllRes = await fetch(`${BASE_URL}/api/shop/me`, { headers: { Cookie: cookieC } });
+  const afterEquipAll = await afterEquipAllRes.json();
+  checks.push({
+    name: "GET /api/shop/me reflects all 4 equipped slots",
+    ok:
+      afterEquipAll.equipped.avatarId === "guitar" &&
+      afterEquipAll.equipped.borderId === "gold" &&
+      afterEquipAll.equipped.backgroundId === "stage" &&
+      afterEquipAll.equipped.tagId === "rockstar",
+  });
+
+  // --- A friend viewing your profile sees your equipped cosmetics ---
+  const userD = await findOrCreateUser({
+    sub: `shop-test-d-${Date.now()}`,
+    email: "shop-test-d@example.com",
+    name: "Shop Test D",
+    picture: null,
+  });
+  userDId = userD.id;
+  const sessionD = await createSession(userD.id);
+  const cookieD = `pipehero_session=${encodeURIComponent(signValue(sessionD, SESSION_SECRET))}`;
+  await query("INSERT INTO friendships (requester_id, addressee_id, status) VALUES ($1, $2, 'accepted') ON CONFLICT DO NOTHING", [
+    userC.id,
+    userD.id,
+  ]);
+
+  const friendProfileRes = await fetch(`${BASE_URL}/api/friends/${userC.id}/profile`, { headers: { Cookie: cookieD } });
+  const friendProfile = await friendProfileRes.json();
+  checks.push({
+    name: "GET /api/friends/:id/profile exposes the friend's equipped cosmetics",
+    ok:
+      friendProfile.friend.equippedAvatarId === "guitar" &&
+      friendProfile.friend.equippedBorderId === "gold" &&
+      friendProfile.friend.equippedBackgroundId === "stage" &&
+      friendProfile.friend.equippedTagId === "rockstar",
+  });
 } catch (err) {
   checks.push({ name: `unexpected error: ${err instanceof Error ? err.message : String(err)}`, ok: false });
 } finally {
@@ -195,4 +317,6 @@ async function cleanup(): Promise<void> {
   const { query } = await import("../../src/server/db.js");
   if (userAId) await query("DELETE FROM users WHERE id = $1", [userAId]).catch(() => {});
   if (userBId) await query("DELETE FROM users WHERE id = $1", [userBId]).catch(() => {});
+  if (userCId) await query("DELETE FROM users WHERE id = $1", [userCId]).catch(() => {});
+  if (userDId) await query("DELETE FROM users WHERE id = $1", [userDId]).catch(() => {});
 }

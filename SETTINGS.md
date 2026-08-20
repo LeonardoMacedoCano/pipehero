@@ -4,7 +4,8 @@ Open **Options** from the gear icon (⚙️, top-right rail on desktop) or
 the **☰** menu (mobile drawer). Four tabs: [Controls](#controls) ·
 [Appearance](#appearance-themes) · [Graphics](#graphics-quality) ·
 [Account](#account). Paid appearance options are bought separately from
-the [Shop](#shop) page.
+the [Shop](#shop) page — which also sells avatar/border/background/tag
+profile cosmetics, see [`PROFILE.md`](./PROFILE.md).
 
 ## Controls
 
@@ -52,9 +53,13 @@ All effects respect your OS's "reduce motion" setting (disabled automatically if
 
 ## Shop
 
-Open the **🛍️ Shop** page (same rail/drawer as Missions) to spend coins on the paid themes/effects
-above. Buying one adds it to Appearance — locked options there show a 🔒 and the price; owning one
-just means it's now selectable, you still pick it from Appearance like any other option.
+Open the **🛍️ Shop** page (same rail/drawer as Missions) to spend coins. Two kinds of tabs:
+
+- **Themes/Effects** — the paid options above. Buying one adds it to Appearance — locked options
+  there show a 🔒 and the price; owning one just means it's now selectable, you still pick it from
+  Appearance like any other option.
+- **Avatars/Borders/Backgrounds/Tags** — profile cosmetics, see [`PROFILE.md`](./PROFILE.md).
+  These equip right in the Shop instead of Appearance (owned items show an "Equip" button).
 
 ## Graphics quality
 

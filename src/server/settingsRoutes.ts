@@ -4,7 +4,7 @@ import { readJsonBody, sendJson } from "./authRoutes.js";
 import { getRequestUser } from "./requestUser.js";
 import { isGraphicsQuality } from "../render/graphicsQuality.js";
 import { evaluateSettingsUnlocks, unlockMany } from "./achievements.js";
-import { isValidThemeEffectId, isValidThemeId, ownsThemeEffectId, ownsThemeId } from "./shop.js";
+import { isValidCosmeticId, ownsCosmeticId, type CosmeticSlot } from "./shop.js";
 
 const MAX_CALIBRATION_MS = 1000;
 const MAX_THEME_ID_LENGTH = 64;
@@ -16,6 +16,10 @@ interface SettingsRow {
   key_bindings: Record<string, unknown> | null;
   strum_mode_enabled: boolean | null;
   graphics_quality: string | null;
+  equipped_avatar_id: string | null;
+  equipped_border_id: string | null;
+  equipped_background_id: string | null;
+  equipped_tag_id: string | null;
 }
 
 interface SettingsPayload {
@@ -25,6 +29,10 @@ interface SettingsPayload {
   keyBindings?: Record<string, unknown>;
   strumModeEnabled?: boolean;
   graphicsQuality?: string;
+  equippedAvatarId?: string | null;
+  equippedBorderId?: string | null;
+  equippedBackgroundId?: string | null;
+  equippedTagId?: string | null;
 }
 
 function toResponseBody(row: SettingsRow | undefined) {
@@ -35,7 +43,26 @@ function toResponseBody(row: SettingsRow | undefined) {
     keyBindings: row?.key_bindings ?? null,
     strumModeEnabled: row?.strum_mode_enabled ?? null,
     graphicsQuality: row?.graphics_quality ?? null,
+    equippedAvatarId: row?.equipped_avatar_id ?? null,
+    equippedBorderId: row?.equipped_border_id ?? null,
+    equippedBackgroundId: row?.equipped_background_id ?? null,
+    equippedTagId: row?.equipped_tag_id ?? null,
   };
+}
+
+async function validateEquippedField(
+  slot: CosmeticSlot,
+  value: string | null,
+  userId: number
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  if (value === null) return { ok: true };
+  if (typeof value !== "string" || value.length === 0 || value.length > MAX_THEME_ID_LENGTH || !isValidCosmeticId(slot, value)) {
+    return { ok: false, status: 400, error: `Invalid ${slot} id` };
+  }
+  if (!(await ownsCosmeticId(userId, slot, value))) {
+    return { ok: false, status: 403, error: `You don't own this ${slot} yet` };
+  }
+  return { ok: true };
 }
 
 function isValidBindingValue(value: unknown): boolean {
@@ -63,7 +90,9 @@ export async function handleSettingsRequest(req: IncomingMessage, res: ServerRes
     }
 
     const rows = await query<SettingsRow>(
-      "SELECT calibration_ms, theme_id, theme_effect_id, key_bindings, strum_mode_enabled, graphics_quality FROM user_settings WHERE user_id = $1",
+      `SELECT calibration_ms, theme_id, theme_effect_id, key_bindings, strum_mode_enabled, graphics_quality,
+              equipped_avatar_id, equipped_border_id, equipped_background_id, equipped_tag_id
+       FROM user_settings WHERE user_id = $1`,
       [user.id]
     );
     sendJson(res, 200, toResponseBody(rows[0]));
@@ -101,12 +130,12 @@ export async function handleSettingsRequest(req: IncomingMessage, res: ServerRes
         typeof body.themeId !== "string" ||
         body.themeId.length === 0 ||
         body.themeId.length > MAX_THEME_ID_LENGTH ||
-        !isValidThemeId(body.themeId)
+        !isValidCosmeticId("theme", body.themeId)
       ) {
         sendJson(res, 400, { error: "Invalid themeId" });
         return true;
       }
-      if (!(await ownsThemeId(user.id, body.themeId))) {
+      if (!(await ownsCosmeticId(user.id, "theme", body.themeId))) {
         sendJson(res, 403, { error: "You don't own this theme yet" });
         return true;
       }
@@ -119,17 +148,57 @@ export async function handleSettingsRequest(req: IncomingMessage, res: ServerRes
         typeof body.themeEffectId !== "string" ||
         body.themeEffectId.length === 0 ||
         body.themeEffectId.length > MAX_THEME_ID_LENGTH ||
-        !isValidThemeEffectId(body.themeEffectId)
+        !isValidCosmeticId("effect", body.themeEffectId)
       ) {
         sendJson(res, 400, { error: "Invalid themeEffectId" });
         return true;
       }
-      if (!(await ownsThemeEffectId(user.id, body.themeEffectId))) {
+      if (!(await ownsCosmeticId(user.id, "effect", body.themeEffectId))) {
         sendJson(res, 403, { error: "You don't own this effect yet" });
         return true;
       }
       columns.push("theme_effect_id");
       values.push(body.themeEffectId);
+    }
+
+    if (body.equippedAvatarId !== undefined) {
+      const result = await validateEquippedField("avatar", body.equippedAvatarId, user.id);
+      if (!result.ok) {
+        sendJson(res, result.status, { error: result.error });
+        return true;
+      }
+      columns.push("equipped_avatar_id");
+      values.push(body.equippedAvatarId);
+    }
+
+    if (body.equippedBorderId !== undefined) {
+      const result = await validateEquippedField("border", body.equippedBorderId, user.id);
+      if (!result.ok) {
+        sendJson(res, result.status, { error: result.error });
+        return true;
+      }
+      columns.push("equipped_border_id");
+      values.push(body.equippedBorderId);
+    }
+
+    if (body.equippedBackgroundId !== undefined) {
+      const result = await validateEquippedField("background", body.equippedBackgroundId, user.id);
+      if (!result.ok) {
+        sendJson(res, result.status, { error: result.error });
+        return true;
+      }
+      columns.push("equipped_background_id");
+      values.push(body.equippedBackgroundId);
+    }
+
+    if (body.equippedTagId !== undefined) {
+      const result = await validateEquippedField("tag", body.equippedTagId, user.id);
+      if (!result.ok) {
+        sendJson(res, result.status, { error: result.error });
+        return true;
+      }
+      columns.push("equipped_tag_id");
+      values.push(body.equippedTagId);
     }
 
     if (body.keyBindings !== undefined) {

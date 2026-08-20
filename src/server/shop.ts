@@ -1,6 +1,6 @@
 import { query, withTransaction } from "./db.js";
 
-export type CosmeticSlot = "theme" | "effect";
+export type CosmeticSlot = "theme" | "effect" | "avatar" | "border" | "background" | "tag";
 
 export interface ShopItem {
   id: string;
@@ -11,8 +11,7 @@ export interface ShopItem {
   priceCoins: number;
 }
 
-const FREE_THEME_ID = "darkCarbonGreen";
-const FREE_THEME_EFFECT_ID = "none";
+const FREE_IDS: Partial<Record<CosmeticSlot, string>> = { theme: "darkCarbonGreen", effect: "none" };
 
 export const SHOP_ITEMS: ShopItem[] = [
   {
@@ -55,16 +54,148 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: "A very soft wash of the theme's accent color breathes across the whole screen.",
     priceCoins: 150,
   },
+  {
+    id: "avatar_guitar",
+    slot: "avatar",
+    refId: "guitar",
+    name: "Guitarist",
+    description: "🎸 on a green badge.",
+    priceCoins: 100,
+  },
+  {
+    id: "avatar_drums",
+    slot: "avatar",
+    refId: "drums",
+    name: "Drummer",
+    description: "🥁 on a red badge.",
+    priceCoins: 100,
+  },
+  {
+    id: "avatar_mic",
+    slot: "avatar",
+    refId: "mic",
+    name: "Vocalist",
+    description: "🎤 on a yellow badge.",
+    priceCoins: 100,
+  },
+  {
+    id: "avatar_keys",
+    slot: "avatar",
+    refId: "keys",
+    name: "Keyboardist",
+    description: "🎹 on a blue badge.",
+    priceCoins: 100,
+  },
+  {
+    id: "avatar_bolt",
+    slot: "avatar",
+    refId: "bolt",
+    name: "Shredder",
+    description: "⚡ on an orange badge.",
+    priceCoins: 100,
+  },
+  {
+    id: "avatar_star",
+    slot: "avatar",
+    refId: "star",
+    name: "Star Performer",
+    description: "🌟 on a purple badge.",
+    priceCoins: 100,
+  },
+  {
+    id: "border_gold",
+    slot: "border",
+    refId: "gold",
+    name: "Gold Ring",
+    description: "A solid gold ring around your avatar.",
+    priceCoins: 200,
+  },
+  {
+    id: "border_neon",
+    slot: "border",
+    refId: "neon",
+    name: "Neon Ring",
+    description: "A glowing cyan-to-pink gradient ring.",
+    priceCoins: 200,
+  },
+  {
+    id: "border_fire",
+    slot: "border",
+    refId: "fire",
+    name: "Fire Ring",
+    description: "A glowing orange-to-red gradient ring.",
+    priceCoins: 200,
+  },
+  {
+    id: "background_stage",
+    slot: "background",
+    refId: "stage",
+    name: "Stage Lights",
+    description: "A warm spotlight glow behind your name.",
+    priceCoins: 200,
+  },
+  {
+    id: "background_sunset",
+    slot: "background",
+    refId: "sunset",
+    name: "Sunset",
+    description: "An orange-to-purple gradient behind your name.",
+    priceCoins: 200,
+  },
+  {
+    id: "background_circuit",
+    slot: "background",
+    refId: "circuit",
+    name: "Circuit Grid",
+    description: "A subtle dark grid pattern behind your name.",
+    priceCoins: 200,
+  },
+  {
+    id: "tag_rockstar",
+    slot: "tag",
+    refId: "rockstar",
+    name: "Rockstar",
+    description: "🎸 Rockstar — shown next to your name.",
+    priceCoins: 80,
+  },
+  {
+    id: "tag_perfectionist",
+    slot: "tag",
+    refId: "perfectionist",
+    name: "Perfectionist",
+    description: "💯 Perfectionist — shown next to your name.",
+    priceCoins: 80,
+  },
+  {
+    id: "tag_speedster",
+    slot: "tag",
+    refId: "speedster",
+    name: "Speed Demon",
+    description: "⚡ Speed Demon — shown next to your name.",
+    priceCoins: 80,
+  },
+  {
+    id: "tag_completionist",
+    slot: "tag",
+    refId: "completionist",
+    name: "Completionist",
+    description: "🏆 Completionist — shown next to your name.",
+    priceCoins: 80,
+  },
+  {
+    id: "tag_nightowl",
+    slot: "tag",
+    refId: "nightowl",
+    name: "Night Owl",
+    description: "🌙 Night Owl — shown next to your name.",
+    priceCoins: 80,
+  },
 ];
 
 const SHOP_ITEM_BY_ID = new Map(SHOP_ITEMS.map((item) => [item.id, item]));
 
-export function isValidThemeId(id: string): boolean {
-  return id === FREE_THEME_ID || SHOP_ITEMS.some((item) => item.slot === "theme" && item.refId === id);
-}
-
-export function isValidThemeEffectId(id: string): boolean {
-  return id === FREE_THEME_EFFECT_ID || SHOP_ITEMS.some((item) => item.slot === "effect" && item.refId === id);
+export function isValidCosmeticId(slot: CosmeticSlot, id: string): boolean {
+  return id === FREE_IDS[slot] || SHOP_ITEMS.some((item) => item.slot === slot && item.refId === id);
 }
 
 async function ownsItem(userId: number, itemId: string): Promise<boolean> {
@@ -72,14 +203,10 @@ async function ownsItem(userId: number, itemId: string): Promise<boolean> {
   return rows.length > 0;
 }
 
-export async function ownsThemeId(userId: number, id: string): Promise<boolean> {
-  if (id === FREE_THEME_ID) return true;
-  return ownsItem(userId, `theme_${id}`);
-}
-
-export async function ownsThemeEffectId(userId: number, id: string): Promise<boolean> {
-  if (id === FREE_THEME_EFFECT_ID) return true;
-  return ownsItem(userId, `effect_${id}`);
+export async function ownsCosmeticId(userId: number, slot: CosmeticSlot, id: string): Promise<boolean> {
+  if (id === FREE_IDS[slot]) return true;
+  const item = SHOP_ITEMS.find((i) => i.slot === slot && i.refId === id);
+  return item ? ownsItem(userId, item.id) : false;
 }
 
 export async function getOwnedItemIds(userId: number): Promise<Set<string>> {
