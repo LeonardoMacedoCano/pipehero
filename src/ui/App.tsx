@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ContextMessageProvider } from "lcano-react-ui";
 import { ThemeControlProvider, useThemeControl } from "./contexts/theme/ThemeControlProvider.js";
 import { AuthProvider } from "./hooks/useAuth.js";
+import { EconomyProvider } from "./hooks/useEconomy.js";
 import { AchievementToastProvider, AchievementToastStack } from "./components/chrome/AchievementToastProvider.js";
 import { GlobalStyles } from "./GlobalStyles.js";
 import MenuLayout from "./components/chrome/MenuLayout.js";
@@ -31,45 +32,47 @@ export default function App() {
   return (
     <AchievementToastProvider>
       <AuthProvider>
-        <ThemeControlProvider>
-          <AppGlobalStyles />
-          <AchievementToastStack onView={() => navigate("achievements")} />
-          <ContextMessageProvider>
-            {screen.name === "game" && (
-              <GamePage
-                song={screen.params.song}
-                chart={screen.params.chart}
-                difficulty={screen.params.difficulty}
-                onBack={() => setScreen({ name: "songs" })}
-              />
-            )}
-            {screen.name === "songs" && (
-              <MenuLayout current="songs" onNavigate={navigate}>
-                <SongMenuPage onStartGame={(params) => setScreen({ name: "game", params })} />
-              </MenuLayout>
-            )}
-            {screen.name === "options" && (
-              <MenuLayout current="options" onNavigate={navigate}>
-                <OptionsPage />
-              </MenuLayout>
-            )}
-            {screen.name === "achievements" && (
-              <MenuLayout current="achievements" onNavigate={navigate}>
-                <AchievementsPage />
-              </MenuLayout>
-            )}
-            {screen.name === "friends" && (
-              <MenuLayout current="friends" onNavigate={navigate}>
-                <FriendsPage />
-              </MenuLayout>
-            )}
-            {screen.name === "menu" && (
-              <MenuLayout current="menu" onNavigate={navigate}>
-                <MainMenuPage onPlaySingleplayer={() => navigate("songs")} onViewFriends={() => navigate("friends")} />
-              </MenuLayout>
-            )}
-          </ContextMessageProvider>
-        </ThemeControlProvider>
+        <EconomyProvider>
+          <ThemeControlProvider>
+            <AppGlobalStyles />
+            <AchievementToastStack onView={() => navigate("achievements")} />
+            <ContextMessageProvider>
+              {screen.name === "game" && (
+                <GamePage
+                  song={screen.params.song}
+                  chart={screen.params.chart}
+                  difficulty={screen.params.difficulty}
+                  onBack={() => setScreen({ name: "songs" })}
+                />
+              )}
+              {screen.name === "songs" && (
+                <MenuLayout current="songs" onNavigate={navigate}>
+                  <SongMenuPage onStartGame={(params) => setScreen({ name: "game", params })} />
+                </MenuLayout>
+              )}
+              {screen.name === "options" && (
+                <MenuLayout current="options" onNavigate={navigate}>
+                  <OptionsPage />
+                </MenuLayout>
+              )}
+              {screen.name === "achievements" && (
+                <MenuLayout current="achievements" onNavigate={navigate}>
+                  <AchievementsPage />
+                </MenuLayout>
+              )}
+              {screen.name === "friends" && (
+                <MenuLayout current="friends" onNavigate={navigate}>
+                  <FriendsPage />
+                </MenuLayout>
+              )}
+              {screen.name === "menu" && (
+                <MenuLayout current="menu" onNavigate={navigate}>
+                  <MainMenuPage onPlaySingleplayer={() => navigate("songs")} onViewFriends={() => navigate("friends")} />
+                </MenuLayout>
+              )}
+            </ContextMessageProvider>
+          </ThemeControlProvider>
+        </EconomyProvider>
       </AuthProvider>
     </AchievementToastProvider>
   );

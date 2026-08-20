@@ -3,6 +3,8 @@ import { IconButton, useFullscreen } from "lcano-react-ui";
 import styled from "styled-components";
 import type { MenuScreenName } from "./navigation.js";
 import AccountPopover from "./AccountPopover.js";
+import CoinBalanceBadge from "./CoinBalanceBadge.js";
+import MissionsPanel from "./MissionsPanel.js";
 
 export default function IconRail({
   current,
@@ -12,6 +14,7 @@ export default function IconRail({
   onNavigate: (screen: MenuScreenName) => void;
 }) {
   const [accountOpen, setAccountOpen] = useState(false);
+  const [missionsOpen, setMissionsOpen] = useState(false);
   const { isFullscreen, toggle, isSupported: fullscreenSupported } = useFullscreen();
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -25,22 +28,27 @@ export default function IconRail({
   }, [accountOpen]);
 
   return (
-    <Rail ref={rootRef}>
-      <AccountWrapper>
-        <IconButton icon="👤" label="Account" onClick={() => setAccountOpen((open) => !open)} active={accountOpen} />
-        {accountOpen && (
-          <PopoverAnchor>
-            <AccountPopover />
-          </PopoverAnchor>
+    <>
+      <Rail ref={rootRef}>
+        <CoinBalanceBadge />
+        <AccountWrapper>
+          <IconButton icon="👤" label="Account" onClick={() => setAccountOpen((open) => !open)} active={accountOpen} />
+          {accountOpen && (
+            <PopoverAnchor>
+              <AccountPopover onOpenMissions={() => setMissionsOpen(true)} />
+            </PopoverAnchor>
+          )}
+        </AccountWrapper>
+        <IconButton icon="🏆" label="Achievements" onClick={() => onNavigate("achievements")} active={current === "achievements"} />
+        <IconButton icon="🤝" label="Friends" onClick={() => onNavigate("friends")} active={current === "friends"} />
+        <IconButton icon="⚙️" label="Options" onClick={() => onNavigate("options")} active={current === "options"} />
+        {fullscreenSupported && (
+          <IconButton icon={isFullscreen ? "⤡" : "⤢"} label={isFullscreen ? "Exit fullscreen" : "Fullscreen"} onClick={toggle} />
         )}
-      </AccountWrapper>
-      <IconButton icon="🏆" label="Achievements" onClick={() => onNavigate("achievements")} active={current === "achievements"} />
-      <IconButton icon="🤝" label="Friends" onClick={() => onNavigate("friends")} active={current === "friends"} />
-      <IconButton icon="⚙️" label="Options" onClick={() => onNavigate("options")} active={current === "options"} />
-      {fullscreenSupported && (
-        <IconButton icon={isFullscreen ? "⤡" : "⤢"} label={isFullscreen ? "Exit fullscreen" : "Fullscreen"} onClick={toggle} />
-      )}
-    </Rail>
+      </Rail>
+
+      <MissionsPanel isOpen={missionsOpen} onClose={() => setMissionsOpen(false)} />
+    </>
   );
 }
 

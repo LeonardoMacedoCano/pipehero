@@ -3,7 +3,9 @@ import { IconButton } from "lcano-react-ui";
 import styled from "styled-components";
 import type { MenuScreenName } from "./navigation.js";
 import AccountPopover from "./AccountPopover.js";
+import CoinBalanceBadge from "./CoinBalanceBadge.js";
 import CreditsModal from "./CreditsModal.js";
+import MissionsPanel from "./MissionsPanel.js";
 import SupportModal from "./SupportModal.js";
 
 const NAV_ITEMS: { screen: MenuScreenName; label: string }[] = [
@@ -23,6 +25,7 @@ export default function SideDrawer({
   const [isOpen, setIsOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [missionsOpen, setMissionsOpen] = useState(false);
   const drawerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -46,6 +49,7 @@ export default function SideDrawer({
         <DrawerHeader>
           <img src="/pipehero-icon.png" alt="" width={32} height={32} />
           <DrawerTitle>PipeHero</DrawerTitle>
+          <CoinBalanceBadge />
           <CloseButton type="button" onClick={() => setIsOpen(false)} aria-label="Close menu">
             ✕
           </CloseButton>
@@ -71,12 +75,13 @@ export default function SideDrawer({
         </NavList>
 
         <AccountSection>
-          <AccountPopover />
+          <AccountPopover onOpenMissions={() => setMissionsOpen(true)} />
         </AccountSection>
       </Drawer>
 
       <CreditsModal isOpen={creditsOpen} onClose={() => setCreditsOpen(false)} />
       <SupportModal isOpen={supportOpen} onClose={() => setSupportOpen(false)} />
+      <MissionsPanel isOpen={missionsOpen} onClose={() => setMissionsOpen(false)} />
     </>
   );
 }
