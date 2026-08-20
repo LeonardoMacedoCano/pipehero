@@ -1,9 +1,21 @@
 import styled from "styled-components";
 import { OptionGrid } from "lcano-react-ui";
 import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
+import { useShop } from "../hooks/useShop.js";
+import { DEFAULT_THEME_ID } from "../themes/registry.js";
+import { DEFAULT_THEME_EFFECT_ID } from "../themes/effects.js";
 
 export default function ThemeAppearancePanel() {
   const { themeId, availableThemes, setThemeId, themeEffectId, availableThemeEffects, setThemeEffectId } = useThemeControl();
+  const { items } = useShop();
+
+  const ownedThemeRefIds = new Set(items.filter((item) => item.slot === "theme" && item.owned).map((item) => item.refId));
+  const ownedEffectRefIds = new Set(items.filter((item) => item.slot === "effect" && item.owned).map((item) => item.refId));
+
+  const ownedThemes = availableThemes.filter((option) => option.id === DEFAULT_THEME_ID || ownedThemeRefIds.has(option.id));
+  const ownedEffects = availableThemeEffects.filter(
+    (option) => option.id === DEFAULT_THEME_EFFECT_ID || ownedEffectRefIds.has(option.id)
+  );
 
   return (
     <>
@@ -11,7 +23,7 @@ export default function ThemeAppearancePanel() {
         value={themeId}
         onChange={setThemeId}
         locale="en"
-        options={availableThemes.map((option) => ({
+        options={ownedThemes.map((option) => ({
           id: option.id,
           label: option.label,
           description: option.description,
@@ -24,7 +36,7 @@ export default function ThemeAppearancePanel() {
         value={themeEffectId}
         onChange={setThemeEffectId}
         locale="en"
-        options={availableThemeEffects.map((option) => ({ id: option.id, label: option.label, description: option.description }))}
+        options={ownedEffects.map((option) => ({ id: option.id, label: option.label, description: option.description }))}
       />
     </>
   );

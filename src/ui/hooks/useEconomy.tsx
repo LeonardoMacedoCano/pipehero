@@ -46,6 +46,7 @@ export interface ScoreEconomyResult {
 interface EconomyContextValue extends EconomySnapshot {
   isLoading: boolean;
   applyScoreEconomyResult: (result: ScoreEconomyResult) => void;
+  setCoinsBalance: (coins: number) => void;
 }
 
 const EMPTY_SNAPSHOT: EconomySnapshot = {
@@ -137,9 +138,13 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const setCoinsBalance = useCallback((coins: number) => {
+    setSnapshot((prev) => ({ ...prev, coins }));
+  }, []);
+
   const value = useMemo(
-    () => ({ ...snapshot, isLoading, applyScoreEconomyResult }),
-    [snapshot, isLoading, applyScoreEconomyResult]
+    () => ({ ...snapshot, isLoading, applyScoreEconomyResult, setCoinsBalance }),
+    [snapshot, isLoading, applyScoreEconomyResult, setCoinsBalance]
   );
 
   return <EconomyContext.Provider value={value}>{children}</EconomyContext.Provider>;
