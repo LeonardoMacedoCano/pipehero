@@ -20,6 +20,9 @@ import { THEME_OPTIONS } from "../themes/registry.js";
 import { getAvatarOption } from "../cosmetics/avatarCatalog.js";
 import { getBorderOption } from "../cosmetics/borderCatalog.js";
 import { getBackgroundOption } from "../cosmetics/backgroundCatalog.js";
+import { getAchievementFrameOption } from "../cosmetics/achievementFrameCatalog.js";
+
+const ACHIEVEMENT_EFFECT_PREVIEW_ICON: Record<string, string> = { shimmer: "✨", pulse: "💫" };
 
 const SWATCH_BY_REF_ID = new Map(THEME_OPTIONS.map((option) => [option.id, [...option.swatch]]));
 
@@ -53,11 +56,25 @@ function backgroundPreview(item: ShopItem): ReactNode {
   return <BackgroundPreviewRect $css={option.css} />;
 }
 
+function achievementFramePreview(item: ShopItem): ReactNode {
+  const option = getAchievementFrameOption(item.refId);
+  if (!option) return null;
+  return <FramePreviewBox $css={option.css} />;
+}
+
+function achievementEffectPreview(item: ShopItem): ReactNode {
+  const icon = ACHIEVEMENT_EFFECT_PREVIEW_ICON[item.refId];
+  if (!icon) return null;
+  return <AvatarPreviewCircle>{icon}</AvatarPreviewCircle>;
+}
+
 function equippedIdForSlot(equipped: EquippedCosmetics, slot: EquippableSlot): string | null {
   if (slot === "avatar") return equipped.avatarId;
   if (slot === "border") return equipped.borderId;
   if (slot === "background") return equipped.backgroundId;
-  return equipped.tagId;
+  if (slot === "tag") return equipped.tagId;
+  if (slot === "achievementFrame") return equipped.achievementFrameId;
+  return equipped.achievementEffectId;
 }
 
 function ShopGrid({
@@ -142,6 +159,8 @@ export default function ShopPage() {
   const borderItems = items.filter((item) => item.slot === "border");
   const backgroundItems = items.filter((item) => item.slot === "background");
   const tagItems = items.filter((item) => item.slot === "tag");
+  const achievementFrameItems = items.filter((item) => item.slot === "achievementFrame");
+  const achievementEffectItems = items.filter((item) => item.slot === "achievementEffect");
 
   return (
     <Panel title="Shop" maxWidth="720px" style={{ margin: "16px" }}>
@@ -205,6 +224,32 @@ export default function ShopPage() {
                 />
               ),
             },
+            {
+              label: "Frames",
+              content: (
+                <ShopGrid
+                  items={achievementFrameItems}
+                  coins={coins}
+                  onBuy={handleBuy}
+                  renderPreview={achievementFramePreview}
+                  equippedRefId={equipped.achievementFrameId}
+                  onToggleEquip={makeEquipHandler("achievementFrame")}
+                />
+              ),
+            },
+            {
+              label: "Card FX",
+              content: (
+                <ShopGrid
+                  items={achievementEffectItems}
+                  coins={coins}
+                  onBuy={handleBuy}
+                  renderPreview={achievementEffectPreview}
+                  equippedRefId={equipped.achievementEffectId}
+                  onToggleEquip={makeEquipHandler("achievementEffect")}
+                />
+              ),
+            },
           ]}
         />
       </Stack>
@@ -234,5 +279,13 @@ const BackgroundPreviewRect = styled.div<{ $css: string }>`
   width: 100%;
   height: 40px;
   border-radius: 6px;
+  ${({ $css }) => $css}
+`;
+
+const FramePreviewBox = styled.div<{ $css: string }>`
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  background-color: ${({ theme }) => theme.colors.gray};
   ${({ $css }) => $css}
 `;

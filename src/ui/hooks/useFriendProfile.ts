@@ -18,6 +18,8 @@ export interface FriendProfile {
     equippedBorderId: string | null;
     equippedBackgroundId: string | null;
     equippedTagId: string | null;
+    equippedAchievementFrameId: string | null;
+    equippedAchievementEffectId: string | null;
   };
   scores: FriendProfileScore[];
   achievements: AchievementStatus[];

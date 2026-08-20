@@ -1,9 +1,18 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "./useAuth.js";
 import { useEconomy } from "./useEconomy.js";
+import { useAchievementToast, type UnlockedAchievement } from "../components/chrome/AchievementToastProvider.js";
 
-export type CosmeticSlot = "theme" | "effect" | "avatar" | "border" | "background" | "tag";
-export type EquippableSlot = "avatar" | "border" | "background" | "tag";
+export type CosmeticSlot =
+  | "theme"
+  | "effect"
+  | "avatar"
+  | "border"
+  | "background"
+  | "tag"
+  | "achievementFrame"
+  | "achievementEffect";
+export type EquippableSlot = "avatar" | "border" | "background" | "tag" | "achievementFrame" | "achievementEffect";
 
 export interface ShopItem {
   id: string;
@@ -20,9 +29,18 @@ export interface EquippedCosmetics {
   borderId: string | null;
   backgroundId: string | null;
   tagId: string | null;
+  achievementFrameId: string | null;
+  achievementEffectId: string | null;
 }
 
-const EMPTY_EQUIPPED: EquippedCosmetics = { avatarId: null, borderId: null, backgroundId: null, tagId: null };
+const EMPTY_EQUIPPED: EquippedCosmetics = {
+  avatarId: null,
+  borderId: null,
+  backgroundId: null,
+  tagId: null,
+  achievementFrameId: null,
+  achievementEffectId: null,
+};
 
 interface ShopMeResponse {
   coins: number;
@@ -37,6 +55,8 @@ const SLOT_TO_SETTINGS_FIELD: Record<EquippableSlot, string> = {
   border: "equippedBorderId",
   background: "equippedBackgroundId",
   tag: "equippedTagId",
+  achievementFrame: "equippedAchievementFrameId",
+  achievementEffect: "equippedAchievementEffectId",
 };
 
 const SLOT_TO_EQUIPPED_KEY: Record<EquippableSlot, keyof EquippedCosmetics> = {
@@ -44,6 +64,8 @@ const SLOT_TO_EQUIPPED_KEY: Record<EquippableSlot, keyof EquippedCosmetics> = {
   border: "borderId",
   background: "backgroundId",
   tag: "tagId",
+  achievementFrame: "achievementFrameId",
+  achievementEffect: "achievementEffectId",
 };
 
 interface ShopContextValue {
@@ -60,6 +82,9 @@ const ShopContext = createContext<ShopContextValue | undefined>(undefined);
 export function ShopProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { setCoinsBalance } = useEconomy();
+  const { notify } = useAchievementToast();
+  const notifyRef = useRef(notify);
+  notifyRef.current = notify;
 
   const [coins, setCoins] = useState(0);
   const [items, setItems] = useState<ShopItem[]>([]);
@@ -109,13 +134,19 @@ export function ShopProvider({ children }: { children: ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ itemId }),
       });
-      const data = (await response.json()) as { ok: boolean; coinsBalance?: number; error?: string };
+      const data = (await response.json()) as {
+        ok: boolean;
+        coinsBalance?: number;
+        error?: string;
+        unlockedAchievements?: UnlockedAchievement[];
+      };
       if (!data.ok || data.coinsBalance === undefined) {
         return { ok: false, error: data.error ?? "purchase_failed" };
       }
       setCoins(data.coinsBalance);
       setCoinsBalance(data.coinsBalance);
       setItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, owned: true } : item)));
+      notifyRef.current(data.unlockedAchievements ?? []);
       return { ok: true };
     },
     [setCoinsBalance]

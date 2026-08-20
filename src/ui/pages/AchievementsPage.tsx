@@ -3,12 +3,15 @@ import { Panel, Stack, Loading, HighlightBox, ToggleSwitch, Modal, BadgeCard, Pa
 import styled from "styled-components";
 import { useAchievements, type AchievementStatus } from "../hooks/useAchievements.js";
 import { useAuth } from "../hooks/useAuth.js";
+import { useShop } from "../hooks/useShop.js";
+import AchievementFrame from "../components/chrome/AchievementFrame.js";
 
 type FilterTab = "unlocked" | "locked";
 
 export default function AchievementsPage() {
   const { achievements, isLoading } = useAchievements();
   const { user, googleClientId, login } = useAuth();
+  const { equipped } = useShop();
   const [tab, setTab] = useState<FilterTab>("unlocked");
   const [selected, setSelected] = useState<AchievementStatus | null>(null);
 
@@ -58,21 +61,26 @@ export default function AchievementsPage() {
             minItemWidth="260px"
             rowsPerPage={2}
             renderItem={(achievement) => (
-              <BadgeCard
-                icon={achievement.unlocked ? achievement.icon : "🔒"}
-                title={achievement.name}
-                description={achievement.description}
-                active={achievement.unlocked}
-                onClick={() => setSelected(achievement)}
-                meta={
-                  <>
-                    {achievement.unlocked && achievement.unlockedAt && (
-                      <span>Unlocked {new Date(achievement.unlockedAt).toLocaleString()}</span>
-                    )}
-                    <span>{achievement.globalUnlockPercent}% of players</span>
-                  </>
-                }
-              />
+              <AchievementFrame
+                frameId={achievement.unlocked ? equipped.achievementFrameId : null}
+                effectId={achievement.unlocked ? equipped.achievementEffectId : null}
+              >
+                <BadgeCard
+                  icon={achievement.unlocked ? achievement.icon : "🔒"}
+                  title={achievement.name}
+                  description={achievement.description}
+                  active={achievement.unlocked}
+                  onClick={() => setSelected(achievement)}
+                  meta={
+                    <>
+                      {achievement.unlocked && achievement.unlockedAt && (
+                        <span>Unlocked {new Date(achievement.unlockedAt).toLocaleString()}</span>
+                      )}
+                      <span>{achievement.globalUnlockPercent}% of players</span>
+                    </>
+                  }
+                />
+              </AchievementFrame>
             )}
           />
         </Stack>

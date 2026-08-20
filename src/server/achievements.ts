@@ -55,6 +55,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     name: "Friendly Rival",
     description: "Win more song/difficulty comparisons than a friend in a head-to-head.",
   },
+  { code: "big_spender", icon: "💸", name: "Big Spender", description: "Buy something from the Shop." },
 ];
 
 const ACHIEVEMENT_BY_CODE = new Map(ACHIEVEMENTS.map((achievement) => [achievement.code, achievement]));
@@ -116,6 +117,10 @@ export function evaluateSettingsUnlocks(): string[] {
 
 export function evaluateFriendAcceptedUnlocks(): string[] {
   return ["squad_goals"];
+}
+
+export function evaluateShopPurchaseUnlocks(): string[] {
+  return ["big_spender"];
 }
 
 const FRIENDLY_RIVAL_MIN_COMPARED_ROWS = 3;

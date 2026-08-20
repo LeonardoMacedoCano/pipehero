@@ -3,6 +3,7 @@ import { readJsonBody, sendJson } from "./authRoutes.js";
 import { getRequestUser } from "./requestUser.js";
 import { query } from "./db.js";
 import { SHOP_ITEMS, getOwnedItemIds, purchaseItem } from "./shop.js";
+import { evaluateShopPurchaseUnlocks, unlockMany } from "./achievements.js";
 
 interface PurchaseBody {
   itemId?: string;
@@ -13,9 +14,18 @@ interface EquippedCosmetics {
   borderId: string | null;
   backgroundId: string | null;
   tagId: string | null;
+  achievementFrameId: string | null;
+  achievementEffectId: string | null;
 }
 
-const EMPTY_EQUIPPED: EquippedCosmetics = { avatarId: null, borderId: null, backgroundId: null, tagId: null };
+const EMPTY_EQUIPPED: EquippedCosmetics = {
+  avatarId: null,
+  borderId: null,
+  backgroundId: null,
+  tagId: null,
+  achievementFrameId: null,
+  achievementEffectId: null,
+};
 
 const PURCHASE_ERROR_STATUS: Record<string, number> = {
   not_found: 400,
@@ -39,8 +49,12 @@ export async function handleShopRequest(req: IncomingMessage, res: ServerRespons
       equipped_border_id: string | null;
       equipped_background_id: string | null;
       equipped_tag_id: string | null;
+      equipped_achievement_frame_id: string | null;
+      equipped_achievement_effect_id: string | null;
     }>(
-      "SELECT equipped_avatar_id, equipped_border_id, equipped_background_id, equipped_tag_id FROM user_settings WHERE user_id = $1",
+      `SELECT equipped_avatar_id, equipped_border_id, equipped_background_id, equipped_tag_id,
+              equipped_achievement_frame_id, equipped_achievement_effect_id
+       FROM user_settings WHERE user_id = $1`,
       [user.id]
     );
     const ownedIds = await getOwnedItemIds(user.id);
@@ -52,6 +66,8 @@ export async function handleShopRequest(req: IncomingMessage, res: ServerRespons
         borderId: settingsRow?.equipped_border_id ?? null,
         backgroundId: settingsRow?.equipped_background_id ?? null,
         tagId: settingsRow?.equipped_tag_id ?? null,
+        achievementFrameId: settingsRow?.equipped_achievement_frame_id ?? null,
+        achievementEffectId: settingsRow?.equipped_achievement_effect_id ?? null,
       },
     });
     return true;
@@ -81,7 +97,8 @@ export async function handleShopRequest(req: IncomingMessage, res: ServerRespons
       sendJson(res, PURCHASE_ERROR_STATUS[result.error] ?? 400, { ok: false, error: result.error });
       return true;
     }
-    sendJson(res, 200, { ok: true, coinsBalance: result.coinsBalance });
+    const unlockedAchievements = await unlockMany(user.id, evaluateShopPurchaseUnlocks());
+    sendJson(res, 200, { ok: true, coinsBalance: result.coinsBalance, unlockedAchievements });
     return true;
   }
 

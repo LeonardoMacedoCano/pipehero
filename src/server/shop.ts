@@ -1,6 +1,14 @@
 import { query, withTransaction } from "./db.js";
 
-export type CosmeticSlot = "theme" | "effect" | "avatar" | "border" | "background" | "tag";
+export type CosmeticSlot =
+  | "theme"
+  | "effect"
+  | "avatar"
+  | "border"
+  | "background"
+  | "tag"
+  | "achievementFrame"
+  | "achievementEffect";
 
 export interface ShopItem {
   id: string;
@@ -189,6 +197,46 @@ export const SHOP_ITEMS: ShopItem[] = [
     name: "Night Owl",
     description: "🌙 Night Owl — shown next to your name.",
     priceCoins: 80,
+  },
+  {
+    id: "achievementFrame_bronze",
+    slot: "achievementFrame",
+    refId: "bronze",
+    name: "Bronze Frame",
+    description: "A bronze frame around your unlocked achievement cards.",
+    priceCoins: 150,
+  },
+  {
+    id: "achievementFrame_silver",
+    slot: "achievementFrame",
+    refId: "silver",
+    name: "Silver Frame",
+    description: "A silver frame around your unlocked achievement cards.",
+    priceCoins: 150,
+  },
+  {
+    id: "achievementFrame_gold",
+    slot: "achievementFrame",
+    refId: "goldFrame",
+    name: "Gold Frame",
+    description: "A gold frame around your unlocked achievement cards.",
+    priceCoins: 150,
+  },
+  {
+    id: "achievementEffect_shimmer",
+    slot: "achievementEffect",
+    refId: "shimmer",
+    name: "Shimmer",
+    description: "A light sweep animation across your unlocked achievement cards.",
+    priceCoins: 150,
+  },
+  {
+    id: "achievementEffect_pulse",
+    slot: "achievementEffect",
+    refId: "pulse",
+    name: "Pulse",
+    description: "A gentle glow pulse on your unlocked achievement cards.",
+    priceCoins: 150,
   },
 ];
 

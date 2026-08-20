@@ -5,6 +5,7 @@ import { useFriendProfile, type FriendProfileScore } from "../../hooks/useFriend
 import { useSongs } from "../../hooks/useSongs.js";
 import type { AchievementStatus } from "../../hooks/useAchievements.js";
 import ProfileHeader from "../chrome/ProfileHeader.js";
+import AchievementFrame from "../chrome/AchievementFrame.js";
 
 const SCORES_PAGE_SIZE = 5;
 
@@ -82,7 +83,13 @@ export default function FriendProfilePanel({ friendId }: { friendId: number; fri
                   items={unlockedAchievements}
                   keyExtractor={(achievement) => achievement.code}
                   emptyMessage="No achievements unlocked yet."
-                  renderItem={(achievement) => <AchievementCard achievement={achievement} />}
+                  renderItem={(achievement) => (
+                    <AchievementCard
+                      achievement={achievement}
+                      frameId={profile?.friend.equippedAchievementFrameId ?? null}
+                      effectId={profile?.friend.equippedAchievementEffectId ?? null}
+                    />
+                  )}
                 />
               ),
             },
@@ -93,15 +100,25 @@ export default function FriendProfilePanel({ friendId }: { friendId: number; fri
   );
 }
 
-function AchievementCard({ achievement }: { achievement: AchievementStatus }) {
+function AchievementCard({
+  achievement,
+  frameId,
+  effectId,
+}: {
+  achievement: AchievementStatus;
+  frameId: string | null;
+  effectId: string | null;
+}) {
   return (
-    <Card>
-      <CardIcon>{achievement.icon}</CardIcon>
-      <CardBody>
-        <CardTitle>{achievement.name}</CardTitle>
-        <CardDescription>{achievement.description}</CardDescription>
-      </CardBody>
-    </Card>
+    <AchievementFrame frameId={frameId} effectId={effectId}>
+      <Card>
+        <CardIcon>{achievement.icon}</CardIcon>
+        <CardBody>
+          <CardTitle>{achievement.name}</CardTitle>
+          <CardDescription>{achievement.description}</CardDescription>
+        </CardBody>
+      </Card>
+    </AchievementFrame>
   );
 }
 

@@ -58,7 +58,7 @@ try {
   // --- Anonymous browsing ---
   const anonRes = await fetch(`${BASE_URL}/api/shop/me`);
   const anon = await anonRes.json();
-  checks.push({ name: "anonymous GET /api/shop/me returns 0 coins and everything unowned", ok: anon.coins === 0 && anon.items.length === 22 && anon.items.every((i: { owned: boolean }) => !i.owned) });
+  checks.push({ name: "anonymous GET /api/shop/me returns 0 coins and everything unowned", ok: anon.coins === 0 && anon.items.length === 27 && anon.items.every((i: { owned: boolean }) => !i.owned) });
   checks.push({ name: "anonymous GET /api/shop/me reports every equipped slot as null", ok: Object.values(anon.equipped).every((v) => v === null) });
 
   // --- Starting state for userA ---
@@ -74,6 +74,10 @@ try {
   });
   const buy1 = await buy1Res.json();
   checks.push({ name: "buying Dark Onyx Amber (300 coins) debits exactly 300 and grants ownership", ok: buy1.ok === true && buy1.coinsBalance === 200 });
+  checks.push({
+    name: "the first successful purchase unlocks the Big Spender achievement",
+    ok: (buy1.unlockedAchievements ?? []).some((a: { code: string }) => a.code === "big_spender"),
+  });
 
   const afterBuy1Res = await fetch(`${BASE_URL}/api/shop/me`, { headers: { Cookie: cookieA } });
   const afterBuy1 = await afterBuy1Res.json();
@@ -101,6 +105,10 @@ try {
   });
   const buy2 = await buy2Res.json();
   checks.push({ name: "buying Bloom (150 coins) leaves exactly 50 coins", ok: buy2.ok === true && buy2.coinsBalance === 50 });
+  checks.push({
+    name: "a second purchase does not re-unlock Big Spender",
+    ok: !(buy2.unlockedAchievements ?? []).some((a: { code: string }) => a.code === "big_spender"),
+  });
 
   // --- Insufficient funds: no partial state change ---
   const buy3Res = await fetch(`${BASE_URL}/api/shop/purchase`, {
@@ -236,6 +244,16 @@ try {
     headers: { "Content-Type": "application/json", Cookie: cookieC },
     body: JSON.stringify({ itemId: "tag_rockstar" }),
   });
+  await fetch(`${BASE_URL}/api/shop/purchase`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieC },
+    body: JSON.stringify({ itemId: "achievementFrame_bronze" }),
+  });
+  await fetch(`${BASE_URL}/api/shop/purchase`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieC },
+    body: JSON.stringify({ itemId: "achievementEffect_shimmer" }),
+  });
   const equipAllRes = await fetch(`${BASE_URL}/api/settings/me`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Cookie: cookieC },
@@ -244,19 +262,23 @@ try {
       equippedBorderId: "gold",
       equippedBackgroundId: "stage",
       equippedTagId: "rockstar",
+      equippedAchievementFrameId: "bronze",
+      equippedAchievementEffectId: "shimmer",
     }),
   });
-  checks.push({ name: "equipping all 4 profile slots at once succeeds", ok: equipAllRes.status === 200 });
+  checks.push({ name: "equipping all 6 cosmetic slots at once succeeds", ok: equipAllRes.status === 200 });
 
   const afterEquipAllRes = await fetch(`${BASE_URL}/api/shop/me`, { headers: { Cookie: cookieC } });
   const afterEquipAll = await afterEquipAllRes.json();
   checks.push({
-    name: "GET /api/shop/me reflects all 4 equipped slots",
+    name: "GET /api/shop/me reflects all 6 equipped slots",
     ok:
       afterEquipAll.equipped.avatarId === "guitar" &&
       afterEquipAll.equipped.borderId === "gold" &&
       afterEquipAll.equipped.backgroundId === "stage" &&
-      afterEquipAll.equipped.tagId === "rockstar",
+      afterEquipAll.equipped.tagId === "rockstar" &&
+      afterEquipAll.equipped.achievementFrameId === "bronze" &&
+      afterEquipAll.equipped.achievementEffectId === "shimmer",
   });
 
   // --- A friend viewing your profile sees your equipped cosmetics ---
@@ -282,7 +304,9 @@ try {
       friendProfile.friend.equippedAvatarId === "guitar" &&
       friendProfile.friend.equippedBorderId === "gold" &&
       friendProfile.friend.equippedBackgroundId === "stage" &&
-      friendProfile.friend.equippedTagId === "rockstar",
+      friendProfile.friend.equippedTagId === "rockstar" &&
+      friendProfile.friend.equippedAchievementFrameId === "bronze" &&
+      friendProfile.friend.equippedAchievementEffectId === "shimmer",
   });
 } catch (err) {
   checks.push({ name: `unexpected error: ${err instanceof Error ? err.message : String(err)}`, ok: false });
