@@ -181,7 +181,7 @@ try {
     for (const day of days) {
       await query(
         "INSERT INTO user_daily_song_plays (user_id, play_day, song_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
-        [userD.id, day, "weekly-seed-song"]
+        [userD.id, day, "economy-test-weekly-1"]
       );
     }
   }
