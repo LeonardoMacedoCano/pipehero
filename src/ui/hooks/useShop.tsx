@@ -34,6 +34,21 @@ export interface EquippedCosmetics {
   achievementEffectId: string | null;
 }
 
+const EQUIPPABLE_SLOTS = new Set<CosmeticSlot>(["avatar", "border", "background", "tag", "achievementFrame", "achievementEffect"]);
+
+export function isEquippableSlot(slot: CosmeticSlot): slot is EquippableSlot {
+  return EQUIPPABLE_SLOTS.has(slot);
+}
+
+export function equippedIdForSlot(equipped: EquippedCosmetics, slot: EquippableSlot): string | null {
+  if (slot === "avatar") return equipped.avatarId;
+  if (slot === "border") return equipped.borderId;
+  if (slot === "background") return equipped.backgroundId;
+  if (slot === "tag") return equipped.tagId;
+  if (slot === "achievementFrame") return equipped.achievementFrameId;
+  return equipped.achievementEffectId;
+}
+
 const EMPTY_EQUIPPED: EquippedCosmetics = {
   avatarId: null,
   borderId: null,

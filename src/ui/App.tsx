@@ -11,6 +11,7 @@ import type { MenuScreenName } from "./components/chrome/navigation.js";
 import MainMenuPage from "./pages/MainMenuPage.js";
 import SongMenuPage from "./pages/SongMenuPage.js";
 import OptionsPage from "./pages/OptionsPage.js";
+import ProfilePage from "./pages/ProfilePage.js";
 import AchievementsPage from "./pages/AchievementsPage.js";
 import MissionsPage from "./pages/MissionsPage.js";
 import ShopPage from "./pages/ShopPage.js";
@@ -61,6 +62,11 @@ export default function App() {
                 {screen.name === "options" && (
                   <MenuLayout current="options" onNavigate={navigate}>
                     <OptionsPage />
+                  </MenuLayout>
+                )}
+                {screen.name === "profile" && (
+                  <MenuLayout current="profile" onNavigate={navigate}>
+                    <ProfilePage />
                   </MenuLayout>
                 )}
                 {screen.name === "achievements" && (

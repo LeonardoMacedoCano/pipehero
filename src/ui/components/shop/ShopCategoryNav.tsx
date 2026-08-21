@@ -1,19 +1,21 @@
 import styled from "styled-components";
 import type { CosmeticSlot } from "../../hooks/useShop.js";
-import { SHOP_CATEGORIES } from "./shopCategories.js";
+import { SHOP_CATEGORIES, type ShopCategory } from "./shopCategories.js";
 
 export default function ShopCategoryNav({
   active,
   onChange,
   counts,
+  categories = SHOP_CATEGORIES,
 }: {
   active: CosmeticSlot;
   onChange: (id: CosmeticSlot) => void;
   counts: Partial<Record<CosmeticSlot, number>>;
+  categories?: readonly ShopCategory[];
 }) {
   return (
     <Nav aria-label="Shop categories">
-      {SHOP_CATEGORIES.map((category) => (
+      {categories.map((category) => (
         <CategoryButton key={category.id} type="button" $active={category.id === active} onClick={() => onChange(category.id)}>
           <span aria-hidden>{category.icon}</span>
           <Label>{category.label}</Label>
