@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { OptionGrid } from "lcano-react-ui";
+import { OptionGrid, ThemeSelector } from "lcano-react-ui";
 import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
 import { useShop } from "../hooks/useShop.js";
 import { DEFAULT_THEME_ID } from "../themes/registry.js";
@@ -19,15 +19,14 @@ export default function ThemeAppearancePanel() {
 
   return (
     <>
-      <OptionGrid
+      <ThemeSelector
         value={themeId}
         onChange={setThemeId}
-        locale="en"
         options={ownedThemes.map((option) => ({
           id: option.id,
-          label: option.label,
-          description: option.description,
+          title: option.label,
           swatch: [...option.swatch],
+          accentColor: option.theme.colors.quaternary,
         }))}
       />
 
