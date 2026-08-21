@@ -5,6 +5,8 @@ export interface FeedEntry {
   userId: number;
   name: string;
   avatarUrl: string | null;
+  equippedAvatarId: string | null;
+  equippedBorderId: string | null;
   songId: string;
   difficulty: Difficulty;
   stars: number;

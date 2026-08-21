@@ -75,12 +75,22 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
 
   if (url === "/api/leaderboard/global" && method === "GET") {
     const user = await getRequestUser(req);
-    const rows = await query<{ user_id: number; name: string; avatar_url: string | null; weighted_score: string; rank: string }>(
-      `SELECT u.id AS user_id, u.name, u.avatar_url,
+    const rows = await query<{
+      user_id: number;
+      name: string;
+      avatar_url: string | null;
+      equipped_avatar_id: string | null;
+      equipped_border_id: string | null;
+      weighted_score: string;
+      rank: string;
+    }>(
+      `SELECT u.id AS user_id, u.name, u.avatar_url, us.equipped_avatar_id, us.equipped_border_id,
          SUM(ss.stars * ${WEIGHT_CASE_SQL}) AS weighted_score,
          RANK() OVER (ORDER BY SUM(ss.stars * ${WEIGHT_CASE_SQL}) DESC) AS rank
-       FROM song_scores ss JOIN users u ON u.id = ss.user_id
-       GROUP BY u.id, u.name, u.avatar_url
+       FROM song_scores ss
+       JOIN users u ON u.id = ss.user_id
+       LEFT JOIN user_settings us ON us.user_id = u.id
+       GROUP BY u.id, u.name, u.avatar_url, us.equipped_avatar_id, us.equipped_border_id
        ORDER BY rank, u.name`
     );
     sendJson(
@@ -90,6 +100,8 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
         userId: row.user_id,
         name: row.name,
         avatarUrl: row.avatar_url,
+        equippedAvatarId: row.equipped_avatar_id,
+        equippedBorderId: row.equipped_border_id,
         weightedScore: Number(row.weighted_score),
         rank: Number(row.rank),
         isMe: user?.id === row.user_id,
@@ -104,17 +116,27 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
       sendJson(res, 200, []);
       return true;
     }
-    const rows = await query<{ user_id: number; name: string; avatar_url: string | null; weighted_score: string; rank: string }>(
+    const rows = await query<{
+      user_id: number;
+      name: string;
+      avatar_url: string | null;
+      equipped_avatar_id: string | null;
+      equipped_border_id: string | null;
+      weighted_score: string;
+      rank: string;
+    }>(
       `WITH friend_ids AS (
          SELECT $1::int AS user_id
          UNION
          SELECT CASE WHEN requester_id = $1 THEN addressee_id ELSE requester_id END
          FROM friendships WHERE status = 'accepted' AND (requester_id = $1 OR addressee_id = $1)
        )
-       SELECT fi.user_id, u.name, u.avatar_url, COALESCE(s.weighted_score, 0) AS weighted_score,
+       SELECT fi.user_id, u.name, u.avatar_url, us.equipped_avatar_id, us.equipped_border_id,
+         COALESCE(s.weighted_score, 0) AS weighted_score,
          RANK() OVER (ORDER BY COALESCE(s.weighted_score, 0) DESC) AS rank
        FROM friend_ids fi
        JOIN users u ON u.id = fi.user_id
+       LEFT JOIN user_settings us ON us.user_id = u.id
        LEFT JOIN (
          SELECT ss.user_id, SUM(ss.stars * ${WEIGHT_CASE_SQL}) AS weighted_score
          FROM song_scores ss WHERE ss.user_id IN (SELECT user_id FROM friend_ids)
@@ -130,6 +152,8 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
         userId: row.user_id,
         name: row.name,
         avatarUrl: row.avatar_url,
+        equippedAvatarId: row.equipped_avatar_id,
+        equippedBorderId: row.equipped_border_id,
         weightedScore: Number(row.weighted_score),
         rank: Number(row.rank),
         isMe: user.id === row.user_id,
@@ -152,9 +176,18 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
       sendJson(res, 200, []);
       return true;
     }
-    const rows = await query<{ id: number; name: string; avatar_url: string | null; status: string | null; requester_id: number | null }>(
-      `SELECT u.id, u.name, u.avatar_url, f.status, f.requester_id
+    const rows = await query<{
+      id: number;
+      name: string;
+      avatar_url: string | null;
+      equipped_avatar_id: string | null;
+      equipped_border_id: string | null;
+      status: string | null;
+      requester_id: number | null;
+    }>(
+      `SELECT u.id, u.name, u.avatar_url, us.equipped_avatar_id, us.equipped_border_id, f.status, f.requester_id
        FROM users u
+       LEFT JOIN user_settings us ON us.user_id = u.id
        LEFT JOIN friendships f ON (f.requester_id = $1 AND f.addressee_id = u.id) OR (f.requester_id = u.id AND f.addressee_id = $1)
        WHERE u.id <> $1 AND (u.name ILIKE '%' || $2 || '%' OR u.email ILIKE '%' || $2 || '%')
        ORDER BY u.name
@@ -168,6 +201,8 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
         userId: row.id,
         name: row.name,
         avatarUrl: row.avatar_url,
+        equippedAvatarId: row.equipped_avatar_id,
+        equippedBorderId: row.equipped_border_id,
         friendStatus:
           row.status === "accepted"
             ? "friends"
@@ -186,23 +221,38 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
       sendJson(res, 200, { incoming: [], outgoing: [] });
       return true;
     }
-    const incoming = await query<{ id: number; friend_id: number; name: string; avatar_url: string | null; created_at: string }>(
-      `SELECT f.id, f.requester_id AS friend_id, u.name, u.avatar_url, f.created_at
-       FROM friendships f JOIN users u ON u.id = f.requester_id
+    interface RequestRow {
+      id: number;
+      friend_id: number;
+      name: string;
+      avatar_url: string | null;
+      equipped_avatar_id: string | null;
+      equipped_border_id: string | null;
+      created_at: string;
+    }
+    const incoming = await query<RequestRow>(
+      `SELECT f.id, f.requester_id AS friend_id, u.name, u.avatar_url, us.equipped_avatar_id, us.equipped_border_id, f.created_at
+       FROM friendships f
+       JOIN users u ON u.id = f.requester_id
+       LEFT JOIN user_settings us ON us.user_id = u.id
        WHERE f.addressee_id = $1 AND f.status = 'pending' ORDER BY f.created_at DESC`,
       [user.id]
     );
-    const outgoing = await query<{ id: number; friend_id: number; name: string; avatar_url: string | null; created_at: string }>(
-      `SELECT f.id, f.addressee_id AS friend_id, u.name, u.avatar_url, f.created_at
-       FROM friendships f JOIN users u ON u.id = f.addressee_id
+    const outgoing = await query<RequestRow>(
+      `SELECT f.id, f.addressee_id AS friend_id, u.name, u.avatar_url, us.equipped_avatar_id, us.equipped_border_id, f.created_at
+       FROM friendships f
+       JOIN users u ON u.id = f.addressee_id
+       LEFT JOIN user_settings us ON us.user_id = u.id
        WHERE f.requester_id = $1 AND f.status = 'pending' ORDER BY f.created_at DESC`,
       [user.id]
     );
-    const toEntry = (row: { id: number; friend_id: number; name: string; avatar_url: string | null; created_at: string }) => ({
+    const toEntry = (row: RequestRow) => ({
       requestId: row.id,
       friendId: row.friend_id,
       name: row.name,
       avatarUrl: row.avatar_url,
+      equippedAvatarId: row.equipped_avatar_id,
+      equippedBorderId: row.equipped_border_id,
       createdAt: row.created_at,
     });
     sendJson(res, 200, { incoming: incoming.map(toEntry), outgoing: outgoing.map(toEntry) });
@@ -301,9 +351,21 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
       sendJson(res, 200, []);
       return true;
     }
-    const rows = await query<{ user_id: number; name: string; avatar_url: string | null; song_id: string; difficulty: Difficulty; stars: number; achieved_at: string }>(
-      `SELECT ss.user_id, u.name, u.avatar_url, ss.song_id, ss.difficulty, ss.stars, ss.achieved_at
-       FROM song_scores ss JOIN users u ON u.id = ss.user_id
+    const rows = await query<{
+      user_id: number;
+      name: string;
+      avatar_url: string | null;
+      equipped_avatar_id: string | null;
+      equipped_border_id: string | null;
+      song_id: string;
+      difficulty: Difficulty;
+      stars: number;
+      achieved_at: string;
+    }>(
+      `SELECT ss.user_id, u.name, u.avatar_url, us.equipped_avatar_id, us.equipped_border_id, ss.song_id, ss.difficulty, ss.stars, ss.achieved_at
+       FROM song_scores ss
+       JOIN users u ON u.id = ss.user_id
+       LEFT JOIN user_settings us ON us.user_id = u.id
        WHERE ss.user_id = ANY($1::int[])
        ORDER BY ss.achieved_at DESC LIMIT ${FRIEND_FEED_LIMIT}`,
       [friendIds]
@@ -315,6 +377,8 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
         userId: row.user_id,
         name: row.name,
         avatarUrl: row.avatar_url,
+        equippedAvatarId: row.equipped_avatar_id,
+        equippedBorderId: row.equipped_border_id,
         songId: row.song_id,
         difficulty: row.difficulty,
         stars: row.stars,
@@ -329,11 +393,19 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
       sendJson(res, 200, []);
       return true;
     }
-    const rows = await query<{ friend_id: number; name: string; avatar_url: string | null; friends_since: string }>(
+    const rows = await query<{
+      friend_id: number;
+      name: string;
+      avatar_url: string | null;
+      equipped_avatar_id: string | null;
+      equipped_border_id: string | null;
+      friends_since: string;
+    }>(
       `SELECT CASE WHEN requester_id = $1 THEN addressee_id ELSE requester_id END AS friend_id,
-              u.name, u.avatar_url, f.responded_at AS friends_since
+              u.name, u.avatar_url, us.equipped_avatar_id, us.equipped_border_id, f.responded_at AS friends_since
        FROM friendships f
        JOIN users u ON u.id = CASE WHEN f.requester_id = $1 THEN f.addressee_id ELSE f.requester_id END
+       LEFT JOIN user_settings us ON us.user_id = u.id
        WHERE f.status = 'accepted' AND (f.requester_id = $1 OR f.addressee_id = $1)
        ORDER BY u.name`,
       [user.id]
@@ -341,7 +413,14 @@ export async function handleFriendsRequest(req: IncomingMessage, res: ServerResp
     sendJson(
       res,
       200,
-      rows.map((row) => ({ friendId: row.friend_id, name: row.name, avatarUrl: row.avatar_url, friendsSince: row.friends_since }))
+      rows.map((row) => ({
+        friendId: row.friend_id,
+        name: row.name,
+        avatarUrl: row.avatar_url,
+        equippedAvatarId: row.equipped_avatar_id,
+        equippedBorderId: row.equipped_border_id,
+        friendsSince: row.friends_since,
+      }))
     );
     return true;
   }

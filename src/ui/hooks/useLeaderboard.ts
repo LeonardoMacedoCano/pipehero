@@ -4,6 +4,8 @@ export interface LeaderboardEntry {
   userId: number;
   name: string;
   avatarUrl: string | null;
+  equippedAvatarId: string | null;
+  equippedBorderId: string | null;
   weightedScore: number;
   rank: number;
   isMe: boolean;

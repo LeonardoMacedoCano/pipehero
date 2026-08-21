@@ -6,6 +6,8 @@ export interface FriendSearchResult {
   userId: number;
   name: string;
   avatarUrl: string | null;
+  equippedAvatarId: string | null;
+  equippedBorderId: string | null;
   friendStatus: FriendStatus;
 }
 
