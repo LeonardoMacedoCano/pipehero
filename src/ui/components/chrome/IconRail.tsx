@@ -4,6 +4,7 @@ import styled from "styled-components";
 import type { MenuScreenName } from "./navigation.js";
 import AccountPopover from "./AccountPopover.js";
 import CoinBalanceBadge from "./CoinBalanceBadge.js";
+import { DESKTOP_LAYOUT_MEDIA_QUERY } from "../../responsive.js";
 
 export default function IconRail({
   current,
@@ -58,7 +59,7 @@ const Rail = styled.div`
   flex-direction: column;
   gap: 10px;
 
-  @media (min-width: 700px) {
+  @media ${DESKTOP_LAYOUT_MEDIA_QUERY} {
     display: flex;
   }
 `;

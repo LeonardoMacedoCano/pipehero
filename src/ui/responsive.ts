@@ -1,2 +1,6 @@
 export const LANDSCAPE_HEIGHT_BREAKPOINT = 500;
 export const LANDSCAPE_MEDIA_QUERY = `(max-height: ${LANDSCAPE_HEIGHT_BREAKPOINT}px)`;
+
+export const MOBILE_LAYOUT_BREAKPOINT = 700;
+export const MOBILE_LAYOUT_MEDIA_QUERY = `(max-width: ${MOBILE_LAYOUT_BREAKPOINT - 1}px)`;
+export const DESKTOP_LAYOUT_MEDIA_QUERY = `(min-width: ${MOBILE_LAYOUT_BREAKPOINT}px)`;
