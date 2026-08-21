@@ -153,10 +153,17 @@ try {
 
   checks.push({
     name: "main menu shows every expected item",
-    ok: ["Single Player", "Log in with Google", "Friends", "Achievements", "Options"].every((label) =>
-      root?.innerHTML.includes(label)
-    ),
+    ok: ["Single Player", "Friends", "Achievements", "Options"].every((label) => root?.innerHTML.includes(label)),
   });
+
+  const clickedAccountIcon = clickButtonWithText(document, "👤");
+  await new Promise((r) => setTimeout(r, 100));
+  checks.push({
+    name: "clicking the account icon shows the 'Log in with Google' prompt (logged out, no DATABASE_URL in this test env)",
+    ok: clickedAccountIcon && !!root?.innerHTML.includes("Log in with Google"),
+  });
+  clickButtonWithText(document, "👤");
+  await new Promise((r) => setTimeout(r, 100));
 
   const clickedFriends = clickButtonWithText(document, "Friends");
   await new Promise((r) => setTimeout(r, 200));
