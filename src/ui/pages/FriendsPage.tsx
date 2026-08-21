@@ -25,16 +25,22 @@ export default function FriendsPage() {
     );
   }
 
+  if (drilldown && drilldown.view === "profile") {
+    return (
+      <FriendProfilePanel
+        friendId={drilldown.friendId}
+        friendName={drilldown.friendName}
+        onBack={() => setDrilldown(null)}
+      />
+    );
+  }
+
   if (drilldown) {
     return (
       <Panel title={drilldown.friendName} maxWidth="900px">
         <Stack direction="column" gap="16px" style={{ padding: "16px" }}>
           <Button description="« Back to Friends" variant="secondary" onClick={() => setDrilldown(null)} />
-          {drilldown.view === "profile" ? (
-            <FriendProfilePanel friendId={drilldown.friendId} friendName={drilldown.friendName} />
-          ) : (
-            <FriendComparePanel friendId={drilldown.friendId} friendName={drilldown.friendName} />
-          )}
+          <FriendComparePanel friendId={drilldown.friendId} friendName={drilldown.friendName} />
         </Stack>
       </Panel>
     );
