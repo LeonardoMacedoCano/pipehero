@@ -9,6 +9,8 @@ import CoinBalanceBadge from "./CoinBalanceBadge.js";
 import CreditsModal from "./CreditsModal.js";
 import SupportModal from "./SupportModal.js";
 
+const FORCE_DRAWER_BREAKPOINT = "99999px";
+
 const NAV_SCREENS: { screen: MenuScreenName; icon: string; label: string }[] = [
   { screen: "menu", icon: "🏠", label: "Home" },
   { screen: "profile", icon: "🪪", label: "Profile" },
@@ -59,16 +61,19 @@ export default function MenuLayout({
       <Screen>
         <SideNav
           items={items}
-          railHeader={<CoinBalanceBadge />}
+          compactBelow={FORCE_DRAWER_BREAKPOINT}
           drawerHeader={
             <DrawerHeaderContent>
               <img src="/pipehero-icon.png" alt="" width={32} height={32} />
               <DrawerTitle>PipeHero</DrawerTitle>
-              <CoinBalanceBadge />
             </DrawerHeaderContent>
           }
           footer={<AccountNavControl />}
         />
+
+        <CoinsBadgeSlot>
+          <CoinBalanceBadge />
+        </CoinsBadgeSlot>
 
         <Header as={current === "menu" ? "div" : "button"} type={current === "menu" ? undefined : "button"} onClick={current === "menu" ? undefined : () => onNavigate("menu")} $clickable={current !== "menu"}>
           <LogoRow>
@@ -181,8 +186,19 @@ const DrawerHeaderContent = styled.div`
 
 const DrawerTitle = styled.span`
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: ${({ theme }) => theme.colors.white};
+`;
+
+const CoinsBadgeSlot = styled.div`
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
 `;
