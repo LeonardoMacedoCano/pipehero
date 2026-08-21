@@ -97,7 +97,7 @@ export async function handleShopRequest(req: IncomingMessage, res: ServerRespons
       sendJson(res, PURCHASE_ERROR_STATUS[result.error] ?? 400, { ok: false, error: result.error });
       return true;
     }
-    const unlockedAchievements = await unlockMany(user.id, evaluateShopPurchaseUnlocks());
+    const unlockedAchievements = await unlockMany(user.id, evaluateShopPurchaseUnlocks(body.itemId));
     sendJson(res, 200, { ok: true, coinsBalance: result.coinsBalance, unlockedAchievements });
     return true;
   }

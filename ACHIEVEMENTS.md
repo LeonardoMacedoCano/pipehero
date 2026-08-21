@@ -9,7 +9,7 @@ all of them: a **X / Y unlocked** counter, an **Unlocked / Locked**
 toggle, and — on unlocked ones — when you got it and what percentage
 of all players have it too.
 
-## Full list (20)
+## Full list (21)
 
 ### Getting started
 
@@ -53,6 +53,7 @@ of all players have it too.
 | 💥 | That's Rock and Roll | Fail a song for the first time. |
 | 🌙 | Night Owl | Finish a song between midnight and 4 AM. |
 | 💸 | Big Spender | Buy something from the Shop. |
+| 🤑 | Nepo Baby | Buy the "Nepo Baby" item in the Shop — the only achievement money can actually buy. |
 
 ### Friends
 

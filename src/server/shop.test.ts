@@ -13,6 +13,7 @@ const SLOTS: CosmeticSlot[] = [
   "tag",
   "achievementFrame",
   "achievementEffect",
+  "vanity",
 ];
 const NO_FREE_DEFAULT_SLOTS: CosmeticSlot[] = ["avatar", "border", "background", "tag", "achievementFrame", "achievementEffect"];
 const PROFILE_DOC_SLOTS: CosmeticSlot[] = ["avatar", "border", "background", "tag", "achievementFrame", "achievementEffect"];

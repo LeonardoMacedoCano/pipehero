@@ -8,7 +8,8 @@ export type CosmeticSlot =
   | "background"
   | "tag"
   | "achievementFrame"
-  | "achievementEffect";
+  | "achievementEffect"
+  | "vanity";
 
 export interface ShopItem {
   id: string;
@@ -237,6 +238,14 @@ export const SHOP_ITEMS: ShopItem[] = [
     name: "Pulse",
     description: "A gentle glow pulse on your unlocked achievement cards.",
     priceCoins: 150,
+  },
+  {
+    id: "vanity_nepoBaby",
+    slot: "vanity",
+    refId: "nepoBaby",
+    name: "Nepo Baby",
+    description: "Skip the grind entirely — buy this and the achievement is yours, no talent required.",
+    priceCoins: 2000,
   },
 ];
 

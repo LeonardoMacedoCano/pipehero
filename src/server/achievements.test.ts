@@ -35,8 +35,8 @@ function baseStats(overrides: Partial<ScoreSubmissionStats> = {}): ScoreSubmissi
 
 const CODES = new Set(ACHIEVEMENTS.map((achievement) => achievement.code));
 
-test("achievement catalog has 20 unique, fully-populated entries", () => {
-  assert.equal(ACHIEVEMENTS.length, 20);
+test("achievement catalog has 21 unique, fully-populated entries", () => {
+  assert.equal(ACHIEVEMENTS.length, 21);
   assert.equal(CODES.size, ACHIEVEMENTS.length);
   for (const achievement of ACHIEVEMENTS) {
     assert.ok(achievement.code.length > 0);
@@ -172,8 +172,9 @@ test("evaluateFriendAcceptedUnlocks always resolves to squad_goals", () => {
   assert.deepEqual(evaluateFriendAcceptedUnlocks(), ["squad_goals"]);
 });
 
-test("evaluateShopPurchaseUnlocks always resolves to big_spender", () => {
-  assert.deepEqual(evaluateShopPurchaseUnlocks(), ["big_spender"]);
+test("evaluateShopPurchaseUnlocks always resolves to big_spender, plus nepo_baby for the Nepo Baby item", () => {
+  assert.deepEqual(evaluateShopPurchaseUnlocks("theme_darkOnyxAmber"), ["big_spender"]);
+  assert.deepEqual(evaluateShopPurchaseUnlocks("vanity_nepoBaby"), ["big_spender", "nepo_baby"]);
 });
 
 test("evaluateCompareUnlocks unlocks friendly_rival only with more wins and at least 3 compared rows", () => {
@@ -207,7 +208,7 @@ test("every code produced by the evaluators exists in the catalog", () => {
     ...evaluateFailureUnlocks(),
     ...evaluateFriendAcceptedUnlocks(),
     ...evaluateCompareUnlocks(3, 0, 3),
-    ...evaluateShopPurchaseUnlocks(),
+    ...evaluateShopPurchaseUnlocks("vanity_nepoBaby"),
   ];
   for (const code of produced) assert.ok(CODES.has(code), `unknown achievement code: ${code}`);
 });

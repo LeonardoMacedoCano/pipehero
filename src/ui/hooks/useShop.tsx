@@ -11,7 +11,8 @@ export type CosmeticSlot =
   | "background"
   | "tag"
   | "achievementFrame"
-  | "achievementEffect";
+  | "achievementEffect"
+  | "vanity";
 export type EquippableSlot = "avatar" | "border" | "background" | "tag" | "achievementFrame" | "achievementEffect";
 
 export interface ShopItem {
