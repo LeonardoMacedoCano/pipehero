@@ -14,12 +14,12 @@ Replaces your Google profile photo with an icon of your own. 100 coins each.
 
 | Icon | Name | Look |
 |---|---|---|
-| 🎸 | Guitarist | 🎸 on a green badge. |
-| 🥁 | Drummer | 🥁 on a red badge. |
-| 🎤 | Vocalist | 🎤 on a yellow badge. |
-| 🎹 | Keyboardist | 🎹 on a blue badge. |
-| ⚡ | Shredder | ⚡ on an orange badge. |
-| 🌟 | Star Performer | 🌟 on a purple badge. |
+| 🎸 | Guitarist | Front and center on a green badge. |
+| 🥁 | Drummer | Keeps the whole band on time, on a red badge. |
+| 🎤 | Vocalist | Steals the spotlight on a yellow badge. |
+| 🎹 | Keyboardist | Holds the harmony together on a blue badge. |
+| ⚡ | Shredder | Lightning fingers on an orange badge. |
+| 🌟 | Star Performer | Headliner status on a purple badge. |
 
 ## Border
 
@@ -27,9 +27,9 @@ A ring around your avatar. 200 coins each.
 
 | Name | Look |
 |---|---|
-| Gold Ring | A solid gold ring around your avatar. |
-| Neon Ring | A glowing cyan-to-pink gradient ring. |
-| Fire Ring | A glowing orange-to-red gradient ring. |
+| Gold Ring | Solid gold, no gradient tricks — just pure shine. |
+| Neon Ring | A glowing cyan-to-pink gradient ring that never sits still. |
+| Fire Ring | A glowing orange-to-red ring, like your avatar's on fire. |
 
 ## Background
 
@@ -37,9 +37,9 @@ A wash of color behind your profile header. 200 coins each.
 
 | Name | Look |
 |---|---|
-| Stage Lights | A warm spotlight glow behind your name. |
-| Sunset | An orange-to-purple gradient behind your name. |
-| Circuit Grid | A subtle dark grid pattern behind your name. |
+| Stage Lights | A warm spotlight glow, like you just walked on stage. |
+| Sunset | An orange-to-purple gradient straight off a tour poster. |
+| Circuit Grid | A subtle dark grid — clean, technical, understated. |
 
 ## Player tag
 
@@ -47,11 +47,11 @@ A short label shown next to your name. 80 coins each.
 
 | Tag | Look |
 |---|---|
-| Rockstar | 🎸 Rockstar — shown next to your name. |
-| Perfectionist | 💯 Perfectionist — shown next to your name. |
-| Speed Demon | ⚡ Speed Demon — shown next to your name. |
-| Completionist | 🏆 Completionist — shown next to your name. |
-| Night Owl | 🌙 Night Owl — shown next to your name. |
+| Rockstar | 🎸 For those who never stop shredding. |
+| Perfectionist | 💯 Perfect runs, perfectly flexed. |
+| Speed Demon | ⚡ Built for speed, allergic to slow songs. |
+| Completionist | 🏆 Every song, every difficulty, no exceptions. |
+| Night Owl | 🌙 Peak performance after midnight. |
 
 ## Achievement frame
 
@@ -59,9 +59,9 @@ A frame around your unlocked achievement cards. 150 coins each.
 
 | Name | Look |
 |---|---|
-| Bronze Frame | A bronze frame around your unlocked achievement cards. |
-| Silver Frame | A silver frame around your unlocked achievement cards. |
-| Gold Frame | A gold frame around your unlocked achievement cards. |
+| Bronze Frame | A warm bronze border for your unlocked achievement cards. |
+| Silver Frame | A cool silver border for your unlocked achievement cards. |
+| Gold Frame | A gleaming gold border — top shelf, top tier. |
 
 ## Achievement effect
 
@@ -70,8 +70,8 @@ as theme effects). 150 coins each.
 
 | Name | Look |
 |---|---|
-| Shimmer | A light sweep animation across your unlocked achievement cards. |
-| Pulse | A gentle glow pulse on your unlocked achievement cards. |
+| Shimmer | A light sweep that catches the eye on every unlocked card. |
+| Pulse | A slow, steady glow pulse on every card you've unlocked. |
 
 These are placeholder icons/styles generated in code (no external art yet) — the categories and
 the equip mechanics are what's real; swapping in real artwork later doesn't need any code changes,
