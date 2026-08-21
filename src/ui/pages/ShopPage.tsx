@@ -68,6 +68,14 @@ function achievementEffectPreview(item: ShopItem): ReactNode {
   return <AvatarPreviewCircle>{icon}</AvatarPreviewCircle>;
 }
 
+const VANITY_PREVIEW_ICON: Record<string, string> = { nepoBaby: "🤑" };
+
+function vanityPreview(item: ShopItem): ReactNode {
+  const icon = VANITY_PREVIEW_ICON[item.refId];
+  if (!icon) return null;
+  return <AvatarPreviewCircle>{icon}</AvatarPreviewCircle>;
+}
+
 function equippedIdForSlot(equipped: EquippedCosmetics, slot: EquippableSlot): string | null {
   if (slot === "avatar") return equipped.avatarId;
   if (slot === "border") return equipped.borderId;
@@ -136,7 +144,9 @@ export default function ShopPage() {
       const hint =
         item.slot === "theme" || item.slot === "effect"
           ? "Equip it from Options → Appearance."
-          : "Equip it right here in the Shop.";
+          : item.slot === "vanity"
+            ? "Nothing to equip — just bragging rights."
+            : "Equip it right here in the Shop.";
       showSuccess(`Unlocked "${item.name}"! ${hint}`);
     } else if (result.error === "insufficient_coins") {
       showError(`Not enough coins for "${item.name}" yet.`);
@@ -161,6 +171,7 @@ export default function ShopPage() {
   const tagItems = items.filter((item) => item.slot === "tag");
   const achievementFrameItems = items.filter((item) => item.slot === "achievementFrame");
   const achievementEffectItems = items.filter((item) => item.slot === "achievementEffect");
+  const vanityItems = items.filter((item) => item.slot === "vanity");
 
   return (
     <Panel title="Shop" maxWidth="720px" style={{ margin: "16px" }}>
@@ -249,6 +260,10 @@ export default function ShopPage() {
                   onToggleEquip={makeEquipHandler("achievementEffect")}
                 />
               ),
+            },
+            {
+              label: "Vanity",
+              content: <ShopGrid items={vanityItems} coins={coins} onBuy={handleBuy} renderPreview={vanityPreview} />,
             },
           ]}
         />

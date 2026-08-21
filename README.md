@@ -41,9 +41,13 @@ Clone Hero community already uses. Technical details in
   early — full rules also in [`HOW-TO-PLAY.md`](./HOW-TO-PLAY.md).
 - 3 themes (each recolors the lanes too) and 3 graphics-quality tiers
   for low-end phones up to desktops — see [`SETTINGS.md`](./SETTINGS.md).
-- 16 achievements to unlock with an optional Google login, which also
+- 21 achievements to unlock with an optional Google login, which also
   syncs your settings across devices — see
   [`ACHIEVEMENTS.md`](./ACHIEVEMENTS.md).
+- Coins earned from daily/weekly missions, spendable in the Shop on
+  paid themes, effects, and profile cosmetics (avatar, border,
+  background, tag, achievement frame/effect) — see
+  [`ECONOMY.md`](./ECONOMY.md) and [`PROFILE.md`](./PROFILE.md).
 - Self-hostable with Docker so anyone on your network can play — see
   [`DEPLOY.md`](./DEPLOY.md).
 
@@ -66,6 +70,8 @@ included — no need for real content to try it out.
 | Know the controls and how the game works, on any device | [`HOW-TO-PLAY.md`](./HOW-TO-PLAY.md) |
 | Remap controls, change theme/graphics, manage my account | [`SETTINGS.md`](./SETTINGS.md) |
 | See the full achievement list | [`ACHIEVEMENTS.md`](./ACHIEVEMENTS.md) |
+| Earn and spend coins (missions, streaks) | [`ECONOMY.md`](./ECONOMY.md) |
+| Shop for profile cosmetics (avatar, border, tag...) | [`PROFILE.md`](./PROFILE.md) |
 | Run it on my own server with my own songs (Docker/Unraid) | [`DEPLOY.md`](./DEPLOY.md) |
 | Understand the stack and code structure (contribute) | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
 

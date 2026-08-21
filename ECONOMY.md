@@ -6,8 +6,14 @@ account; playing while logged out doesn't earn anything.
 
 Spend coins in the **🛍️ Shop** page on paid themes and effects — see
 [`SETTINGS.md`](./SETTINGS.md#appearance-themes) for what's free vs. paid and how much each
-costs. More cosmetic categories (profile picture, borders, backgrounds, player tags) are coming in
-a later update.
+costs — plus profile cosmetics (avatar, border, background, player tag, achievement frame,
+achievement effect) — see [`PROFILE.md`](./PROFILE.md).
+
+The Shop also sells one novelty item that isn't a cosmetic at all: **Nepo Baby**, 2000 coins —
+by far the priciest thing in the Shop. It doesn't equip anywhere; buying it is the entire
+point, since it directly unlocks the "Nepo Baby" achievement (see
+[`ACHIEVEMENTS.md`](./ACHIEVEMENTS.md#special)) — the one achievement in the game you can just
+buy instead of earning.
 
 Open the **🎯 Missions** page (same rail/drawer as Achievements) to see
 your coin balance and two tabs — **Daily** and **Weekly** — each with

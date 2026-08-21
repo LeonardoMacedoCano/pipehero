@@ -56,6 +56,12 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: "Win more song/difficulty comparisons than a friend in a head-to-head.",
   },
   { code: "big_spender", icon: "💸", name: "Big Spender", description: "Buy something from the Shop." },
+  {
+    code: "nepo_baby",
+    icon: "🤑",
+    name: "Nepo Baby",
+    description: "Buy the \"Nepo Baby\" item in the Shop — the only achievement money can actually buy.",
+  },
 ];
 
 const ACHIEVEMENT_BY_CODE = new Map(ACHIEVEMENTS.map((achievement) => [achievement.code, achievement]));
@@ -119,8 +125,12 @@ export function evaluateFriendAcceptedUnlocks(): string[] {
   return ["squad_goals"];
 }
 
-export function evaluateShopPurchaseUnlocks(): string[] {
-  return ["big_spender"];
+const NEPO_BABY_ITEM_ID = "vanity_nepoBaby";
+
+export function evaluateShopPurchaseUnlocks(itemId: string): string[] {
+  const unlocked = ["big_spender"];
+  if (itemId === NEPO_BABY_ITEM_ID) unlocked.push("nepo_baby");
+  return unlocked;
 }
 
 const FRIENDLY_RIVAL_MIN_COMPARED_ROWS = 3;

@@ -58,7 +58,7 @@ try {
   // --- Anonymous browsing ---
   const anonRes = await fetch(`${BASE_URL}/api/shop/me`);
   const anon = await anonRes.json();
-  checks.push({ name: "anonymous GET /api/shop/me returns 0 coins and everything unowned", ok: anon.coins === 0 && anon.items.length === 27 && anon.items.every((i: { owned: boolean }) => !i.owned) });
+  checks.push({ name: "anonymous GET /api/shop/me returns 0 coins and everything unowned", ok: anon.coins === 0 && anon.items.length === 28 && anon.items.every((i: { owned: boolean }) => !i.owned) });
   checks.push({ name: "anonymous GET /api/shop/me reports every equipped slot as null", ok: Object.values(anon.equipped).every((v) => v === null) });
 
   // --- Starting state for userA ---
@@ -279,6 +279,19 @@ try {
       afterEquipAll.equipped.tagId === "rockstar" &&
       afterEquipAll.equipped.achievementFrameId === "bronze" &&
       afterEquipAll.equipped.achievementEffectId === "shimmer",
+  });
+
+  // --- Buying the Nepo Baby item unlocks the nepo_baby achievement ---
+  await query("UPDATE user_economy SET coins = 2000 WHERE user_id = $1", [userC.id]);
+  const buyNepoBabyRes = await fetch(`${BASE_URL}/api/shop/purchase`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieC },
+    body: JSON.stringify({ itemId: "vanity_nepoBaby" }),
+  });
+  const buyNepoBaby = await buyNepoBabyRes.json();
+  checks.push({
+    name: "buying the Nepo Baby item (2000 coins) unlocks the nepo_baby achievement",
+    ok: buyNepoBaby.ok === true && (buyNepoBaby.unlockedAchievements ?? []).some((a: { code: string }) => a.code === "nepo_baby"),
   });
 
   // --- A friend viewing your profile sees your equipped cosmetics ---
