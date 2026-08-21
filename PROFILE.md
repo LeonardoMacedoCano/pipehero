@@ -2,15 +2,32 @@
 
 Beyond themes and effects (see [`SETTINGS.md`](./SETTINGS.md#appearance-themes)), the **🛍️ Shop**
 sells 6 more cosmetic categories — none of them are free, all of them are bought with coins (see
-[`ECONOMY.md`](./ECONOMY.md)). Unlike themes and effects, these equip **right there in the Shop**
-(an owned item shows an "Equip" button; equip it again to unequip). Avatar, border, background and
-player tag customize how your profile looks to your friends; achievement frame and achievement
-effect customize the [`ACHIEVEMENTS.md`](./ACHIEVEMENTS.md) cards themselves, both on the
-Achievements page (unlocked ones only) and on your profile when a friend opens it.
+[`ECONOMY.md`](./ECONOMY.md)). These equip either **right there in the Shop** (an owned item shows
+an "Equip" button; equip it again to unequip) or from the **Customize** tab of your own **🪪
+Profile** screen — same mechanics, whichever's handy. Avatar, border, background and player tag
+customize how your profile looks everywhere someone else sees you — a friend's profile, the
+Global/Friends rankings — not just your own screen; achievement frame and achievement effect
+customize the [`ACHIEVEMENTS.md`](./ACHIEVEMENTS.md) cards themselves, both on the Achievements
+page (unlocked ones only) and on your profile when a friend opens it.
+
+## Your Profile screen
+
+Open **🪪 Profile** from the main nav to see your own profile — the same view a friend sees when
+they open yours (see [`HOW-TO-PLAY.md`](./HOW-TO-PLAY.md#friends)). Three tabs:
+
+- **Customize**: every cosmetic you own, grouped by category, each with its own **Equip**/
+  **Equipped ✓** button. Items you don't own yet aren't listed here — buy them in the Shop first.
+- **Scores**: your best score (in stars) for every song/difficulty you've played.
+- **Achievements**: your unlocked achievements, shown with whatever achievement frame/effect
+  you've equipped.
+
+Your Google profile photo is never shown as your avatar. If you haven't equipped an avatar
+cosmetic, the game's own icon is shown instead — everywhere an avatar would go, including friends'
+screens.
 
 ## Avatar
 
-Replaces your Google profile photo with an icon of your own. 100 coins each.
+Replaces the game's default icon with one of your own. 100 coins each.
 
 | Icon | Name | Look |
 |---|---|---|
