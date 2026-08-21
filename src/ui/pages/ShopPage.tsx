@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Panel, Stack, HighlightBox, useMessage } from "lcano-react-ui";
 import styled, { ThemeProvider } from "styled-components";
+import { MOBILE_LAYOUT_MEDIA_QUERY } from "../responsive.js";
 import {
   useShop,
   isEquippableSlot,
@@ -145,7 +146,7 @@ const Body = styled.div`
   gap: 16px;
   align-items: flex-start;
 
-  @media (max-width: 699px) {
+  @media ${MOBILE_LAYOUT_MEDIA_QUERY} {
     flex-direction: column;
     align-items: stretch;
   }

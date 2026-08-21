@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import type { CosmeticSlot } from "../../hooks/useShop.js";
 import { SHOP_CATEGORIES, type ShopCategory } from "./shopCategories.js";
+import { MOBILE_LAYOUT_MEDIA_QUERY } from "../../responsive.js";
 
 export default function ShopCategoryNav({
   active,
@@ -33,7 +34,7 @@ const Nav = styled.nav`
   flex-shrink: 0;
   width: 180px;
 
-  @media (max-width: 699px) {
+  @media ${MOBILE_LAYOUT_MEDIA_QUERY} {
     flex-direction: row;
     width: 100%;
     overflow-x: auto;
@@ -58,7 +59,7 @@ const CategoryButton = styled.button<{ $active: boolean }>`
     background: ${({ theme }) => theme.colors.quaternary};
   }
 
-  @media (max-width: 699px) {
+  @media ${MOBILE_LAYOUT_MEDIA_QUERY} {
     flex-shrink: 0;
   }
 `;
@@ -67,7 +68,7 @@ const Label = styled.span`
   flex: 1;
   text-align: left;
 
-  @media (max-width: 699px) {
+  @media ${MOBILE_LAYOUT_MEDIA_QUERY} {
     flex: none;
   }
 `;
