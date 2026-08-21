@@ -1,79 +1,20 @@
-import type { ReactNode } from "react";
-import {
-  Panel,
-  Stack,
-  HighlightBox,
-  Button,
-  useMessage,
-  Tabs,
-  OptionGridContainer,
-  OptionGridCard,
-  OptionGridSwatch,
-  OptionGridSwatchSlice,
-  OptionGridLabel,
-  OptionGridDescription,
-  OptionGridBadge,
-} from "lcano-react-ui";
-import styled from "styled-components";
-import { useShop, type EquippableSlot, type EquippedCosmetics, type ShopItem } from "../hooks/useShop.js";
-import { THEME_OPTIONS } from "../themes/registry.js";
-import { getAvatarOption } from "../cosmetics/avatarCatalog.js";
-import { getBorderOption } from "../cosmetics/borderCatalog.js";
-import { getBackgroundOption } from "../cosmetics/backgroundCatalog.js";
-import { getAchievementFrameOption } from "../cosmetics/achievementFrameCatalog.js";
+import { useState } from "react";
+import { Panel, Stack, HighlightBox, useMessage } from "lcano-react-ui";
+import styled, { ThemeProvider } from "styled-components";
+import { useShop, type EquippableSlot, type EquippedCosmetics, type ShopItem, type CosmeticSlot } from "../hooks/useShop.js";
+import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
+import { getThemeOption } from "../themes/registry.js";
+import { SHOP_CATEGORIES, SHOP_CARD_WIDTH_PX } from "../components/shop/shopCategories.js";
+import ShopCategoryNav from "../components/shop/ShopCategoryNav.js";
+import ShopItemCard from "../components/shop/ShopItemCard.js";
+import ShopItemGrid from "../components/shop/ShopItemGrid.js";
+import ShopItemModal from "../components/shop/ShopItemModal.js";
+import ShopEffectPreviewLayer from "../components/shop/ShopEffectPreviewLayer.js";
 
-const ACHIEVEMENT_EFFECT_PREVIEW_ICON: Record<string, string> = { shimmer: "✨", pulse: "💫" };
+const EQUIPPABLE_SLOTS = new Set<CosmeticSlot>(["avatar", "border", "background", "tag", "achievementFrame", "achievementEffect"]);
 
-const SWATCH_BY_REF_ID = new Map(THEME_OPTIONS.map((option) => [option.id, [...option.swatch]]));
-
-function themePreview(item: ShopItem): ReactNode {
-  const swatch = SWATCH_BY_REF_ID.get(item.refId);
-  if (!swatch) return null;
-  return (
-    <OptionGridSwatch>
-      {swatch.map((color, i) => (
-        <OptionGridSwatchSlice key={i} style={{ backgroundColor: color }} />
-      ))}
-    </OptionGridSwatch>
-  );
-}
-
-function avatarPreview(item: ShopItem): ReactNode {
-  const option = getAvatarOption(item.refId);
-  if (!option) return null;
-  return <AvatarPreviewCircle style={{ backgroundColor: option.bgColor }}>{option.emoji}</AvatarPreviewCircle>;
-}
-
-function borderPreview(item: ShopItem): ReactNode {
-  const option = getBorderOption(item.refId);
-  if (!option) return null;
-  return <BorderPreviewCircle $css={option.css} />;
-}
-
-function backgroundPreview(item: ShopItem): ReactNode {
-  const option = getBackgroundOption(item.refId);
-  if (!option) return null;
-  return <BackgroundPreviewRect $css={option.css} />;
-}
-
-function achievementFramePreview(item: ShopItem): ReactNode {
-  const option = getAchievementFrameOption(item.refId);
-  if (!option) return null;
-  return <FramePreviewBox $css={option.css} />;
-}
-
-function achievementEffectPreview(item: ShopItem): ReactNode {
-  const icon = ACHIEVEMENT_EFFECT_PREVIEW_ICON[item.refId];
-  if (!icon) return null;
-  return <AvatarPreviewCircle>{icon}</AvatarPreviewCircle>;
-}
-
-const VANITY_PREVIEW_ICON: Record<string, string> = { nepoBaby: "🤑" };
-
-function vanityPreview(item: ShopItem): ReactNode {
-  const icon = VANITY_PREVIEW_ICON[item.refId];
-  if (!icon) return null;
-  return <AvatarPreviewCircle>{icon}</AvatarPreviewCircle>;
+function isEquippableSlot(slot: CosmeticSlot): slot is EquippableSlot {
+  return EQUIPPABLE_SLOTS.has(slot);
 }
 
 function equippedIdForSlot(equipped: EquippedCosmetics, slot: EquippableSlot): string | null {
@@ -85,58 +26,15 @@ function equippedIdForSlot(equipped: EquippedCosmetics, slot: EquippableSlot): s
   return equipped.achievementEffectId;
 }
 
-function ShopGrid({
-  items,
-  coins,
-  onBuy,
-  renderPreview,
-  equippedRefId,
-  onToggleEquip,
-}: {
-  items: ShopItem[];
-  coins: number;
-  onBuy: (item: ShopItem) => void;
-  renderPreview?: (item: ShopItem) => ReactNode;
-  equippedRefId?: string | null;
-  onToggleEquip?: (item: ShopItem) => void;
-}) {
-  return (
-    <OptionGridContainer $minItemWidth="180px">
-      {items.map((item) => {
-        const isEquipped = onToggleEquip !== undefined && equippedRefId === item.refId;
-        return (
-          <OptionGridCard as="div" $active={false} key={item.id}>
-            {renderPreview?.(item)}
-            <OptionGridLabel>{item.name}</OptionGridLabel>
-            <OptionGridDescription>{item.description}</OptionGridDescription>
-            {!item.owned && (
-              <Button
-                description={`Buy — ${item.priceCoins} coins`}
-                variant="quaternary"
-                width="auto"
-                disabled={coins < item.priceCoins}
-                onClick={() => onBuy(item)}
-              />
-            )}
-            {item.owned && onToggleEquip && (
-              <Button
-                description={isEquipped ? "Equipped ✓" : "Equip"}
-                variant={isEquipped ? "secondary" : "quaternary"}
-                width="auto"
-                onClick={() => onToggleEquip(item)}
-              />
-            )}
-            {item.owned && !onToggleEquip && <OptionGridBadge>Owned</OptionGridBadge>}
-          </OptionGridCard>
-        );
-      })}
-    </OptionGridContainer>
-  );
-}
-
 export default function ShopPage() {
   const { coins, items, equipped, purchase, equip } = useShop();
   const { showSuccess, showError } = useMessage();
+  const { currentTheme, themeEffectId } = useThemeControl();
+
+  const [activeCategory, setActiveCategory] = useState<CosmeticSlot>(SHOP_CATEGORIES[0].id);
+  const [previewThemeId, setPreviewThemeId] = useState<string | null>(null);
+  const [previewEffectId, setPreviewEffectId] = useState<string | null>(null);
+  const [openItemId, setOpenItemId] = useState<string | null>(null);
 
   async function handleBuy(item: ShopItem) {
     const result = await purchase(item.id);
@@ -163,144 +61,105 @@ export default function ShopPage() {
     };
   }
 
-  const themeItems = items.filter((item) => item.slot === "theme");
-  const effectItems = items.filter((item) => item.slot === "effect");
-  const avatarItems = items.filter((item) => item.slot === "avatar");
-  const borderItems = items.filter((item) => item.slot === "border");
-  const backgroundItems = items.filter((item) => item.slot === "background");
-  const tagItems = items.filter((item) => item.slot === "tag");
-  const achievementFrameItems = items.filter((item) => item.slot === "achievementFrame");
-  const achievementEffectItems = items.filter((item) => item.slot === "achievementEffect");
-  const vanityItems = items.filter((item) => item.slot === "vanity");
+  function togglePreviewTheme(item: ShopItem) {
+    setPreviewThemeId((current) => (current === item.refId ? null : item.refId));
+  }
+
+  function togglePreviewEffect(item: ShopItem) {
+    setPreviewEffectId((current) => (current === item.refId ? null : item.refId));
+  }
+
+  function equipPropsFor(item: ShopItem) {
+    return {
+      equippedRefId: isEquippableSlot(item.slot) ? equippedIdForSlot(equipped, item.slot) : undefined,
+      onToggleEquip: isEquippableSlot(item.slot) ? makeEquipHandler(item.slot) : undefined,
+    };
+  }
+
+  function previewPropsFor(item: ShopItem) {
+    if (item.slot === "theme") return { onTogglePreview: togglePreviewTheme, isPreviewing: previewThemeId === item.refId };
+    if (item.slot === "effect") return { onTogglePreview: togglePreviewEffect, isPreviewing: previewEffectId === item.refId };
+    return { onTogglePreview: undefined, isPreviewing: false };
+  }
+
+  const category = SHOP_CATEGORIES.find((entry) => entry.id === activeCategory) ?? SHOP_CATEGORIES[0];
+  const categoryItems = items.filter((item) => item.slot === category.id);
+  const categoryCounts = Object.fromEntries(
+    SHOP_CATEGORIES.map((entry) => [entry.id, items.filter((item) => item.slot === entry.id).length])
+  ) as Partial<Record<CosmeticSlot, number>>;
+
+  const previewTheme = previewThemeId ? getThemeOption(previewThemeId).theme : currentTheme;
+  const previewedEffectId = previewEffectId && previewEffectId !== themeEffectId ? previewEffectId : null;
+  const openItem = items.find((item) => item.id === openItemId) ?? null;
 
   return (
-    <Panel title="Shop" maxWidth="720px" style={{ margin: "16px" }}>
-      <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
-        <HighlightBox variant="quaternary" bordered width="auto" style={{ padding: "6px 18px" }}>
-          🪙 {coins} coins
-        </HighlightBox>
+    <Panel title="Shop" maxWidth="900px" style={{ margin: "16px" }}>
+      <ThemeProvider theme={previewTheme}>
+        <ShopEffectPreviewLayer effectId={previewedEffectId}>
+          <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
+            <CoinsRow>
+              <HighlightBox variant="quaternary" bordered width="auto" style={{ padding: "6px 18px" }}>
+                🪙 {coins} coins
+              </HighlightBox>
+            </CoinsRow>
 
-        <Tabs
-          tabs={[
-            { label: "Themes", content: <ShopGrid items={themeItems} coins={coins} onBuy={handleBuy} renderPreview={themePreview} /> },
-            { label: "Effects", content: <ShopGrid items={effectItems} coins={coins} onBuy={handleBuy} /> },
-            {
-              label: "Avatars",
-              content: (
-                <ShopGrid
-                  items={avatarItems}
-                  coins={coins}
-                  onBuy={handleBuy}
-                  renderPreview={avatarPreview}
-                  equippedRefId={equipped.avatarId}
-                  onToggleEquip={makeEquipHandler("avatar")}
+            <Body>
+              <ShopCategoryNav active={activeCategory} onChange={setActiveCategory} counts={categoryCounts} />
+
+              <GridArea>
+                <ShopItemGrid<ShopItem>
+                  items={categoryItems}
+                  keyExtractor={(item) => item.id}
+                  emptyMessage="Nothing here yet."
+                  resetKey={category.id}
+                  cardWidthPx={SHOP_CARD_WIDTH_PX[category.cardSize]}
+                  renderItem={(item) => (
+                    <ShopItemCard
+                      item={item}
+                      coins={coins}
+                      onBuy={handleBuy}
+                      onOpenDetails={(clicked) => setOpenItemId(clicked.id)}
+                      {...equipPropsFor(item)}
+                    />
+                  )}
                 />
-              ),
-            },
-            {
-              label: "Borders",
-              content: (
-                <ShopGrid
-                  items={borderItems}
-                  coins={coins}
-                  onBuy={handleBuy}
-                  renderPreview={borderPreview}
-                  equippedRefId={equipped.borderId}
-                  onToggleEquip={makeEquipHandler("border")}
-                />
-              ),
-            },
-            {
-              label: "Backgrounds",
-              content: (
-                <ShopGrid
-                  items={backgroundItems}
-                  coins={coins}
-                  onBuy={handleBuy}
-                  renderPreview={backgroundPreview}
-                  equippedRefId={equipped.backgroundId}
-                  onToggleEquip={makeEquipHandler("background")}
-                />
-              ),
-            },
-            {
-              label: "Tags",
-              content: (
-                <ShopGrid
-                  items={tagItems}
-                  coins={coins}
-                  onBuy={handleBuy}
-                  equippedRefId={equipped.tagId}
-                  onToggleEquip={makeEquipHandler("tag")}
-                />
-              ),
-            },
-            {
-              label: "Frames",
-              content: (
-                <ShopGrid
-                  items={achievementFrameItems}
-                  coins={coins}
-                  onBuy={handleBuy}
-                  renderPreview={achievementFramePreview}
-                  equippedRefId={equipped.achievementFrameId}
-                  onToggleEquip={makeEquipHandler("achievementFrame")}
-                />
-              ),
-            },
-            {
-              label: "Card FX",
-              content: (
-                <ShopGrid
-                  items={achievementEffectItems}
-                  coins={coins}
-                  onBuy={handleBuy}
-                  renderPreview={achievementEffectPreview}
-                  equippedRefId={equipped.achievementEffectId}
-                  onToggleEquip={makeEquipHandler("achievementEffect")}
-                />
-              ),
-            },
-            {
-              label: "Vanity",
-              content: <ShopGrid items={vanityItems} coins={coins} onBuy={handleBuy} renderPreview={vanityPreview} />,
-            },
-          ]}
-        />
-      </Stack>
+              </GridArea>
+            </Body>
+          </Stack>
+
+          {openItem && (
+            <ShopItemModal
+              item={openItem}
+              coins={coins}
+              onClose={() => setOpenItemId(null)}
+              onBuy={handleBuy}
+              {...equipPropsFor(openItem)}
+              {...previewPropsFor(openItem)}
+            />
+          )}
+        </ShopEffectPreviewLayer>
+      </ThemeProvider>
     </Panel>
   );
 }
 
-const AvatarPreviewCircle = styled.div`
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+const CoinsRow = styled.div`
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6em;
+  justify-content: flex-end;
 `;
 
-const BorderPreviewCircle = styled.div<{ $css: string }>`
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background-color: ${({ theme }) => theme.colors.gray};
-  ${({ $css }) => $css}
+const Body = styled.div`
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+
+  @media (max-width: 699px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
-const BackgroundPreviewRect = styled.div<{ $css: string }>`
-  width: 100%;
-  height: 40px;
-  border-radius: 6px;
-  ${({ $css }) => $css}
-`;
-
-const FramePreviewBox = styled.div<{ $css: string }>`
-  width: 48px;
-  height: 48px;
-  border-radius: 6px;
-  background-color: ${({ theme }) => theme.colors.gray};
-  ${({ $css }) => $css}
+const GridArea = styled.div`
+  flex: 1;
+  min-width: 0;
 `;

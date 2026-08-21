@@ -53,11 +53,19 @@ All effects respect your OS's "reduce motion" setting (disabled automatically if
 
 ## Shop
 
-Open the **🛍️ Shop** page (same rail/drawer as Missions) to spend coins. Two kinds of tabs:
+Open the **🛍️ Shop** page (same rail/drawer as Missions) to spend coins. Items are grouped into
+categories (Themes, Effects, Avatars, Borders, Backgrounds, Tags, Frames, Card FX, Vanity) picked
+from a category list — a sidebar on desktop, a horizontally scrollable row of chips on mobile —
+with each category paginated by rows once it has more items than fit on screen. Each item shows as
+a small tile (preview + name + its main action button); click anywhere else on the tile to open a
+detail popup with the full description and, for owned-or-not items, the same action again. Two
+kinds of categories:
 
 - **Themes/Effects** — the paid options above. Buying one adds it to Appearance — locked options
   there show a 🔒 and the price; owning one just means it's now selectable, you still pick it from
-  Appearance like any other option.
+  Appearance like any other option. Their detail popup has a **Preview** button that applies the
+  theme/effect to the Shop page only (owned or not) so you can see it before committing — it never
+  changes your actual equipped theme/effect, and reverts the moment you leave the Shop.
 - **Avatars/Borders/Backgrounds/Tags** — profile cosmetics, see [`PROFILE.md`](./PROFILE.md).
   These equip right in the Shop instead of Appearance (owned items show an "Equip" button).
 

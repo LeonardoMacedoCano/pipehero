@@ -28,7 +28,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "theme",
     refId: "darkOnyxAmber",
     name: "Dark Onyx Amber",
-    description: "Brushed carbon with a warm amber edge.",
+    description: "Brushed carbon with a warm amber glow along the edges.",
     priceCoins: 300,
   },
   {
@@ -36,7 +36,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "theme",
     refId: "draculaDark",
     name: "Dracula Dark",
-    description: "The classic Dracula palette.",
+    description: "The cult-classic Dracula palette, tuned for late-night sessions.",
     priceCoins: 300,
   },
   {
@@ -68,7 +68,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "avatar",
     refId: "guitar",
     name: "Guitarist",
-    description: "🎸 on a green badge.",
+    description: "Front and center on a green badge.",
     priceCoins: 100,
   },
   {
@@ -76,7 +76,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "avatar",
     refId: "drums",
     name: "Drummer",
-    description: "🥁 on a red badge.",
+    description: "Keeps the whole band on time, on a red badge.",
     priceCoins: 100,
   },
   {
@@ -84,7 +84,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "avatar",
     refId: "mic",
     name: "Vocalist",
-    description: "🎤 on a yellow badge.",
+    description: "Steals the spotlight on a yellow badge.",
     priceCoins: 100,
   },
   {
@@ -92,7 +92,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "avatar",
     refId: "keys",
     name: "Keyboardist",
-    description: "🎹 on a blue badge.",
+    description: "Holds the harmony together on a blue badge.",
     priceCoins: 100,
   },
   {
@@ -100,7 +100,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "avatar",
     refId: "bolt",
     name: "Shredder",
-    description: "⚡ on an orange badge.",
+    description: "Lightning fingers on an orange badge.",
     priceCoins: 100,
   },
   {
@@ -108,7 +108,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "avatar",
     refId: "star",
     name: "Star Performer",
-    description: "🌟 on a purple badge.",
+    description: "Headliner status on a purple badge.",
     priceCoins: 100,
   },
   {
@@ -116,7 +116,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "border",
     refId: "gold",
     name: "Gold Ring",
-    description: "A solid gold ring around your avatar.",
+    description: "Solid gold, no gradient tricks — just pure shine.",
     priceCoins: 200,
   },
   {
@@ -124,7 +124,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "border",
     refId: "neon",
     name: "Neon Ring",
-    description: "A glowing cyan-to-pink gradient ring.",
+    description: "A glowing cyan-to-pink gradient ring that never sits still.",
     priceCoins: 200,
   },
   {
@@ -132,7 +132,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "border",
     refId: "fire",
     name: "Fire Ring",
-    description: "A glowing orange-to-red gradient ring.",
+    description: "A glowing orange-to-red ring, like your avatar's on fire.",
     priceCoins: 200,
   },
   {
@@ -140,7 +140,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "background",
     refId: "stage",
     name: "Stage Lights",
-    description: "A warm spotlight glow behind your name.",
+    description: "A warm spotlight glow, like you just walked on stage.",
     priceCoins: 200,
   },
   {
@@ -148,7 +148,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "background",
     refId: "sunset",
     name: "Sunset",
-    description: "An orange-to-purple gradient behind your name.",
+    description: "An orange-to-purple gradient straight off a tour poster.",
     priceCoins: 200,
   },
   {
@@ -156,7 +156,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "background",
     refId: "circuit",
     name: "Circuit Grid",
-    description: "A subtle dark grid pattern behind your name.",
+    description: "A subtle dark grid — clean, technical, understated.",
     priceCoins: 200,
   },
   {
@@ -164,7 +164,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "tag",
     refId: "rockstar",
     name: "Rockstar",
-    description: "🎸 Rockstar — shown next to your name.",
+    description: "🎸 For those who never stop shredding.",
     priceCoins: 80,
   },
   {
@@ -172,7 +172,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "tag",
     refId: "perfectionist",
     name: "Perfectionist",
-    description: "💯 Perfectionist — shown next to your name.",
+    description: "💯 Perfect runs, perfectly flexed.",
     priceCoins: 80,
   },
   {
@@ -180,7 +180,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "tag",
     refId: "speedster",
     name: "Speed Demon",
-    description: "⚡ Speed Demon — shown next to your name.",
+    description: "⚡ Built for speed, allergic to slow songs.",
     priceCoins: 80,
   },
   {
@@ -188,7 +188,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "tag",
     refId: "completionist",
     name: "Completionist",
-    description: "🏆 Completionist — shown next to your name.",
+    description: "🏆 Every song, every difficulty, no exceptions.",
     priceCoins: 80,
   },
   {
@@ -196,7 +196,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "tag",
     refId: "nightowl",
     name: "Night Owl",
-    description: "🌙 Night Owl — shown next to your name.",
+    description: "🌙 Peak performance after midnight.",
     priceCoins: 80,
   },
   {
@@ -204,7 +204,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "achievementFrame",
     refId: "bronze",
     name: "Bronze Frame",
-    description: "A bronze frame around your unlocked achievement cards.",
+    description: "A warm bronze border for your unlocked achievement cards.",
     priceCoins: 150,
   },
   {
@@ -212,7 +212,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "achievementFrame",
     refId: "silver",
     name: "Silver Frame",
-    description: "A silver frame around your unlocked achievement cards.",
+    description: "A cool silver border for your unlocked achievement cards.",
     priceCoins: 150,
   },
   {
@@ -220,7 +220,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "achievementFrame",
     refId: "goldFrame",
     name: "Gold Frame",
-    description: "A gold frame around your unlocked achievement cards.",
+    description: "A gleaming gold border — top shelf, top tier.",
     priceCoins: 150,
   },
   {
@@ -228,7 +228,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "achievementEffect",
     refId: "shimmer",
     name: "Shimmer",
-    description: "A light sweep animation across your unlocked achievement cards.",
+    description: "A light sweep that catches the eye on every unlocked card.",
     priceCoins: 150,
   },
   {
@@ -236,7 +236,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "achievementEffect",
     refId: "pulse",
     name: "Pulse",
-    description: "A gentle glow pulse on your unlocked achievement cards.",
+    description: "A slow, steady glow pulse on every card you've unlocked.",
     priceCoins: 150,
   },
   {
