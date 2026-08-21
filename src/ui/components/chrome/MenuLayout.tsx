@@ -1,10 +1,23 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import styled from "styled-components";
+import { SideNav, useFullscreen, type SideNavItem } from "lcano-react-ui";
 import type { MenuScreenName } from "./navigation.js";
 import PipeBeam from "./PipeBeam.js";
-import SideDrawer from "./SideDrawer.js";
-import IconRail from "./IconRail.js";
 import AppFooter from "./AppFooter.js";
+import AccountNavControl from "./AccountNavControl.js";
+import CoinBalanceBadge from "./CoinBalanceBadge.js";
+import CreditsModal from "./CreditsModal.js";
+import SupportModal from "./SupportModal.js";
+
+const NAV_SCREENS: { screen: MenuScreenName; icon: string; label: string }[] = [
+  { screen: "menu", icon: "🏠", label: "Home" },
+  { screen: "profile", icon: "🪪", label: "Profile" },
+  { screen: "achievements", icon: "🏆", label: "Achievements" },
+  { screen: "missions", icon: "🎯", label: "Missions" },
+  { screen: "shop", icon: "🛍️", label: "Shop" },
+  { screen: "friends", icon: "🤝", label: "Friends" },
+  { screen: "options", icon: "⚙️", label: "Options" },
+];
 
 export default function MenuLayout({
   children,
@@ -15,11 +28,47 @@ export default function MenuLayout({
   current: MenuScreenName;
   onNavigate: (screen: MenuScreenName) => void;
 }) {
+  const [creditsOpen, setCreditsOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const { isFullscreen, toggle: toggleFullscreen, isSupported: fullscreenSupported } = useFullscreen();
+
+  const items: SideNavItem[] = [
+    ...NAV_SCREENS.map((entry) => ({
+      id: entry.screen,
+      icon: entry.icon,
+      label: entry.label,
+      active: current === entry.screen || (entry.screen === "menu" && current === "songs"),
+      onClick: () => onNavigate(entry.screen),
+    })),
+    { id: "support", icon: "💬", label: "Support", onClick: () => setSupportOpen(true) },
+    { id: "credits", icon: "📜", label: "Credits", onClick: () => setCreditsOpen(true) },
+    ...(fullscreenSupported
+      ? [
+          {
+            id: "fullscreen",
+            icon: isFullscreen ? "⤡" : "⤢",
+            label: isFullscreen ? "Exit fullscreen" : "Fullscreen",
+            onClick: toggleFullscreen,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <Root>
       <Screen>
-        <SideDrawer current={current} onNavigate={onNavigate} />
-        <IconRail current={current} onNavigate={onNavigate} />
+        <SideNav
+          items={items}
+          railHeader={<CoinBalanceBadge />}
+          drawerHeader={
+            <DrawerHeaderContent>
+              <img src="/pipehero-icon.png" alt="" width={32} height={32} />
+              <DrawerTitle>PipeHero</DrawerTitle>
+              <CoinBalanceBadge />
+            </DrawerHeaderContent>
+          }
+          footer={<AccountNavControl />}
+        />
 
         <Header as={current === "menu" ? "div" : "button"} type={current === "menu" ? undefined : "button"} onClick={current === "menu" ? undefined : () => onNavigate("menu")} $clickable={current !== "menu"}>
           <LogoRow>
@@ -38,6 +87,8 @@ export default function MenuLayout({
       </Screen>
 
       <AppFooter />
+      <CreditsModal isOpen={creditsOpen} onClose={() => setCreditsOpen(false)} />
+      <SupportModal isOpen={supportOpen} onClose={() => setSupportOpen(false)} />
     </Root>
   );
 }
@@ -119,4 +170,19 @@ const ContentArea = styled.div`
   justify-content: center;
   align-items: flex-start;
   flex: 1;
+`;
+
+const DrawerHeaderContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+`;
+
+const DrawerTitle = styled.span`
+  flex: 1;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: ${({ theme }) => theme.colors.white};
 `;
