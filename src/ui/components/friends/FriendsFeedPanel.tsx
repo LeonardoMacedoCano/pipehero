@@ -3,6 +3,7 @@ import { Loading, SearchPagination, Stack, paginateClientSide } from "lcano-reac
 import styled from "styled-components";
 import { useFriendsFeed } from "../../hooks/useFriendsFeed.js";
 import { useSongs } from "../../hooks/useSongs.js";
+import AvatarBadge from "../chrome/AvatarBadge.js";
 
 const FEED_PAGE_SIZE = 5;
 
@@ -30,7 +31,7 @@ export default function FriendsFeedPanel() {
       {!isLoading && feed.length === 0 && <Muted>No activity yet — add a friend and start playing!</Muted>}
       {page.content.map((entry, index) => (
         <FeedRow key={`${entry.userId}-${entry.songId}-${entry.difficulty}-${index}`}>
-          {entry.avatarUrl && <Avatar src={entry.avatarUrl} alt="" />}
+          <AvatarBadge equippedAvatarId={entry.equippedAvatarId} equippedBorderId={entry.equippedBorderId} size={32} />
           <FeedText>
             <strong>{entry.name}</strong> scored <StarsText>{entry.stars}★</StarsText> on{" "}
             <strong>{songNameById.get(entry.songId) ?? entry.songId}</strong> ({entry.difficulty})
@@ -55,13 +56,6 @@ const FeedRow = styled.div`
   padding: 8px 12px;
   border-radius: 8px;
   background-color: ${({ theme }) => theme.colors.secondary};
-`;
-
-const Avatar = styled.img`
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  flex-shrink: 0;
 `;
 
 const FeedText = styled.span`

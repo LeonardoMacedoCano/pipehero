@@ -71,7 +71,7 @@ included — no need for real content to try it out.
 | Remap controls, change theme/graphics, manage my account | [`SETTINGS.md`](./SETTINGS.md) |
 | See the full achievement list | [`ACHIEVEMENTS.md`](./ACHIEVEMENTS.md) |
 | Earn and spend coins (missions, streaks) | [`ECONOMY.md`](./ECONOMY.md) |
-| Shop for profile cosmetics (avatar, border, tag...) | [`PROFILE.md`](./PROFILE.md) |
+| Shop for and equip profile cosmetics (avatar, border, tag...), or view my own Profile | [`PROFILE.md`](./PROFILE.md) |
 | Run it on my own server with my own songs (Docker/Unraid) | [`DEPLOY.md`](./DEPLOY.md) |
 | Understand the stack and code structure (contribute) | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
 

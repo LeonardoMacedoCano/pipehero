@@ -36,6 +36,7 @@ export default function IconRail({
           </PopoverAnchor>
         )}
       </AccountWrapper>
+      <IconButton icon="🪪" label="Profile" onClick={() => onNavigate("profile")} active={current === "profile"} />
       <IconButton icon="🏆" label="Achievements" onClick={() => onNavigate("achievements")} active={current === "achievements"} />
       <IconButton icon="🎯" label="Missions" onClick={() => onNavigate("missions")} active={current === "missions"} />
       <IconButton icon="🛍️" label="Shop" onClick={() => onNavigate("shop")} active={current === "shop"} />

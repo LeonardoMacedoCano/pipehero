@@ -60,6 +60,7 @@ async function submitScore(cookie: string, songId: string, difficulty: string, s
 
 try {
   const { findOrCreateUser, createSession, signValue } = await import("../../src/server/session.js");
+  const { query } = await import("../../src/server/db.js");
   sign = (value: string) => signValue(value, SESSION_SECRET);
 
   async function makeUser(label: string): Promise<{ id: number; cookie: string }> {
@@ -217,6 +218,55 @@ try {
   checks.push({
     name: "friends leaderboard includes both A and B",
     ok: friendsLeaderboardBody.some((e) => e.userId === a.id) && friendsLeaderboardBody.some((e) => e.userId === b.id),
+  });
+
+  const aEntryBeforeEquip = globalBody.find((e) => e.userId === a.id) as { equippedAvatarId: string | null; equippedBorderId: string | null } | undefined;
+  checks.push({
+    name: "global leaderboard reports null equipped cosmetics before A equips anything",
+    ok: aEntryBeforeEquip?.equippedAvatarId === null && aEntryBeforeEquip?.equippedBorderId === null,
+  });
+
+  await query("INSERT INTO user_economy (user_id, coins) VALUES ($1, 500) ON CONFLICT (user_id) DO UPDATE SET coins = 500", [a.id]);
+  await fetch(`${BASE_URL}/api/shop/purchase`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: a.cookie },
+    body: JSON.stringify({ itemId: "avatar_guitar" }),
+  });
+  await fetch(`${BASE_URL}/api/settings/me`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Cookie: a.cookie },
+    body: JSON.stringify({ equippedAvatarId: "guitar" }),
+  });
+
+  const globalAfterEquipRes = await fetch(`${BASE_URL}/api/leaderboard/global`, { headers: { Cookie: a.cookie } });
+  const globalAfterEquipBody: { userId: number; equippedAvatarId: string | null }[] = await globalAfterEquipRes.json();
+  const aEntryAfterEquip = globalAfterEquipBody.find((e) => e.userId === a.id);
+  checks.push({
+    name: "global leaderboard reflects A's equipped avatar after equipping",
+    ok: aEntryAfterEquip?.equippedAvatarId === "guitar",
+  });
+
+  const bFriendsListRes = await fetch(`${BASE_URL}/api/friends`, { headers: { Cookie: b.cookie } });
+  const bFriendsList: { friendId: number; equippedAvatarId: string | null }[] = await bFriendsListRes.json();
+  checks.push({
+    name: "B's friends list reflects A's equipped avatar",
+    ok: bFriendsList.find((f) => f.friendId === a.id)?.equippedAvatarId === "guitar",
+  });
+
+  const feedAfterEquipRes = await fetch(`${BASE_URL}/api/friends/feed`, { headers: { Cookie: b.cookie } });
+  const feedAfterEquip: { userId: number; equippedAvatarId: string | null }[] = await feedAfterEquipRes.json();
+  checks.push({
+    name: "B's feed reflects A's equipped avatar",
+    ok: feedAfterEquip.find((e) => e.userId === a.id)?.equippedAvatarId === "guitar",
+  });
+
+  const searchForARes = await fetch(`${BASE_URL}/api/friends/search?q=${encodeURIComponent("Friends Test A")}`, {
+    headers: { Cookie: b.cookie },
+  });
+  const searchForA: { userId: number; equippedAvatarId: string | null }[] = await searchForARes.json();
+  checks.push({
+    name: "search results reflect A's equipped avatar",
+    ok: searchForA.find((r) => r.userId === a.id)?.equippedAvatarId === "guitar",
   });
 
   // --- unfriend ---

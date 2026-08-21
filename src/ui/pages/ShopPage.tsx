@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { Panel, Stack, HighlightBox, useMessage } from "lcano-react-ui";
 import styled, { ThemeProvider } from "styled-components";
-import { useShop, type EquippableSlot, type EquippedCosmetics, type ShopItem, type CosmeticSlot } from "../hooks/useShop.js";
+import {
+  useShop,
+  isEquippableSlot,
+  equippedIdForSlot,
+  type EquippableSlot,
+  type ShopItem,
+  type CosmeticSlot,
+} from "../hooks/useShop.js";
 import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
 import { getThemeOption } from "../themes/registry.js";
 import { SHOP_CATEGORIES, SHOP_CARD_WIDTH_PX } from "../components/shop/shopCategories.js";
@@ -10,21 +17,6 @@ import ShopItemCard from "../components/shop/ShopItemCard.js";
 import ShopItemGrid from "../components/shop/ShopItemGrid.js";
 import ShopItemModal from "../components/shop/ShopItemModal.js";
 import ShopEffectPreviewLayer from "../components/shop/ShopEffectPreviewLayer.js";
-
-const EQUIPPABLE_SLOTS = new Set<CosmeticSlot>(["avatar", "border", "background", "tag", "achievementFrame", "achievementEffect"]);
-
-function isEquippableSlot(slot: CosmeticSlot): slot is EquippableSlot {
-  return EQUIPPABLE_SLOTS.has(slot);
-}
-
-function equippedIdForSlot(equipped: EquippedCosmetics, slot: EquippableSlot): string | null {
-  if (slot === "avatar") return equipped.avatarId;
-  if (slot === "border") return equipped.borderId;
-  if (slot === "background") return equipped.backgroundId;
-  if (slot === "tag") return equipped.tagId;
-  if (slot === "achievementFrame") return equipped.achievementFrameId;
-  return equipped.achievementEffectId;
-}
 
 export default function ShopPage() {
   const { coins, items, equipped, purchase, equip } = useShop();

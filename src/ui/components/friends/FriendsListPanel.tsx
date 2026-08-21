@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { useFriends } from "../../hooks/useFriends.js";
 import { useFriendSearch, type FriendSearchResult } from "../../hooks/useFriendSearch.js";
 import { useAchievementToast, type UnlockedAchievement } from "../chrome/AchievementToastProvider.js";
+import AvatarBadge from "../chrome/AvatarBadge.js";
 
 interface FriendMutationResponse {
   ok: boolean;
@@ -77,7 +78,7 @@ export default function FriendsListPanel({
           <SectionTitle>Pending requests</SectionTitle>
           {incoming.map((request) => (
             <FriendRow key={request.requestId}>
-              {request.avatarUrl && <Avatar src={request.avatarUrl} alt="" />}
+              <AvatarBadge equippedAvatarId={request.equippedAvatarId} equippedBorderId={request.equippedBorderId} size={32} />
               <RowName>{request.name}</RowName>
               <Stack direction="row" gap="6px" width="auto" wrap>
                 <Button description="Accept" variant="quaternary" width="auto" onClick={() => acceptRequest(request.requestId)} />
@@ -93,7 +94,7 @@ export default function FriendsListPanel({
           <SectionTitle>Sent requests</SectionTitle>
           {outgoing.map((request) => (
             <FriendRow key={request.requestId}>
-              {request.avatarUrl && <Avatar src={request.avatarUrl} alt="" />}
+              <AvatarBadge equippedAvatarId={request.equippedAvatarId} equippedBorderId={request.equippedBorderId} size={32} />
               <RowName>{request.name}</RowName>
               <Stack direction="row" gap="6px" width="auto" wrap>
                 <HighlightBox variant="secondary" width="auto" style={{ padding: "4px 10px" }}>
@@ -113,7 +114,7 @@ export default function FriendsListPanel({
         ) : (
           friends.map((friend) => (
             <FriendRow key={friend.friendId}>
-              {friend.avatarUrl && <Avatar src={friend.avatarUrl} alt="" />}
+              <AvatarBadge equippedAvatarId={friend.equippedAvatarId} equippedBorderId={friend.equippedBorderId} size={32} />
               <RowName>{friend.name}</RowName>
               <Stack direction="row" gap="6px" width="auto" wrap>
                 <Button
@@ -136,7 +137,7 @@ export default function FriendsListPanel({
 function SearchResultRow({ result, onAdd }: { result: FriendSearchResult; onAdd: () => void }) {
   return (
     <FriendRow>
-      {result.avatarUrl && <Avatar src={result.avatarUrl} alt="" />}
+      <AvatarBadge equippedAvatarId={result.equippedAvatarId} equippedBorderId={result.equippedBorderId} size={32} />
       <RowName>{result.name}</RowName>
       {result.friendStatus === "friends" && (
         <HighlightBox variant="quaternary" width="auto" style={{ padding: "4px 10px" }}>
@@ -201,13 +202,6 @@ const FriendRow = styled.div`
   padding: 8px 12px;
   border-radius: 8px;
   background-color: ${({ theme }) => theme.colors.secondary};
-`;
-
-const Avatar = styled.img`
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  flex-shrink: 0;
 `;
 
 const RowName = styled.span`

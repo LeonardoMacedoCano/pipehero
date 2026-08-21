@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Column, Loading, PAGE_SIZE_DEFAULT, Stack, Table, ToggleSwitch, paginateClientSide } from "lcano-react-ui";
 import styled from "styled-components";
 import { useLeaderboard, type LeaderboardEntry, type LeaderboardScope } from "../../hooks/useLeaderboard.js";
+import AvatarBadge from "../chrome/AvatarBadge.js";
 
 export default function RankingsPanel() {
   const [scope, setScope] = useState<LeaderboardScope>("global");
@@ -34,7 +35,7 @@ export default function RankingsPanel() {
               header="Player"
               value={(entry) => (
                 <PlayerCell>
-                  {entry.avatarUrl && <Avatar src={entry.avatarUrl} alt="" />}
+                  <AvatarBadge equippedAvatarId={entry.equippedAvatarId} equippedBorderId={entry.equippedBorderId} />
                   <span>
                     {entry.name}
                     {entry.isMe ? " (you)" : ""}
@@ -59,11 +60,4 @@ const PlayerCell = styled.div`
   align-items: center;
   gap: 8px;
   min-width: 0;
-`;
-
-const Avatar = styled.img`
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  flex-shrink: 0;
 `;

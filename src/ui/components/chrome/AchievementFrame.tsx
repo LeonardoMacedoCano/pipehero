@@ -42,6 +42,15 @@ const Wrapper = styled.div<{ $frameCss?: string; $pulse: boolean }>`
   border-radius: 8px;
   ${({ $frameCss }) => $frameCss ?? ""}
 
+  ${({ $frameCss }) =>
+    $frameCss &&
+    css`
+      > *:first-child {
+        border: none;
+        border-radius: inherit;
+      }
+    `}
+
   @media (prefers-reduced-motion: no-preference) {
     ${({ $pulse }) =>
       $pulse &&

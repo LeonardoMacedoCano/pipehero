@@ -5,6 +5,8 @@ export interface FriendRequestEntry {
   friendId: number;
   name: string;
   avatarUrl: string | null;
+  equippedAvatarId: string | null;
+  equippedBorderId: string | null;
   createdAt: string;
 }
 
@@ -12,6 +14,8 @@ export interface FriendEntry {
   friendId: number;
   name: string;
   avatarUrl: string | null;
+  equippedAvatarId: string | null;
+  equippedBorderId: string | null;
   friendsSince: string;
 }
 

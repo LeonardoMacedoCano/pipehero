@@ -15,7 +15,6 @@ export default function AccountPopover() {
         <>
           <ProfileHeader
             name={user.name}
-            avatarUrl={user.avatarUrl}
             equippedAvatarId={equipped.avatarId}
             equippedBorderId={equipped.borderId}
             equippedBackgroundId={equipped.backgroundId}
