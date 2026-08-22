@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { Panel, Stack, Loading, HighlightBox, ToggleSwitch, Modal, BadgeCard, PaginatedGrid, GoogleSignInButton } from "lcano-react-ui";
+import { Panel, Stack, Loading, HighlightBox, ToggleSwitch, Modal, BadgeCard, PaginatedGrid } from "lcano-react-ui";
 import styled from "styled-components";
 import { useAchievements, type AchievementStatus } from "../hooks/useAchievements.js";
 import { useAuth } from "../hooks/useAuth.js";
 import { useShop } from "../hooks/useShop.js";
 import AchievementFrame from "../components/chrome/AchievementFrame.js";
+import GuestLoginBanner from "../components/chrome/GuestLoginBanner.js";
 
 type FilterTab = "unlocked" | "locked";
 
@@ -34,10 +35,11 @@ export default function AchievementsPage() {
       {achievements && (
         <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
           {!user && (
-            <LoginBanner>
-              <span>Log in with Google to start tracking your achievements.</span>
-              {googleClientId && <GoogleSignInButton clientId={googleClientId} onCredential={login} />}
-            </LoginBanner>
+            <GuestLoginBanner
+              message="Log in with Google to start tracking your achievements."
+              googleClientId={googleClientId}
+              onLogin={login}
+            />
           )}
 
           <HeaderRow>
@@ -109,19 +111,6 @@ export default function AchievementsPage() {
     </Panel>
   );
 }
-
-const LoginBanner = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  background-color: ${({ theme }) => theme.colors.secondary};
-  border: 1px solid ${({ theme }) => theme.colors.gray};
-  color: ${({ theme }) => theme.colors.white};
-`;
 
 const HeaderRow = styled.div`
   display: flex;

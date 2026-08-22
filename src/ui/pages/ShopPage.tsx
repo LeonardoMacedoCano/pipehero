@@ -10,6 +10,7 @@ import {
   type ShopItem,
   type CosmeticSlot,
 } from "../hooks/useShop.js";
+import { useAuth } from "../hooks/useAuth.js";
 import { useThemeControl } from "../contexts/theme/ThemeControlProvider.js";
 import { getThemeOption } from "../themes/registry.js";
 import { SHOP_CATEGORIES, SHOP_CARD_WIDTH_PX } from "../components/shop/shopCategories.js";
@@ -18,8 +19,10 @@ import ShopItemCard from "../components/shop/ShopItemCard.js";
 import ShopItemGrid from "../components/shop/ShopItemGrid.js";
 import ShopItemModal from "../components/shop/ShopItemModal.js";
 import ShopEffectPreviewLayer from "../components/shop/ShopEffectPreviewLayer.js";
+import GuestLoginBanner from "../components/chrome/GuestLoginBanner.js";
 
 export default function ShopPage() {
+  const { user, googleClientId, login } = useAuth();
   const { coins, items, equipped, purchase, equip } = useShop();
   const { showSuccess, showError } = useMessage();
   const { currentTheme, themeEffectId } = useThemeControl();
@@ -90,6 +93,14 @@ export default function ShopPage() {
       <ThemeProvider theme={previewTheme}>
         <ShopEffectPreviewLayer effectId={previewedEffectId}>
           <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
+            {!user && (
+              <GuestLoginBanner
+                message="Log in with Google to earn coins and buy items."
+                googleClientId={googleClientId}
+                onLogin={login}
+              />
+            )}
+
             <CoinsRow>
               <HighlightBox variant="quaternary" bordered width="auto" style={{ padding: "6px 18px" }}>
                 🪙 {coins} coins

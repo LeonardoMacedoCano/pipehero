@@ -97,12 +97,6 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    if (!user) {
-      setSnapshot(EMPTY_SNAPSHOT);
-      setIsLoading(false);
-      return;
-    }
-
     setIsLoading(true);
     fetch("/api/economy/checkin", { method: "POST" })
       .then((response) => response.json() as Promise<CheckinResponse>)

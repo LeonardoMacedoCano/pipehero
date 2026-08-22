@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Panel, Stack, HighlightBox, Tabs, Modal } from "lcano-react-ui";
 import styled from "styled-components";
 import { useEconomy, type EconomyMission, type EconomyWeeklyMission } from "../hooks/useEconomy.js";
+import { useAuth } from "../hooks/useAuth.js";
 import { nextDailyResetMs, nextWeeklyResetMs } from "../../timeZone.js";
 import StreakExplainer from "../components/chrome/StreakExplainer.js";
+import GuestLoginBanner from "../components/chrome/GuestLoginBanner.js";
 
 const DAILY_LOGIN_CODE = "daily_login";
 
@@ -45,6 +47,7 @@ function ResetCountdown({ timeZone, computeTargetMs }: { timeZone: string; compu
 }
 
 export default function MissionsPage() {
+  const { user, googleClientId, login } = useAuth();
   const {
     timeZone,
     currentStreak,
@@ -64,110 +67,121 @@ export default function MissionsPage() {
 
   return (
     <Panel title="Missions" maxWidth="720px" style={{ margin: "16px" }}>
-      <Tabs
-        tabs={[
-          {
-            label: "Daily",
-            content: (
-              <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
-                <StreakRow>
-                  <HighlightBox variant="quaternary" bordered width="auto" style={{ padding: "6px 18px" }}>
-                    🔥 Day {currentStreak} streak
-                  </HighlightBox>
-                  <StreakDetail>
-                    Best streak: {longestStreak} · {streakGraceAvailable ? "grace available" : "grace already used"}
-                  </StreakDetail>
-                  <ResetCountdown timeZone={timeZone} computeTargetMs={nextDailyResetMs} />
-                </StreakRow>
+      <Stack direction="column" gap="0">
+        {!user && (
+          <BannerArea>
+            <GuestLoginBanner
+              message="Log in with Google to track your streak and claim mission rewards."
+              googleClientId={googleClientId}
+              onLogin={login}
+            />
+          </BannerArea>
+        )}
+        <Tabs
+          tabs={[
+            {
+              label: "Daily",
+              content: (
+                <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
+                  <StreakRow>
+                    <HighlightBox variant="quaternary" bordered width="auto" style={{ padding: "6px 18px" }}>
+                      🔥 Day {currentStreak} streak
+                    </HighlightBox>
+                    <StreakDetail>
+                      Best streak: {longestStreak} · {streakGraceAvailable ? "grace available" : "grace already used"}
+                    </StreakDetail>
+                    <ResetCountdown timeZone={timeZone} computeTargetMs={nextDailyResetMs} />
+                  </StreakRow>
 
-                <Stack direction="column" gap="8px">
-                  {missionsToday.map((mission) => (
-                    <MissionRow
-                      key={mission.code}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setSelectedMission({ kind: "daily", mission })}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          setSelectedMission({ kind: "daily", mission });
-                        }
-                      }}
-                    >
-                      <MissionIcon aria-hidden>{mission.icon}</MissionIcon>
-                      <MissionText>
-                        <MissionName>{mission.name}</MissionName>
-                        <MissionDescription>{mission.description}</MissionDescription>
-                      </MissionText>
-                      <MissionReward>+{mission.rewardCoins}</MissionReward>
-                      <StatusBadge $completed={mission.completed}>{mission.completed ? "✓ Done" : "Pending"}</StatusBadge>
-                    </MissionRow>
-                  ))}
+                  <Stack direction="column" gap="8px">
+                    {missionsToday.map((mission) => (
+                      <MissionRow
+                        key={mission.code}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedMission({ kind: "daily", mission })}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setSelectedMission({ kind: "daily", mission });
+                          }
+                        }}
+                      >
+                        <MissionIcon aria-hidden>{mission.icon}</MissionIcon>
+                        <MissionText>
+                          <MissionName>{mission.name}</MissionName>
+                          <MissionDescription>{mission.description}</MissionDescription>
+                        </MissionText>
+                        <MissionReward>+{mission.rewardCoins}</MissionReward>
+                        <StatusBadge $completed={mission.completed}>{mission.completed ? "✓ Done" : "Pending"}</StatusBadge>
+                      </MissionRow>
+                    ))}
+                  </Stack>
+
+                  <AllClearRow $completed={allClearCompletedToday}>
+                    All-clear bonus: +{allClearBonusCoins} coins for finishing every mission today
+                    {allClearCompletedToday ? " — claimed!" : ""}
+                  </AllClearRow>
                 </Stack>
+              ),
+            },
+            {
+              label: "Weekly",
+              content: (
+                <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
+                  <StreakRow>
+                    <ResetCountdown timeZone={timeZone} computeTargetMs={nextWeeklyResetMs} />
+                  </StreakRow>
 
-                <AllClearRow $completed={allClearCompletedToday}>
-                  All-clear bonus: +{allClearBonusCoins} coins for finishing every mission today
-                  {allClearCompletedToday ? " — claimed!" : ""}
-                </AllClearRow>
-              </Stack>
-            ),
-          },
-          {
-            label: "Weekly",
-            content: (
-              <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
-                <StreakRow>
-                  <ResetCountdown timeZone={timeZone} computeTargetMs={nextWeeklyResetMs} />
-                </StreakRow>
+                  <Stack direction="column" gap="8px">
+                    {missionsThisWeek.map((mission) => (
+                      <MissionRow
+                        key={mission.code}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedMission({ kind: "weekly", mission })}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setSelectedMission({ kind: "weekly", mission });
+                          }
+                        }}
+                      >
+                        <MissionIcon aria-hidden>{mission.icon}</MissionIcon>
+                        <MissionText>
+                          <MissionName>
+                            {mission.name} <TierBadge $tier={mission.tier}>{mission.tier}</TierBadge>
+                          </MissionName>
+                          <MissionDescription>{mission.description}</MissionDescription>
+                          {mission.progress && !mission.completed ? (
+                            <MissionProgressRow>
+                              <MissionProgressBar>
+                                <MissionProgressFill
+                                  style={{ width: `${(mission.progress.current / mission.progress.target) * 100}%` }}
+                                />
+                              </MissionProgressBar>
+                              <MissionProgressLabel>
+                                {mission.progress.current}/{mission.progress.target}
+                              </MissionProgressLabel>
+                            </MissionProgressRow>
+                          ) : null}
+                        </MissionText>
+                        <MissionReward>+{mission.rewardCoins}</MissionReward>
+                        <StatusBadge $completed={mission.completed}>{mission.completed ? "✓ Done" : "Pending"}</StatusBadge>
+                      </MissionRow>
+                    ))}
+                  </Stack>
 
-                <Stack direction="column" gap="8px">
-                  {missionsThisWeek.map((mission) => (
-                    <MissionRow
-                      key={mission.code}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setSelectedMission({ kind: "weekly", mission })}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          setSelectedMission({ kind: "weekly", mission });
-                        }
-                      }}
-                    >
-                      <MissionIcon aria-hidden>{mission.icon}</MissionIcon>
-                      <MissionText>
-                        <MissionName>
-                          {mission.name} <TierBadge $tier={mission.tier}>{mission.tier}</TierBadge>
-                        </MissionName>
-                        <MissionDescription>{mission.description}</MissionDescription>
-                        {mission.progress && !mission.completed ? (
-                          <MissionProgressRow>
-                            <MissionProgressBar>
-                              <MissionProgressFill
-                                style={{ width: `${(mission.progress.current / mission.progress.target) * 100}%` }}
-                              />
-                            </MissionProgressBar>
-                            <MissionProgressLabel>
-                              {mission.progress.current}/{mission.progress.target}
-                            </MissionProgressLabel>
-                          </MissionProgressRow>
-                        ) : null}
-                      </MissionText>
-                      <MissionReward>+{mission.rewardCoins}</MissionReward>
-                      <StatusBadge $completed={mission.completed}>{mission.completed ? "✓ Done" : "Pending"}</StatusBadge>
-                    </MissionRow>
-                  ))}
+                  <AllClearRow $completed={weeklyAllClearCompletedThisWeek}>
+                    All-clear bonus: +{weeklyAllClearBonusCoins} coins for finishing every mission this week
+                    {weeklyAllClearCompletedThisWeek ? " — claimed!" : ""}
+                  </AllClearRow>
                 </Stack>
-
-                <AllClearRow $completed={weeklyAllClearCompletedThisWeek}>
-                  All-clear bonus: +{weeklyAllClearBonusCoins} coins for finishing every mission this week
-                  {weeklyAllClearCompletedThisWeek ? " — claimed!" : ""}
-                </AllClearRow>
-              </Stack>
-            ),
-          },
-        ]}
-      />
+              ),
+            },
+          ]}
+        />
+      </Stack>
 
       <Modal
         isOpen={selectedMission !== null}
@@ -249,6 +263,11 @@ export default function MissionsPage() {
     </Panel>
   );
 }
+
+const BannerArea = styled.div`
+  padding: 12px 16px 0;
+  margin-bottom: 16px;
+`;
 
 const TIER_COLORS: Record<"small" | "medium" | "large", (theme: import("styled-components").DefaultTheme) => string> = {
   small: (theme) => theme.colors.gray,

@@ -110,14 +110,6 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    if (!user) {
-      setCoins(0);
-      setItems([]);
-      setEquipped(EMPTY_EQUIPPED);
-      setIsLoading(false);
-      return;
-    }
-
     setIsLoading(true);
     fetch("/api/shop/me")
       .then((response) => response.json() as Promise<ShopMeResponse>)

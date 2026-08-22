@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, GoogleSignInButton, Panel, Stack, Tabs } from "lcano-react-ui";
+import { Button, Panel, Stack, Tabs } from "lcano-react-ui";
 import styled from "styled-components";
 import { useAuth } from "../hooks/useAuth.js";
 import FriendsListPanel from "../components/friends/FriendsListPanel.js";
@@ -7,6 +7,7 @@ import FriendsFeedPanel from "../components/friends/FriendsFeedPanel.js";
 import RankingsPanel from "../components/friends/RankingsPanel.js";
 import FriendProfilePanel from "../components/friends/FriendProfilePanel.js";
 import FriendComparePanel from "../components/friends/FriendComparePanel.js";
+import GuestLoginBanner from "../components/chrome/GuestLoginBanner.js";
 
 type Drilldown = { friendId: number; friendName: string; view: "profile" | "compare" } | null;
 
@@ -14,18 +15,7 @@ export default function FriendsPage() {
   const { user, googleClientId, login } = useAuth();
   const [drilldown, setDrilldown] = useState<Drilldown>(null);
 
-  if (!user) {
-    return (
-      <Panel title="Friends" maxWidth="720px">
-        <LoginBanner>
-          <span>Log in with Google to add friends and compare scores.</span>
-          {googleClientId && <GoogleSignInButton clientId={googleClientId} onCredential={login} />}
-        </LoginBanner>
-      </Panel>
-    );
-  }
-
-  if (drilldown && drilldown.view === "profile") {
+  if (user && drilldown && drilldown.view === "profile") {
     return (
       <FriendProfilePanel
         friendId={drilldown.friendId}
@@ -35,7 +25,7 @@ export default function FriendsPage() {
     );
   }
 
-  if (drilldown) {
+  if (user && drilldown) {
     return (
       <Panel title={drilldown.friendName} maxWidth="900px">
         <Stack direction="column" gap="16px" style={{ padding: "16px" }}>
@@ -48,31 +38,38 @@ export default function FriendsPage() {
 
   return (
     <Panel title="Friends" maxWidth="900px">
-      <Tabs
-        tabs={[
-          { label: "Feed", content: <FriendsFeedPanel /> },
-          {
-            label: "Friends",
-            content: (
-              <FriendsListPanel
-                onOpenProfile={(friendId, friendName) => setDrilldown({ friendId, friendName, view: "profile" })}
-                onCompare={(friendId, friendName) => setDrilldown({ friendId, friendName, view: "compare" })}
-              />
-            ),
-          },
-          { label: "Rankings", content: <RankingsPanel /> },
-        ]}
-      />
+      <Stack direction="column" gap="0">
+        {!user && (
+          <BannerArea>
+            <GuestLoginBanner
+              message="Log in with Google to add friends and compare scores."
+              googleClientId={googleClientId}
+              onLogin={login}
+            />
+          </BannerArea>
+        )}
+        <Tabs
+          tabs={[
+            { label: "Feed", content: <FriendsFeedPanel /> },
+            {
+              label: "Friends",
+              content: (
+                <FriendsListPanel
+                  canManage={!!user}
+                  onOpenProfile={(friendId, friendName) => setDrilldown({ friendId, friendName, view: "profile" })}
+                  onCompare={(friendId, friendName) => setDrilldown({ friendId, friendName, view: "compare" })}
+                />
+              ),
+            },
+            { label: "Rankings", content: <RankingsPanel /> },
+          ]}
+        />
+      </Stack>
     </Panel>
   );
 }
 
-const LoginBanner = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px;
-  color: ${({ theme }) => theme.colors.white};
+const BannerArea = styled.div`
+  padding: 12px 16px 0;
+  margin-bottom: 16px;
 `;
