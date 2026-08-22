@@ -91,7 +91,12 @@ export default function App() {
                 )}
                 {screen.name === "menu" && (
                   <MenuLayout current="menu" onNavigate={navigate}>
-                    <MainMenuPage onPlaySingleplayer={() => navigate("songs")} onViewFriends={() => navigate("friends")} />
+                    <MainMenuPage
+                      onPlaySingleplayer={() => navigate("songs")}
+                      onViewFriends={() => navigate("friends")}
+                      onViewMissions={() => navigate("missions")}
+                      onViewAchievements={() => navigate("achievements")}
+                    />
                   </MenuLayout>
                 )}
               </ContextMessageProvider>
