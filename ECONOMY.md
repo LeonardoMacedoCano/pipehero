@@ -18,15 +18,17 @@ buy instead of earning.
 Open the **🎯 Missions** page (same rail/drawer as Achievements) to see
 your coin balance and two tabs — **Daily** and **Weekly** — each with
 its own list of missions and an all-clear bonus for finishing every one
-of them.
+of them. Click any mission for a details popup with the full
+description, reward, tier (weekly), progress, and time left before it
+resets.
 
 ## Daily login streak
 
 Opening the game credits your account **once per calendar day** (server
-time, UTC) with a small coin reward, and shows up as the first entry in
-the Daily tab — it's always already "done" for the day the moment you
-open the app, since just opening it is what completes it. Reward for
-logging in day after day scales with how long your streak is:
+time — see below) with a small coin reward, and shows up as the first
+entry in the Daily tab — it's always already "done" for the day the
+moment you open the app, since just opening it is what completes it.
+Reward for logging in day after day scales with how long your streak is:
 
 | Streak day | Coins |
 |---|---|
@@ -44,11 +46,21 @@ saves a streak — so it protects against one accidental miss, not a
 habit of logging in every other day. Missing two or more days in a row
 always resets the streak back to day 1.
 
+The first time you open the game each day, a popup shows the coins you
+just earned, your current streak, your best streak, and a reminder of
+how the streak/grace mechanic above works — it only appears once per
+day, on that first login.
+
 ## Daily missions
 
-Alongside the login, 3 more missions are available every day (resets at
-midnight UTC). Completing everything — the login plus all 3 — pays out
-an all-clear bonus of **20 coins**.
+Alongside the login, 3 more missions are available every day. "Day" and
+"week" for every mission and the login streak follow a single server
+time zone — `TIME_ZONE` in `.env`, `UTC` if unset — the same for every
+player regardless of where they connect from; it's **not** each
+player's own local time zone. Both the Daily and Weekly tab show a live
+countdown to the next reset (also visible per-mission in its details
+popup). Completing everything — the login plus all 3 — pays out an
+all-clear bonus of **20 coins**.
 
 | | Mission | How to complete | Coins |
 |---|---|---|---|
@@ -62,9 +74,10 @@ unlocking an achievement does.
 
 ## Weekly missions
 
-Alongside the daily set, 5 missions reset every Monday (midnight UTC)
-and stay available all week, across three tiers. Completing all 5 in
-the same week also pays out an all-clear bonus of **70 coins**.
+Alongside the daily set, 5 missions reset every Sunday (same server
+time zone as above) and stay available all week, across three tiers.
+Completing all 5 in the same week also pays out an all-clear bonus of
+**70 coins**.
 
 | | Mission | Tier | How to complete | Coins |
 |---|---|---|---|---|
@@ -73,5 +86,8 @@ the same week also pays out an all-clear bonus of **70 coins**.
 | 🗓️ | Stopping By | Small | Play on 2 different days this week. | 30 |
 | 📅 | Regular Visitor | Medium | Play on 4 different days this week. | 60 |
 | 🏅 | Weekly Dedication | Large | Play on 6 different days this week. | 120 |
+
+The 4 missions above that count something (songs or days) show an X/Y
+progress readout under their description until they're complete.
 
 Same as daily missions: a toast pops up when you complete one.

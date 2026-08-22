@@ -2,6 +2,11 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useAuth } from "./useAuth.js";
 import { useCoinsToast } from "../components/chrome/CoinsToast.js";
 
+export interface MissionProgress {
+  current: number;
+  target: number;
+}
+
 export interface EconomyMission {
   code: string;
   name: string;
@@ -13,9 +18,11 @@ export interface EconomyMission {
 
 export interface EconomyWeeklyMission extends EconomyMission {
   tier: "small" | "medium" | "large";
+  progress: MissionProgress | null;
 }
 
 interface EconomySnapshot {
+  timeZone: string;
   coins: number;
   currentStreak: number;
   longestStreak: number;
@@ -34,6 +41,15 @@ interface CheckinResponse extends EconomySnapshot {
   milestoneHit: number | null;
 }
 
+export interface DailyLoginModalData {
+  coinsAwarded: number;
+  currentStreak: number;
+  longestStreak: number;
+  streakSaved: boolean;
+  milestoneHit: number | null;
+  graceAvailable: boolean;
+}
+
 export interface ScoreEconomyResult {
   coins: number;
   coinsAwarded: number;
@@ -41,15 +57,19 @@ export interface ScoreEconomyResult {
   allClearBonusAwarded: boolean;
   completedWeeklyMissions: Array<{ code: string; name: string; description: string; icon: string; rewardCoins: number }>;
   weeklyAllClearBonusAwarded: boolean;
+  weeklyMissionProgress: Array<{ code: string; progress: MissionProgress | null }>;
 }
 
 interface EconomyContextValue extends EconomySnapshot {
   isLoading: boolean;
   applyScoreEconomyResult: (result: ScoreEconomyResult) => void;
   setCoinsBalance: (coins: number) => void;
+  dailyLoginModal: DailyLoginModalData | null;
+  dismissDailyLoginModal: () => void;
 }
 
 const EMPTY_SNAPSHOT: EconomySnapshot = {
+  timeZone: "UTC",
   coins: 0,
   currentStreak: 0,
   longestStreak: 0,
@@ -72,6 +92,7 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
 
   const [snapshot, setSnapshot] = useState<EconomySnapshot>(EMPTY_SNAPSHOT);
   const [isLoading, setIsLoading] = useState(true);
+  const [dailyLoginModal, setDailyLoginModal] = useState<DailyLoginModalData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +109,7 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
       .then((data) => {
         if (cancelled) return;
         setSnapshot({
+          timeZone: data.timeZone,
           coins: data.coins,
           currentStreak: data.currentStreak,
           longestStreak: data.longestStreak,
@@ -101,6 +123,14 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
         });
         if (data.streakCoinsAwardedNow > 0) {
           toastRef.current.notifyStreak(data.streakCoinsAwardedNow, data.currentStreak, data.streakSaved, data.milestoneHit);
+          setDailyLoginModal({
+            coinsAwarded: data.streakCoinsAwardedNow,
+            currentStreak: data.currentStreak,
+            longestStreak: data.longestStreak,
+            streakSaved: data.streakSaved,
+            milestoneHit: data.milestoneHit,
+            graceAvailable: data.streakGraceAvailable,
+          });
         }
       })
       .catch(() => {
@@ -119,6 +149,7 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
     setSnapshot((prev) => {
       const completedCodes = new Set(result.completedMissions.map((mission) => mission.code));
       const completedWeeklyCodes = new Set(result.completedWeeklyMissions.map((mission) => mission.code));
+      const progressByCode = new Map(result.weeklyMissionProgress.map((entry) => [entry.code, entry.progress]));
       return {
         ...prev,
         coins: result.coins,
@@ -126,9 +157,14 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
           completedCodes.has(mission.code) ? { ...mission, completed: true } : mission
         ),
         allClearCompletedToday: prev.allClearCompletedToday || result.allClearBonusAwarded,
-        missionsThisWeek: prev.missionsThisWeek.map((mission) =>
-          completedWeeklyCodes.has(mission.code) ? { ...mission, completed: true } : mission
-        ),
+        missionsThisWeek: prev.missionsThisWeek.map((mission) => {
+          const progress = progressByCode.get(mission.code);
+          return {
+            ...mission,
+            completed: mission.completed || completedWeeklyCodes.has(mission.code),
+            progress: progress !== undefined ? progress : mission.progress,
+          };
+        }),
         weeklyAllClearCompletedThisWeek: prev.weeklyAllClearCompletedThisWeek || result.weeklyAllClearBonusAwarded,
       };
     });
@@ -142,9 +178,13 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
     setSnapshot((prev) => ({ ...prev, coins }));
   }, []);
 
+  const dismissDailyLoginModal = useCallback(() => {
+    setDailyLoginModal(null);
+  }, []);
+
   const value = useMemo(
-    () => ({ ...snapshot, isLoading, applyScoreEconomyResult, setCoinsBalance }),
-    [snapshot, isLoading, applyScoreEconomyResult, setCoinsBalance]
+    () => ({ ...snapshot, isLoading, applyScoreEconomyResult, setCoinsBalance, dailyLoginModal, dismissDailyLoginModal }),
+    [snapshot, isLoading, applyScoreEconomyResult, setCoinsBalance, dailyLoginModal, dismissDailyLoginModal]
   );
 
   return <EconomyContext.Provider value={value}>{children}</EconomyContext.Provider>;
