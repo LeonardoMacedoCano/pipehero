@@ -1,11 +1,12 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Column, GoogleSignInButton, Loading, Panel, Stack, Table, Tabs, paginateClientSide } from "lcano-react-ui";
+import { Column, Loading, Panel, Stack, Table, Tabs, paginateClientSide } from "lcano-react-ui";
 import styled from "styled-components";
 import { useSongs } from "../../hooks/useSongs.js";
 import type { AchievementStatus } from "../../hooks/useAchievements.js";
 import type { Difficulty } from "../../../types.js";
 import ProfileHeader from "./ProfileHeader.js";
 import AchievementBadgeList from "./AchievementBadgeList.js";
+import GuestLoginBanner from "./GuestLoginBanner.js";
 
 const SCORES_PAGE_SIZE = 5;
 
@@ -120,18 +121,19 @@ export default function ProfileScreen({
   return (
     <Panel title={title} maxWidth="900px" style={{ margin: "16px" }} actionButton={actionButton}>
       <Loading isLoading={isLoading} />
-      {!isLoading && notLoggedIn && (
-        <PaddedArea style={{ padding: "16px" }}>
-          <LoginBanner>
-            <span>Log in with Google to customize and view your profile.</span>
-            {googleClientId && onLogin && <GoogleSignInButton clientId={googleClientId} onCredential={onLogin} />}
-          </LoginBanner>
-        </PaddedArea>
-      )}
-      {!isLoading && !notLoggedIn && name !== null && (
+      {!isLoading && (
         <Stack direction="column" gap="0">
+          {notLoggedIn && googleClientId && onLogin && (
+            <PaddedArea style={{ padding: "16px" }}>
+              <GuestLoginBanner
+                message="Log in with Google to customize and save your profile."
+                googleClientId={googleClientId}
+                onLogin={onLogin}
+              />
+            </PaddedArea>
+          )}
           <ProfileHeader
-            name={name}
+            name={name ?? "Guest"}
             equippedAvatarId={equippedAvatarId}
             equippedBorderId={equippedBorderId}
             equippedBackgroundId={equippedBackgroundId}
@@ -151,19 +153,6 @@ const PaddedArea = styled.div`
 
 const TabPane = styled.div`
   margin-bottom: -8px;
-`;
-
-const LoginBanner = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  background-color: ${({ theme }) => theme.colors.secondary};
-  border: 1px solid ${({ theme }) => theme.colors.gray};
-  color: ${({ theme }) => theme.colors.white};
 `;
 
 const Muted = styled.div`

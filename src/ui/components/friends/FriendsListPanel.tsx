@@ -12,15 +12,17 @@ interface FriendMutationResponse {
 }
 
 export default function FriendsListPanel({
+  canManage,
   onOpenProfile,
   onCompare,
 }: {
+  canManage: boolean;
   onOpenProfile: (friendId: number, friendName: string) => void;
   onCompare: (friendId: number, friendName: string) => void;
 }) {
   const { friends, incoming, outgoing, isLoading, refetch } = useFriends();
   const [query, setQuery] = useState("");
-  const { results, isLoading: isSearching } = useFriendSearch(query);
+  const { results, isLoading: isSearching } = useFriendSearch(canManage ? query : "");
   const { notify } = useAchievementToast();
 
   async function sendRequest(friendUserId: number) {
@@ -57,8 +59,9 @@ export default function FriendsListPanel({
       <Section>
         <SearchInput
           type="text"
-          placeholder="Search by name or email…"
+          placeholder={canManage ? "Search by name or email…" : "Log in to search and add friends…"}
           value={query}
+          disabled={!canManage}
           onChange={(event) => setQuery(event.target.value)}
         />
         {isSearching && <Muted>Searching…</Muted>}
@@ -110,7 +113,7 @@ export default function FriendsListPanel({
       <Section>
         <SectionTitle>Your friends ({friends.length})</SectionTitle>
         {friends.length === 0 ? (
-          <Muted>No friends yet — search above to add one.</Muted>
+          <Muted>{canManage ? "No friends yet — search above to add one." : "Log in to add friends."}</Muted>
         ) : (
           friends.map((friend) => (
             <FriendRow key={friend.friendId}>
@@ -185,6 +188,11 @@ const SearchInput = styled.input`
 
   &::placeholder {
     color: ${({ theme }) => theme.colors.tertiary};
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 
