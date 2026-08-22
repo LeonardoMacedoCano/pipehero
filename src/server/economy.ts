@@ -1,4 +1,5 @@
 import { query } from "./db.js";
+import { dateStringInTimeZone, resolveConfiguredTimeZone, weekStartDateStringInTimeZone } from "../timeZone.js";
 
 export interface StreakState {
   currentStreak: number;
@@ -20,21 +21,29 @@ const STREAK_MILESTONE_BONUSES: Record<number, number> = { 3: 15, 7: 30, 14: 60,
 const RECURRING_MILESTONE_INTERVAL = 30;
 const RECURRING_MILESTONE_BONUS = 150;
 
-export function toUtcDateString(date: Date = new Date()): string {
-  return date.toISOString().slice(0, 10);
+let cachedServerTimeZone: string | null = null;
+
+export function getServerTimeZone(): string {
+  if (cachedServerTimeZone === null) {
+    const resolved = resolveConfiguredTimeZone(process.env.TIME_ZONE);
+    if (resolved.warning) console.warn(`[pipehero] ${resolved.warning}`);
+    cachedServerTimeZone = resolved.timeZone;
+  }
+  return cachedServerTimeZone;
 }
 
-function daysBetweenUtc(from: string, to: string): number {
+export function toServerDateString(date: Date = new Date(), timeZone: string = getServerTimeZone()): string {
+  return dateStringInTimeZone(date, timeZone);
+}
+
+function daysBetween(from: string, to: string): number {
   const fromMs = Date.parse(`${from}T00:00:00Z`);
   const toMs = Date.parse(`${to}T00:00:00Z`);
   return Math.round((toMs - fromMs) / (24 * 60 * 60 * 1000));
 }
 
-export function toUtcWeekStart(date: Date = new Date()): string {
-  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const isoDay = d.getUTCDay() === 0 ? 7 : d.getUTCDay(); // 1=Mon..7=Sun
-  d.setUTCDate(d.getUTCDate() - (isoDay - 1));
-  return d.toISOString().slice(0, 10);
+export function toServerWeekStart(date: Date = new Date(), timeZone: string = getServerTimeZone()): string {
+  return weekStartDateStringInTimeZone(date, timeZone);
 }
 
 export function computeStreakCoinReward(streak: number): { total: number; milestoneHit: number | null } {
@@ -46,11 +55,11 @@ export function computeStreakCoinReward(streak: number): { total: number; milest
   return { total: BASE_DAILY_LOGIN_COINS, milestoneHit: null };
 }
 
-export function computeStreakUpdate(state: StreakState, todayUtc: string): StreakUpdateResult {
+export function computeStreakUpdate(state: StreakState, today: string): StreakUpdateResult {
   if (state.lastLoginDate === null) {
     const { total, milestoneHit } = computeStreakCoinReward(1);
     return {
-      state: { currentStreak: 1, longestStreak: Math.max(1, state.longestStreak), lastLoginDate: todayUtc, graceAvailable: true },
+      state: { currentStreak: 1, longestStreak: Math.max(1, state.longestStreak), lastLoginDate: today, graceAvailable: true },
       coinsAwarded: total,
       streakSaved: false,
       milestoneHit,
@@ -58,7 +67,7 @@ export function computeStreakUpdate(state: StreakState, todayUtc: string): Strea
     };
   }
 
-  const diffDays = daysBetweenUtc(state.lastLoginDate, todayUtc);
+  const diffDays = daysBetween(state.lastLoginDate, today);
 
   if (diffDays <= 0) {
     return { state, coinsAwarded: 0, streakSaved: false, milestoneHit: null, alreadyCreditedToday: true };
@@ -68,7 +77,7 @@ export function computeStreakUpdate(state: StreakState, todayUtc: string): Strea
     const newStreak = state.currentStreak + 1;
     const { total, milestoneHit } = computeStreakCoinReward(newStreak);
     return {
-      state: { currentStreak: newStreak, longestStreak: Math.max(newStreak, state.longestStreak), lastLoginDate: todayUtc, graceAvailable: true },
+      state: { currentStreak: newStreak, longestStreak: Math.max(newStreak, state.longestStreak), lastLoginDate: today, graceAvailable: true },
       coinsAwarded: total,
       streakSaved: false,
       milestoneHit,
@@ -80,7 +89,7 @@ export function computeStreakUpdate(state: StreakState, todayUtc: string): Strea
     const newStreak = state.currentStreak + 1;
     const { total, milestoneHit } = computeStreakCoinReward(newStreak);
     return {
-      state: { currentStreak: newStreak, longestStreak: Math.max(newStreak, state.longestStreak), lastLoginDate: todayUtc, graceAvailable: false },
+      state: { currentStreak: newStreak, longestStreak: Math.max(newStreak, state.longestStreak), lastLoginDate: today, graceAvailable: false },
       coinsAwarded: total,
       streakSaved: true,
       milestoneHit,
@@ -90,7 +99,7 @@ export function computeStreakUpdate(state: StreakState, todayUtc: string): Strea
 
   const { total } = computeStreakCoinReward(1);
   return {
-    state: { currentStreak: 1, longestStreak: state.longestStreak, lastLoginDate: todayUtc, graceAvailable: true },
+    state: { currentStreak: 1, longestStreak: state.longestStreak, lastLoginDate: today, graceAvailable: true },
     coinsAwarded: total,
     streakSaved: false,
     milestoneHit: null,
@@ -110,7 +119,7 @@ export async function applyLoginStreak(
   userId: number,
   now: Date = new Date()
 ): Promise<StreakUpdateResult & { coinsBalance: number }> {
-  const todayUtc = toUtcDateString(now);
+  const today = toServerDateString(now);
   const [existing] = await query<UserEconomyRow>(
     "SELECT coins, current_streak, longest_streak, last_login_date, streak_grace_available FROM user_economy WHERE user_id = $1",
     [userId]
@@ -124,7 +133,7 @@ export async function applyLoginStreak(
       }
     : { currentStreak: 0, longestStreak: 0, lastLoginDate: null, graceAvailable: true };
 
-  const result = computeStreakUpdate(state, todayUtc);
+  const result = computeStreakUpdate(state, today);
   if (result.alreadyCreditedToday) {
     return { ...result, coinsBalance: existing?.coins ?? 0 };
   }

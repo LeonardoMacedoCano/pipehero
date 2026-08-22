@@ -4,9 +4,11 @@ import { readFileSync } from "node:fs";
 import {
   DAILY_MISSIONS,
   WEEKLY_MISSIONS,
+  computeWeeklyMissionProgress,
   evaluateScoreSubmissionMissions,
   evaluateScoreSubmissionWeeklyMissions,
   type DailyMissionStats,
+  type WeeklyMissionDefinition,
   type WeeklyMissionStats,
 } from "./missions.js";
 
@@ -151,4 +153,31 @@ test("a great week (no fail, 3+ distinct songs, 6+ distinct days) completes ever
     new Set(completed),
     new Set(["weekly_no_fail_finish", "weekly_three_distinct_songs", "weekly_play_2_days", "weekly_play_4_days", "weekly_play_6_days"])
   );
+});
+
+function weeklyMission(code: string): WeeklyMissionDefinition {
+  const mission = WEEKLY_MISSIONS.find((candidate) => candidate.code === code);
+  assert.ok(mission, `expected a weekly mission with code "${code}"`);
+  return mission!;
+}
+
+test("weekly_no_fail_finish has no progress, since it isn't quantity-based", () => {
+  assert.equal(computeWeeklyMissionProgress(weeklyMission("weekly_no_fail_finish"), weeklyStats()), null);
+});
+
+test("progress for a quantity mission tracks its own stat, capped at the target", () => {
+  assert.deepEqual(
+    computeWeeklyMissionProgress(weeklyMission("weekly_three_distinct_songs"), weeklyStats({ distinctSongsPlayedThisWeek: 1 })),
+    { current: 1, target: 3 }
+  );
+  assert.deepEqual(
+    computeWeeklyMissionProgress(weeklyMission("weekly_three_distinct_songs"), weeklyStats({ distinctSongsPlayedThisWeek: 5 })),
+    { current: 3, target: 3 }
+  );
+});
+
+test("progress for the days-played ladder reads distinctDaysPlayedThisWeek, not distinctSongsPlayedThisWeek", () => {
+  const stats = weeklyStats({ distinctDaysPlayedThisWeek: 3, distinctSongsPlayedThisWeek: 99 });
+  assert.deepEqual(computeWeeklyMissionProgress(weeklyMission("weekly_play_4_days"), stats), { current: 3, target: 4 });
+  assert.deepEqual(computeWeeklyMissionProgress(weeklyMission("weekly_play_6_days"), stats), { current: 3, target: 6 });
 });

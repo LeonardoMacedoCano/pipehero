@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { computeStreakUpdate, type StreakState } from "./economy.js";
+import { computeStreakUpdate, toServerDateString, toServerWeekStart, type StreakState } from "./economy.js";
 
 function state(overrides: Partial<StreakState> = {}): StreakState {
   return { currentStreak: 0, longestStreak: 0, lastLoginDate: null, graceAvailable: true, ...overrides };
@@ -98,4 +98,12 @@ test("streak math works across a month/year boundary", () => {
   assert.equal(result.state.currentStreak, 5);
   assert.equal(result.streakSaved, false);
   assert.equal(result.alreadyCreditedToday, false);
+});
+
+test("toServerDateString/toServerWeekStart honor an explicit time zone override", () => {
+  const instant = new Date("2026-08-22T23:30:00Z");
+  assert.equal(toServerDateString(instant, "UTC"), "2026-08-22");
+  assert.equal(toServerDateString(instant, "Asia/Tokyo"), "2026-08-23");
+  assert.equal(toServerWeekStart(instant, "UTC"), "2026-08-16");
+  assert.equal(toServerWeekStart(instant, "Asia/Tokyo"), "2026-08-23");
 });
