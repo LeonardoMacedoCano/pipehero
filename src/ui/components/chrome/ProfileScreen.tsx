@@ -123,12 +123,12 @@ export default function ProfileScreen({
       <Loading isLoading={isLoading} />
       {!isLoading && (
         <Stack direction="column" gap="0">
-          {notLoggedIn && googleClientId && onLogin && (
+          {notLoggedIn && (
             <PaddedArea style={{ padding: "16px" }}>
               <GuestLoginBanner
                 message="Log in with Google to customize and save your profile."
-                googleClientId={googleClientId}
-                onLogin={onLogin}
+                googleClientId={googleClientId ?? null}
+                onLogin={onLogin ?? (() => {})}
               />
             </PaddedArea>
           )}

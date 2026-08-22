@@ -39,7 +39,7 @@ export default function FriendsPage() {
   return (
     <Panel title="Friends" maxWidth="900px">
       <Stack direction="column" gap="0">
-        {!user && googleClientId && (
+        {!user && (
           <BannerArea>
             <GuestLoginBanner
               message="Log in with Google to add friends and compare scores."

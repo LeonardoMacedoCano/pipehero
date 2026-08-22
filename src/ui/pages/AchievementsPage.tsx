@@ -34,7 +34,7 @@ export default function AchievementsPage() {
       <Loading isLoading={isLoading} />
       {achievements && (
         <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
-          {!user && googleClientId && (
+          {!user && (
             <GuestLoginBanner
               message="Log in with Google to start tracking your achievements."
               googleClientId={googleClientId}

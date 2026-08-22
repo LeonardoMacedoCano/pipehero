@@ -68,7 +68,7 @@ export default function MissionsPage() {
   return (
     <Panel title="Missions" maxWidth="720px" style={{ margin: "16px" }}>
       <Stack direction="column" gap="0">
-        {!user && googleClientId && (
+        {!user && (
           <BannerArea>
             <GuestLoginBanner
               message="Log in with Google to track your streak and claim mission rewards."

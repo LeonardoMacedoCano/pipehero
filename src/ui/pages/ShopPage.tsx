@@ -93,7 +93,7 @@ export default function ShopPage() {
       <ThemeProvider theme={previewTheme}>
         <ShopEffectPreviewLayer effectId={previewedEffectId}>
           <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
-            {!user && googleClientId && (
+            {!user && (
               <GuestLoginBanner
                 message="Log in with Google to earn coins and buy items."
                 googleClientId={googleClientId}
