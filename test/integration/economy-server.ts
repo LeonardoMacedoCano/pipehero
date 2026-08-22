@@ -39,7 +39,7 @@ let userDId: number | null = null;
 try {
   const { findOrCreateUser, createSession, signValue } = await import("../../src/server/session.js");
   const { query } = await import("../../src/server/db.js");
-  const { toUtcDateString, toUtcWeekStart } = await import("../../src/server/economy.js");
+  const { toServerDateString, toServerWeekStart } = await import("../../src/server/economy.js");
 
   const userA = await findOrCreateUser({
     sub: `economy-test-a-${Date.now()}`,
@@ -61,8 +61,8 @@ try {
   const sessionB = await createSession(userB.id);
   const cookieB = `pipehero_session=${encodeURIComponent(signValue(sessionB, SESSION_SECRET))}`;
 
-  const yesterday = toUtcDateString(new Date(Date.now() - 24 * 60 * 60 * 1000));
-  const twoDaysAgo = toUtcDateString(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000));
+  const yesterday = toServerDateString(new Date(Date.now() - 24 * 60 * 60 * 1000));
+  const twoDaysAgo = toServerDateString(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000));
 
   // --- Streak: first checkin ---
   const checkin1Res = await fetch(`${BASE_URL}/api/economy/checkin`, { method: "POST", headers: { Cookie: cookieA } });
@@ -169,11 +169,11 @@ try {
   const sessionD = await createSession(userD.id);
   const cookieD = `pipehero_session=${encodeURIComponent(signValue(sessionD, SESSION_SECRET))}`;
 
-  const weekStart = toUtcWeekStart();
-  const todayStr = toUtcDateString();
+  const weekStart = toServerWeekStart();
+  const todayStr = toServerDateString();
   const weekDates: string[] = [];
   for (let i = 0; i < 7; i++) {
-    weekDates.push(toUtcDateString(new Date(Date.parse(`${weekStart}T00:00:00Z`) + i * 24 * 60 * 60 * 1000)));
+    weekDates.push(toServerDateString(new Date(Date.parse(`${weekStart}T00:00:00Z`) + i * 24 * 60 * 60 * 1000)));
   }
   const nonTodayWeekDates = weekDates.filter((day) => day !== todayStr).slice(0, 5);
 

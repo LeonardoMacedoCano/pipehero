@@ -5,6 +5,7 @@ import { AuthProvider } from "./hooks/useAuth.js";
 import { EconomyProvider } from "./hooks/useEconomy.js";
 import { ShopProvider } from "./hooks/useShop.js";
 import { AchievementToastProvider, AchievementToastStack } from "./components/chrome/AchievementToastProvider.js";
+import DailyLoginModal from "./components/chrome/DailyLoginModal.js";
 import { GlobalStyles } from "./GlobalStyles.js";
 import MenuLayout from "./components/chrome/MenuLayout.js";
 import type { MenuScreenName } from "./components/chrome/navigation.js";
@@ -45,6 +46,7 @@ export default function App() {
             <ThemeControlProvider>
               <AppGlobalStyles />
               <AchievementToastStack onView={handleToastClick} />
+              <DailyLoginModal />
               <ContextMessageProvider>
                 {screen.name === "game" && (
                   <GamePage

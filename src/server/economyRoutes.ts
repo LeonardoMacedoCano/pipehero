@@ -1,13 +1,15 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJson } from "./authRoutes.js";
 import { getRequestUser } from "./requestUser.js";
-import { applyLoginStreak, computeStreakCoinReward, toUtcDateString, toUtcWeekStart } from "./economy.js";
+import { applyLoginStreak, computeStreakCoinReward, getServerTimeZone, toServerDateString, toServerWeekStart } from "./economy.js";
 import {
   DAILY_LOGIN_CODE,
   DAILY_MISSIONS,
   DAILY_MISSION_ALL_CLEAR_BONUS_COINS,
   WEEKLY_MISSIONS,
   WEEKLY_MISSION_ALL_CLEAR_BONUS_COINS,
+  computeWeeklyMissionProgress,
+  gatherWeeklyMissionStats,
   getCompletedMissionCodesForToday,
   getCompletedWeeklyMissionCodesForWeek,
   isAllClearCode,
@@ -17,6 +19,7 @@ import {
 
 function emptyEconomySnapshot() {
   return {
+    timeZone: getServerTimeZone(),
     coins: 0,
     currentStreak: 0,
     longestStreak: 0,
@@ -37,7 +40,11 @@ function emptyEconomySnapshot() {
     ],
     allClearBonusCoins: DAILY_MISSION_ALL_CLEAR_BONUS_COINS,
     allClearCompletedToday: false,
-    missionsThisWeek: WEEKLY_MISSIONS.map((mission) => ({ ...mission, completed: false })),
+    missionsThisWeek: WEEKLY_MISSIONS.map((mission) => ({
+      ...mission,
+      completed: false,
+      progress: computeWeeklyMissionProgress(mission, { distinctDaysPlayedThisWeek: 0, distinctSongsPlayedThisWeek: 0 }),
+    })),
     weeklyAllClearBonusCoins: WEEKLY_MISSION_ALL_CLEAR_BONUS_COINS,
     weeklyAllClearCompletedThisWeek: false,
   };
@@ -54,11 +61,12 @@ export async function handleEconomyRequest(req: IncomingMessage, res: ServerResp
     }
 
     const streakResult = await applyLoginStreak(user.id);
-    const today = toUtcDateString();
+    const today = toServerDateString();
     const loginResult = await recordDailyLoginCompletion(user.id, today);
     const completedCodes = await getCompletedMissionCodesForToday(user.id, today);
-    const weekStart = toUtcWeekStart();
+    const weekStart = toServerWeekStart();
     const completedWeeklyCodes = await getCompletedWeeklyMissionCodesForWeek(user.id, weekStart);
+    const weeklyStats = await gatherWeeklyMissionStats(user.id, weekStart, false);
 
     const loginMission = {
       code: DAILY_LOGIN_CODE,
@@ -70,6 +78,7 @@ export async function handleEconomyRequest(req: IncomingMessage, res: ServerResp
     };
 
     sendJson(res, 200, {
+      timeZone: getServerTimeZone(),
       coins: loginResult.coinsBalance,
       currentStreak: streakResult.state.currentStreak,
       longestStreak: streakResult.state.longestStreak,
@@ -83,7 +92,11 @@ export async function handleEconomyRequest(req: IncomingMessage, res: ServerResp
       ],
       allClearBonusCoins: DAILY_MISSION_ALL_CLEAR_BONUS_COINS,
       allClearCompletedToday: [...completedCodes].some(isAllClearCode),
-      missionsThisWeek: WEEKLY_MISSIONS.map((mission) => ({ ...mission, completed: completedWeeklyCodes.has(mission.code) })),
+      missionsThisWeek: WEEKLY_MISSIONS.map((mission) => ({
+        ...mission,
+        completed: completedWeeklyCodes.has(mission.code),
+        progress: computeWeeklyMissionProgress(mission, weeklyStats),
+      })),
       weeklyAllClearBonusCoins: WEEKLY_MISSION_ALL_CLEAR_BONUS_COINS,
       weeklyAllClearCompletedThisWeek: [...completedWeeklyCodes].some(isWeeklyAllClearCode),
     });

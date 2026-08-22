@@ -147,8 +147,14 @@ export function isAllClearCode(code: string): boolean {
 
 export type WeeklyMissionTier = "small" | "medium" | "large";
 
+export interface WeeklyMissionProgressSpec {
+  statKey: "distinctDaysPlayedThisWeek" | "distinctSongsPlayedThisWeek";
+  target: number;
+}
+
 export interface WeeklyMissionDefinition extends MissionDefinition {
   tier: WeeklyMissionTier;
+  progress?: WeeklyMissionProgressSpec;
 }
 
 export const WEEKLY_MISSIONS: WeeklyMissionDefinition[] = [
@@ -167,6 +173,7 @@ export const WEEKLY_MISSIONS: WeeklyMissionDefinition[] = [
     name: "Mixing It Up",
     description: "Play 3 different songs this week.",
     rewardCoins: 30,
+    progress: { statKey: "distinctSongsPlayedThisWeek", target: 3 },
   },
   {
     code: "weekly_play_2_days",
@@ -175,6 +182,7 @@ export const WEEKLY_MISSIONS: WeeklyMissionDefinition[] = [
     name: "Stopping By",
     description: "Play on 2 different days this week.",
     rewardCoins: 30,
+    progress: { statKey: "distinctDaysPlayedThisWeek", target: 2 },
   },
   {
     code: "weekly_play_4_days",
@@ -183,6 +191,7 @@ export const WEEKLY_MISSIONS: WeeklyMissionDefinition[] = [
     name: "Regular Visitor",
     description: "Play on 4 different days this week.",
     rewardCoins: 60,
+    progress: { statKey: "distinctDaysPlayedThisWeek", target: 4 },
   },
   {
     code: "weekly_play_6_days",
@@ -191,8 +200,22 @@ export const WEEKLY_MISSIONS: WeeklyMissionDefinition[] = [
     name: "Weekly Dedication",
     description: "Play on 6 different days this week.",
     rewardCoins: 120,
+    progress: { statKey: "distinctDaysPlayedThisWeek", target: 6 },
   },
 ];
+
+export interface MissionProgress {
+  current: number;
+  target: number;
+}
+
+export function computeWeeklyMissionProgress(
+  mission: WeeklyMissionDefinition,
+  stats: Pick<WeeklyMissionStats, "distinctDaysPlayedThisWeek" | "distinctSongsPlayedThisWeek">
+): MissionProgress | null {
+  if (!mission.progress) return null;
+  return { current: Math.min(stats[mission.progress.statKey], mission.progress.target), target: mission.progress.target };
+}
 
 export const WEEKLY_MISSION_ALL_CLEAR_BONUS_COINS = 70;
 const WEEKLY_ALL_CLEAR_CODE = "__weekly_all_clear__";

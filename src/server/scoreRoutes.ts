@@ -11,10 +11,12 @@ import {
   unlockMany,
   type Achievement,
 } from "./achievements.js";
-import { toUtcDateString, toUtcWeekStart } from "./economy.js";
+import { toServerDateString, toServerWeekStart } from "./economy.js";
 import {
+  WEEKLY_MISSIONS,
   completeMissionsForToday,
   completeWeeklyMissions,
+  computeWeeklyMissionProgress,
   evaluateScoreSubmissionMissions,
   evaluateScoreSubmissionWeeklyMissions,
   gatherDailyMissionStats,
@@ -111,7 +113,7 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
       unlockedAchievements = await unlockMany(user.id, evaluateScoreSubmissionUnlocks(stats));
     }
 
-    const today = toUtcDateString();
+    const today = toServerDateString();
     const missionStats = await gatherDailyMissionStats(
       user.id,
       { songId, failed: isFailedSubmission, stars: isFailedSubmission ? 0 : stars!, priorStars },
@@ -123,13 +125,18 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
       today
     );
 
-    const weekStart = toUtcWeekStart();
+    const weekStart = toServerWeekStart();
     const weeklyStats = await gatherWeeklyMissionStats(user.id, weekStart, isFailedSubmission);
     const weeklyResult = await completeWeeklyMissions(
       user.id,
       evaluateScoreSubmissionWeeklyMissions(weeklyStats),
       weekStart
     );
+
+    const weeklyMissionProgress = WEEKLY_MISSIONS.map((mission) => ({
+      code: mission.code,
+      progress: computeWeeklyMissionProgress(mission, weeklyStats),
+    })).filter((entry) => entry.progress !== null);
 
     sendJson(res, 200, {
       ok: true,
@@ -141,6 +148,7 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
         allClearBonusAwarded: missionResult.allClearBonusAwarded,
         completedWeeklyMissions: weeklyResult.completed,
         weeklyAllClearBonusAwarded: weeklyResult.allClearBonusAwarded,
+        weeklyMissionProgress,
       },
     });
     return true;

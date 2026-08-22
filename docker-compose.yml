@@ -6,6 +6,7 @@ services:
     environment:
       - PORT=${PORT:-5511}
       - SONGS_DIR=/songs
+      - TIME_ZONE=${TIME_ZONE:-UTC}
       - DATABASE_URL=${DATABASE_URL:-}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - SESSION_SECRET=${SESSION_SECRET:-}

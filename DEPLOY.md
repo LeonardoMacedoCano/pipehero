@@ -52,6 +52,7 @@ deploy as a test, not as something guaranteed.
 | `PORT` | `.env` | `5511` | Port the server listens on inside the container |
 | `PIPEHERO_SOURCE_PATH` | `.env` | `.` | Build context — only needed if `docker-compose.yml` lives somewhere other than the source code (e.g. Unraid's `appdata` layout) |
 | `SONGS_DIR` | inside the container (already fixed in `docker-compose.yml`) | `/songs` | No need to touch — it's the internal mount point |
+| `TIME_ZONE` | `.env` | `UTC` | IANA time zone (e.g. `America/Sao_Paulo`) used for when daily/weekly missions and the login streak roll over. Invalid values fall back to `UTC` with a warning in the server log |
 | `DATABASE_URL` | `.env` | unset (login disabled) | Connection string of your **existing** Postgres server — see "Login with Google" below |
 | `GOOGLE_CLIENT_ID` | `.env` | unset (login disabled) | OAuth Client ID from Google Cloud Console — see "Login with Google" below |
 | `SESSION_SECRET` | `.env` | unset (login disabled) | Random secret used to sign the session cookie — see "Login with Google" below |
