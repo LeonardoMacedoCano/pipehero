@@ -4,7 +4,7 @@ import { RailTabsNav, type RailTabsNavItem } from "lcano-react-ui";
 import type { MenuScreenName } from "./navigation.js";
 import AppFooter from "./AppFooter.js";
 import PlayerStatusControl from "./PlayerStatusControl.js";
-import { DESKTOP_LAYOUT_MEDIA_QUERY, MOBILE_LAYOUT_MEDIA_QUERY } from "../../responsive.js";
+import { DESKTOP_LAYOUT_MEDIA_QUERY, LANDSCAPE_MEDIA_QUERY, MOBILE_LAYOUT_MEDIA_QUERY } from "../../responsive.js";
 
 const RAIL_WIDTH = 76;
 const TAB_BAR_HEIGHT = 64;
@@ -72,6 +72,11 @@ const PlayerStatusSlot = styled.div`
   top: 16px;
   right: 16px;
   z-index: 20;
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    top: 8px;
+    right: 8px;
+  }
 `;
 
 const Screen = styled.div`
@@ -84,6 +89,11 @@ const Screen = styled.div`
   background:
     radial-gradient(circle at 50% -10%, ${({ theme }) => theme.colors.secondary} 0%, ${({ theme }) => theme.colors.primary} 55%, ${({ theme }) => theme.colors.black} 100%),
     repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0px, rgba(255, 255, 255, 0.025) 2px, transparent 2px, transparent 8px);
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    gap: 8px;
+    padding: 8px clamp(12px, 4vw, 32px);
+  }
 `;
 
 const ContentArea = styled.div`

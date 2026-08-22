@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useMessage } from "lcano-react-ui";
 import styled from "styled-components";
 import { cylinderGradientHorizontal } from "../../pipeStyles.js";
+import { LANDSCAPE_MEDIA_QUERY } from "../../responsive.js";
 
 export default function GameModeCard({
   title,
@@ -49,12 +50,18 @@ const Card = styled.button`
   display: flex;
   flex-direction: column;
   gap: 8px;
-  flex: 0 1 220px;
+  flex: 0 1 clamp(130px, 42vw, 220px);
   max-width: 240px;
   transition: transform 0.15s ease;
 
   &:hover {
     transform: translateY(-2px);
+  }
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    flex-basis: 150px;
+    max-width: 150px;
+    gap: 4px;
   }
 `;
 
@@ -112,4 +119,8 @@ const Cta = styled.div<{ $locked: boolean }>`
   letter-spacing: 0.04em;
   color: ${({ theme }) => theme.colors.white};
   background-color: ${({ theme, $locked }) => (($locked ? theme.colors.secondary : theme.colors.quaternary))};
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    padding: 5px;
+  }
 `;

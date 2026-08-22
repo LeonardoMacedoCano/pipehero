@@ -1,6 +1,8 @@
+import { useMediaQuery } from "lcano-react-ui";
 import styled from "styled-components";
 import { getBackgroundOption } from "../../cosmetics/backgroundCatalog.js";
 import { getTagOption } from "../../cosmetics/tagCatalog.js";
+import { LANDSCAPE_MEDIA_QUERY } from "../../responsive.js";
 import AvatarBadge from "./AvatarBadge.js";
 
 export interface ProfileHeaderProps {
@@ -24,10 +26,15 @@ export default function ProfileHeader({
 }: ProfileHeaderProps) {
   const backgroundCss = equippedBackgroundId ? getBackgroundOption(equippedBackgroundId)?.css : undefined;
   const tag = equippedTagId ? getTagOption(equippedTagId) : undefined;
+  const isLandscapePhone = useMediaQuery(LANDSCAPE_MEDIA_QUERY);
 
   return (
     <Wrapper $backgroundCss={backgroundCss} $borderRadius={borderRadius}>
-      <AvatarBadge equippedAvatarId={equippedAvatarId} equippedBorderId={equippedBorderId} size={64} />
+      <AvatarBadge
+        equippedAvatarId={equippedAvatarId}
+        equippedBorderId={equippedBorderId}
+        size={isLandscapePhone ? 40 : 64}
+      />
       {showName && <Name>{name}</Name>}
       {tag && <TagPill>{tag.label}</TagPill>}
     </Wrapper>
@@ -42,6 +49,11 @@ const Wrapper = styled.div<{ $backgroundCss?: string; $borderRadius: string }>`
   padding: 16px;
   border-radius: ${({ $borderRadius }) => $borderRadius};
   ${({ $backgroundCss }) => $backgroundCss ?? ""}
+
+  @media ${LANDSCAPE_MEDIA_QUERY} {
+    padding: 8px;
+    gap: 4px;
+  }
 `;
 
 const Name = styled.span`
