@@ -40,6 +40,7 @@ try {
   const { findOrCreateUser, createSession, signValue } = await import("../../src/server/session.js");
   const { query } = await import("../../src/server/db.js");
   const { toServerDateString, toServerWeekStart } = await import("../../src/server/economy.js");
+  const { selectDailyMissions } = await import("../../src/server/missions.js");
 
   const userA = await findOrCreateUser({
     sub: `economy-test-a-${Date.now()}`,
@@ -110,6 +111,9 @@ try {
   checks.push({ name: "userA's coin balance matches the streak-only awards granted so far", ok: userAFinalCheckin.coins === userAExpectedCoins });
 
   // --- Daily gameplay missions (userB), and proving the all-clear needs the login too ---
+  const userBActiveMissions = selectDailyMissions(userB.id, toServerDateString()).map((m) => m.code);
+  checks.push({ name: "userB has exactly 3 gameplay missions drawn from the daily pool", ok: userBActiveMissions.length === 3 });
+
   const failScoreRes = await fetch(`${BASE_URL}/api/scores`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookieB },
@@ -117,37 +121,46 @@ try {
   });
   const failScoreBody = await failScoreRes.json();
   const failCompletedCodes: string[] = (failScoreBody.economy?.completedMissions ?? []).map((m: { code: string }) => m.code);
-  checks.push({ name: "a failed run only completes play_any_song", ok: failCompletedCodes.length === 1 && failCompletedCodes.includes("play_any_song") });
+  checks.push({ name: "a failed run on a fresh day completes no daily gameplay missions", ok: failCompletedCodes.length === 0 });
 
   const score1Res = await fetch(`${BASE_URL}/api/scores`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookieB },
-    body: JSON.stringify({ songId: "economy-test-song-1", difficulty: "Medium", stars: 5, fullCombo: false, maxCombo: 10, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+    body: JSON.stringify({ songId: "economy-test-song-1", difficulty: "Expert", stars: 5, fullCombo: true, maxCombo: 999, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
   });
   const score1Body = await score1Res.json();
   const score1Codes: string[] = (score1Body.economy?.completedMissions ?? []).map((m: { code: string }) => m.code);
-  checks.push({
-    name: "a 5-star finish on a never-starred song completes three_star_song/first_star_new_song (no_fail_finish and three_distinct_songs moved to weekly)",
-    ok: ["three_star_song", "first_star_new_song"].every((code) => score1Codes.includes(code)),
-  });
-  checks.push({ name: "moved-to-weekly codes never appear in a daily completedMissions list", ok: !score1Codes.includes("no_fail_finish") && !score1Codes.includes("three_distinct_songs") });
-  checks.push({
-    name: "the daily all-clear does NOT fire yet — 3 gameplay missions done, but userB hasn't checked in (logged in) today",
-    ok: score1Body.economy?.allClearBonusAwarded === false,
-  });
 
-  const score1RepeatRes = await fetch(`${BASE_URL}/api/scores`, {
+  const score2Res = await fetch(`${BASE_URL}/api/scores`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookieB },
-    body: JSON.stringify({ songId: "economy-test-song-1", difficulty: "Medium", stars: 5, fullCombo: false, maxCombo: 10, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+    body: JSON.stringify({ songId: "economy-test-song-2", difficulty: "Expert", stars: 5, fullCombo: true, maxCombo: 999, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
   });
-  const score1RepeatBody = await score1RepeatRes.json();
-  checks.push({ name: "resubmitting the same score does not repeat any daily mission", ok: (score1RepeatBody.economy?.completedMissions ?? []).length === 0 });
+  const score2Body = await score2Res.json();
+  const score2Codes: string[] = (score2Body.economy?.completedMissions ?? []).map((m: { code: string }) => m.code);
+
+  const combinedCompletedCodes = new Set([...score1Codes, ...score2Codes]);
+  checks.push({
+    name: "the two flawless runs together complete exactly userB's 3 active daily missions",
+    ok: userBActiveMissions.every((code) => combinedCompletedCodes.has(code)) && combinedCompletedCodes.size === userBActiveMissions.length,
+  });
+  checks.push({
+    name: "the daily all-clear does NOT fire yet — 3 gameplay missions done, but userB hasn't checked in (logged in) today",
+    ok: score1Body.economy?.allClearBonusAwarded === false && score2Body.economy?.allClearBonusAwarded === false,
+  });
+
+  const score2RepeatRes = await fetch(`${BASE_URL}/api/scores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieB },
+    body: JSON.stringify({ songId: "economy-test-song-2", difficulty: "Expert", stars: 5, fullCombo: true, maxCombo: 999, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  });
+  const score2RepeatBody = await score2RepeatRes.json();
+  checks.push({ name: "resubmitting the same score does not repeat any daily mission", ok: (score2RepeatBody.economy?.completedMissions ?? []).length === 0 });
 
   const userBCheckinRes = await fetch(`${BASE_URL}/api/economy/checkin`, { method: "POST", headers: { Cookie: cookieB } });
   const userBCheckin = await userBCheckinRes.json();
   checks.push({
-    name: "checking in as the 4th and final piece of the day triggers the daily all-clear bonus",
+    name: "checking in as the final piece of the day triggers the daily all-clear bonus",
     ok: userBCheckin.allClearCompletedToday === true,
   });
 
@@ -186,55 +199,68 @@ try {
     }
   }
 
-  // 1 seeded day + today's submission (1st distinct song, not failed) = 2 distinct days, 1 distinct song, no-fail
   await seedWeeklyPlayDays(nonTodayWeekDates.slice(0, 1));
   const weekly1Res = await fetch(`${BASE_URL}/api/scores`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookieD },
-    body: JSON.stringify({ songId: "economy-test-weekly-1", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+    body: JSON.stringify({ songId: "economy-test-weekly-1", difficulty: "Medium", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
   });
   const weekly1Body = await weekly1Res.json();
   const weekly1Codes: string[] = (weekly1Body.economy?.completedWeeklyMissions ?? []).map((m: { code: string }) => m.code);
   checks.push({
-    name: "2 distinct play days + a non-failed run completes weekly_play_2_days and weekly_no_fail_finish, not the higher tiers yet",
-    ok: new Set(weekly1Codes).size === 2 && weekly1Codes.includes("weekly_play_2_days") && weekly1Codes.includes("weekly_no_fail_finish"),
+    name: "2 distinct play days completes weekly_play_2_days only, not the higher tiers or skill missions yet",
+    ok: weekly1Codes.length === 1 && weekly1Codes.includes("weekly_play_2_days"),
   });
 
-  // +2 seeded days = 4 distinct days this week (2nd distinct song, no_fail_finish already claimed)
   await seedWeeklyPlayDays(nonTodayWeekDates.slice(1, 3));
   const weekly2Res = await fetch(`${BASE_URL}/api/scores`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookieD },
-    body: JSON.stringify({ songId: "economy-test-weekly-2", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+    body: JSON.stringify({ songId: "economy-test-weekly-2", difficulty: "Medium", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
   });
   const weekly2Body = await weekly2Res.json();
   const weekly2Codes: string[] = (weekly2Body.economy?.completedWeeklyMissions ?? []).map((m: { code: string }) => m.code);
   checks.push({ name: "4 distinct play days this week newly completes weekly_play_4_days only", ok: weekly2Codes.length === 1 && weekly2Codes.includes("weekly_play_4_days") });
 
-  // +2 seeded days = 6 distinct days, 3rd distinct song -> completes the top tier, the song-variety mission, and the weekly all-clear
-  await seedWeeklyPlayDays(nonTodayWeekDates.slice(3, 5));
   const weekly3Res = await fetch(`${BASE_URL}/api/scores`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookieD },
-    body: JSON.stringify({ songId: "economy-test-weekly-3", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+    body: JSON.stringify({ songId: "economy-test-weekly-3", difficulty: "Expert", stars: 3, fullCombo: false, maxCombo: 20, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
   });
   const weekly3Body = await weekly3Res.json();
   const weekly3Codes: string[] = (weekly3Body.economy?.completedWeeklyMissions ?? []).map((m: { code: string }) => m.code);
-  checks.push({
-    name: "6 distinct play days and a 3rd distinct song newly complete weekly_play_6_days and weekly_three_distinct_songs together",
-    ok: weekly3Codes.includes("weekly_play_6_days") && weekly3Codes.includes("weekly_three_distinct_songs"),
-  });
-  checks.push({ name: "completing all 5 weekly missions triggers the weekly all-clear bonus exactly once", ok: weekly3Body.economy?.weeklyAllClearBonusAwarded === true });
+  checks.push({ name: "an Expert clear without failing newly completes weekly_hard_expert_no_fail only", ok: weekly3Codes.length === 1 && weekly3Codes.includes("weekly_hard_expert_no_fail") });
 
   const weekly4Res = await fetch(`${BASE_URL}/api/scores`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookieD },
-    body: JSON.stringify({ songId: "economy-test-weekly-4", difficulty: "Easy", stars: 1, fullCombo: false, maxCombo: 5, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+    body: JSON.stringify({ songId: "economy-test-weekly-4", difficulty: "Medium", stars: 3, fullCombo: true, maxCombo: 50, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
   });
   const weekly4Body = await weekly4Res.json();
+  const weekly4Codes: string[] = (weekly4Body.economy?.completedWeeklyMissions ?? []).map((m: { code: string }) => m.code);
+  checks.push({ name: "a full combo run with only 4 distinct days newly completes weekly_full_combo_once only", ok: weekly4Codes.length === 1 && weekly4Codes.includes("weekly_full_combo_once") });
+  checks.push({ name: "the weekly all-clear does NOT fire yet — weekly_play_6_days still needs 6 distinct days", ok: weekly4Body.economy?.weeklyAllClearBonusAwarded === false });
+
+  await seedWeeklyPlayDays(nonTodayWeekDates.slice(3, 5));
+  const weekly5Res = await fetch(`${BASE_URL}/api/scores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieD },
+    body: JSON.stringify({ songId: "economy-test-weekly-5", difficulty: "Medium", stars: 3, fullCombo: true, maxCombo: 50, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  });
+  const weekly5Body = await weekly5Res.json();
+  const weekly5Codes: string[] = (weekly5Body.economy?.completedWeeklyMissions ?? []).map((m: { code: string }) => m.code);
+  checks.push({ name: "6 distinct play days with a full combo run newly completes weekly_play_6_days only", ok: weekly5Codes.length === 1 && weekly5Codes.includes("weekly_play_6_days") });
+  checks.push({ name: "completing all 5 weekly missions triggers the weekly all-clear bonus exactly once", ok: weekly5Body.economy?.weeklyAllClearBonusAwarded === true });
+
+  const weekly6Res = await fetch(`${BASE_URL}/api/scores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieD },
+    body: JSON.stringify({ songId: "economy-test-weekly-6", difficulty: "Expert", stars: 3, fullCombo: true, maxCombo: 50, starPowerPhraseBroken: [], minRockMeter: 100, failed: false, isLateNight: false }),
+  });
+  const weekly6Body = await weekly6Res.json();
   checks.push({
     name: "no weekly mission or all-clear bonus repeats once every weekly mission is already done",
-    ok: (weekly4Body.economy?.completedWeeklyMissions ?? []).length === 0 && weekly4Body.economy?.weeklyAllClearBonusAwarded === false,
+    ok: (weekly6Body.economy?.completedWeeklyMissions ?? []).length === 0 && weekly6Body.economy?.weeklyAllClearBonusAwarded === false,
   });
 
   const weeklyCheckinRes = await fetch(`${BASE_URL}/api/economy/checkin`, { method: "POST", headers: { Cookie: cookieD } });

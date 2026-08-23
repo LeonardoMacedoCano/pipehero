@@ -16,11 +16,12 @@ import {
   WEEKLY_MISSIONS,
   completeMissionsForToday,
   completeWeeklyMissions,
-  computeWeeklyMissionProgress,
+  computeMissionProgress,
   evaluateScoreSubmissionMissions,
   evaluateScoreSubmissionWeeklyMissions,
   gatherDailyMissionStats,
   gatherWeeklyMissionStats,
+  selectDailyMissions,
 } from "./missions.js";
 import { DIFFICULTY_ORDER } from "../engine/availableTracks.js";
 import type { Difficulty } from "../types.js";
@@ -116,17 +117,34 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
     const today = toServerDateString();
     const missionStats = await gatherDailyMissionStats(
       user.id,
-      { songId, failed: isFailedSubmission, stars: isFailedSubmission ? 0 : stars!, priorStars },
+      {
+        songId,
+        difficulty,
+        failed: isFailedSubmission,
+        stars: isFailedSubmission ? 0 : stars!,
+        priorStars,
+        fullCombo: Boolean(fullCombo),
+      },
       today
     );
+    const todaysMissions = selectDailyMissions(user.id, today);
+    const activeMissionCodes = new Set(todaysMissions.map((mission) => mission.code));
     const missionResult = await completeMissionsForToday(
       user.id,
-      evaluateScoreSubmissionMissions(missionStats),
+      evaluateScoreSubmissionMissions(missionStats, activeMissionCodes),
       today
     );
 
+    const dailyMissionProgress = todaysMissions
+      .map((mission) => ({ code: mission.code, progress: computeMissionProgress(mission, missionStats) }))
+      .filter((entry) => entry.progress !== null);
+
     const weekStart = toServerWeekStart();
-    const weeklyStats = await gatherWeeklyMissionStats(user.id, weekStart, isFailedSubmission);
+    const weeklyStats = await gatherWeeklyMissionStats(user.id, weekStart, {
+      failed: isFailedSubmission,
+      isHardOrExpert: missionStats.isHardOrExpert,
+      fullCombo: missionStats.fullCombo,
+    });
     const weeklyResult = await completeWeeklyMissions(
       user.id,
       evaluateScoreSubmissionWeeklyMissions(weeklyStats),
@@ -135,7 +153,7 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
 
     const weeklyMissionProgress = WEEKLY_MISSIONS.map((mission) => ({
       code: mission.code,
-      progress: computeWeeklyMissionProgress(mission, weeklyStats),
+      progress: computeMissionProgress(mission, weeklyStats),
     })).filter((entry) => entry.progress !== null);
 
     sendJson(res, 200, {
@@ -146,6 +164,7 @@ export async function handleScoreRequest(req: IncomingMessage, res: ServerRespon
         coinsAwarded: missionResult.coinsAwarded + weeklyResult.coinsAwarded,
         completedMissions: missionResult.completed,
         allClearBonusAwarded: missionResult.allClearBonusAwarded,
+        dailyMissionProgress,
         completedWeeklyMissions: weeklyResult.completed,
         weeklyAllClearBonusAwarded: weeklyResult.allClearBonusAwarded,
         weeklyMissionProgress,

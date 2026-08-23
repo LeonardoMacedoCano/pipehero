@@ -111,6 +111,18 @@ export default function MissionsPage() {
                         <MissionText>
                           <MissionName>{mission.name}</MissionName>
                           <MissionDescription>{mission.description}</MissionDescription>
+                          {mission.progress && !mission.completed ? (
+                            <MissionProgressRow>
+                              <MissionProgressBar>
+                                <MissionProgressFill
+                                  style={{ width: `${(mission.progress.current / mission.progress.target) * 100}%` }}
+                                />
+                              </MissionProgressBar>
+                              <MissionProgressLabel>
+                                {mission.progress.current}/{mission.progress.target}
+                              </MissionProgressLabel>
+                            </MissionProgressRow>
+                          ) : null}
                         </MissionText>
                         <MissionReward>+{mission.rewardCoins}</MissionReward>
                         <StatusBadge $completed={mission.completed}>{mission.completed ? "✓ Done" : "Pending"}</StatusBadge>
@@ -215,7 +227,7 @@ export default function MissionsPage() {
                     </DetailRow>
                   )}
 
-                  {selectedMission.kind === "weekly" && selectedMission.mission.progress && (
+                  {selectedMission.mission.progress && (
                     <DetailRow>
                       <DetailLabel>Progress</DetailLabel>
                       <MissionProgressRow style={{ marginTop: 0, flex: 1 }}>
