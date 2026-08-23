@@ -14,11 +14,11 @@ export interface EconomyMission {
   icon: string;
   rewardCoins: number;
   completed: boolean;
+  progress: MissionProgress | null;
 }
 
 export interface EconomyWeeklyMission extends EconomyMission {
   tier: "small" | "medium" | "large";
-  progress: MissionProgress | null;
 }
 
 interface EconomySnapshot {
@@ -55,6 +55,7 @@ export interface ScoreEconomyResult {
   coinsAwarded: number;
   completedMissions: Array<{ code: string; name: string; description: string; icon: string; rewardCoins: number }>;
   allClearBonusAwarded: boolean;
+  dailyMissionProgress: Array<{ code: string; progress: MissionProgress | null }>;
   completedWeeklyMissions: Array<{ code: string; name: string; description: string; icon: string; rewardCoins: number }>;
   weeklyAllClearBonusAwarded: boolean;
   weeklyMissionProgress: Array<{ code: string; progress: MissionProgress | null }>;
@@ -142,17 +143,23 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
   const applyScoreEconomyResult = useCallback((result: ScoreEconomyResult) => {
     setSnapshot((prev) => {
       const completedCodes = new Set(result.completedMissions.map((mission) => mission.code));
+      const dailyProgressByCode = new Map(result.dailyMissionProgress.map((entry) => [entry.code, entry.progress]));
       const completedWeeklyCodes = new Set(result.completedWeeklyMissions.map((mission) => mission.code));
-      const progressByCode = new Map(result.weeklyMissionProgress.map((entry) => [entry.code, entry.progress]));
+      const weeklyProgressByCode = new Map(result.weeklyMissionProgress.map((entry) => [entry.code, entry.progress]));
       return {
         ...prev,
         coins: result.coins,
-        missionsToday: prev.missionsToday.map((mission) =>
-          completedCodes.has(mission.code) ? { ...mission, completed: true } : mission
-        ),
+        missionsToday: prev.missionsToday.map((mission) => {
+          const progress = dailyProgressByCode.get(mission.code);
+          return {
+            ...mission,
+            completed: mission.completed || completedCodes.has(mission.code),
+            progress: progress !== undefined ? progress : mission.progress,
+          };
+        }),
         allClearCompletedToday: prev.allClearCompletedToday || result.allClearBonusAwarded,
         missionsThisWeek: prev.missionsThisWeek.map((mission) => {
-          const progress = progressByCode.get(mission.code);
+          const progress = weeklyProgressByCode.get(mission.code);
           return {
             ...mission,
             completed: mission.completed || completedWeeklyCodes.has(mission.code),

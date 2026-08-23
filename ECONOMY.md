@@ -53,41 +53,55 @@ day, on that first login.
 
 ## Daily missions
 
-Alongside the login, 3 more missions are available every day. "Day" and
-"week" for every mission and the login streak follow a single server
-time zone — `TIME_ZONE` in `.env`, `UTC` if unset — the same for every
-player regardless of where they connect from; it's **not** each
-player's own local time zone. Both the Daily and Weekly tab show a live
-countdown to the next reset (also visible per-mission in its details
-popup). Completing everything — the login plus all 3 — pays out an
-all-clear bonus of **20 coins**.
+Alongside the login, 3 more missions are available every day, drawn
+from a larger pool of 7 possible gameplay missions. Which 3 show up is
+picked deterministically from your account and the current date — the
+same 3 all day, different (usually) from yesterday's, and different
+from other players' — so the game doesn't ask the same easy thing every
+single day. "Day" and "week" for every mission and the login streak
+follow a single server time zone — `TIME_ZONE` in `.env`, `UTC` if
+unset — the same for every player regardless of where they connect
+from; it's **not** each player's own local time zone. Both the Daily
+and Weekly tab show a live countdown to the next reset (also visible
+per-mission in its details popup). Completing everything — the login
+plus the 3 missions drawn for the day — pays out an all-clear bonus of
+**20 coins**.
 
 | | Mission | How to complete | Coins |
 |---|---|---|---|
 | 🔥 | Daily Login | Open the game today. | Scales with your streak (see above) |
-| 🎵 | Warm Up | Play any song to the end today, win or lose. | 10 |
-| ⭐ | Solid Performance | Score at least 3 stars on a song today. | 15 |
+| 🎵 | Warm Up | Finish a song today without failing. | 10 |
+| ⭐ | Solid Performance | Score at least 4 stars on a song today. | 15 |
 | 🆕 | New Territory | Star a song/difficulty you'd never starred before. | 20 |
+| 🔥 | Step It Up | Finish a song on Hard or Expert difficulty without failing. | 20 |
+| 🎼 | Triple Session | Play 3 different songs today. | 20 |
+| 🌟 | Perfectionist | Score a perfect 5 stars on a song today. | 25 |
+| 💯 | Flawless Run | Full combo a song today without failing. | 25 |
 
-Completing a mission pops up a toast immediately, the same way
-unlocking an achievement does.
+Triple Session shows an X/Y progress readout under its description
+until it's complete. Completing a mission pops up a toast immediately,
+the same way unlocking an achievement does.
 
 ## Weekly missions
 
 Alongside the daily set, 5 missions reset every Sunday (same server
-time zone as above) and stay available all week, across three tiers.
-Completing all 5 in the same week also pays out an all-clear bonus of
-**70 coins**.
+time zone as above) and stay available all week, across three tiers,
+fixed (no draw — unlike the daily pool above, everyone sees the same 5
+every week). The small tier can be cleared either way — show up on a
+second day, or land one great session — while medium raises the bar on
+each of those paths separately, and the large mission pushes the days-
+played ladder to its top. Completing all 5 in the same week also pays
+out an all-clear bonus of **70 coins**.
 
 | | Mission | Tier | How to complete | Coins |
 |---|---|---|---|---|
-| 🎯 | Clean Finish | Small | Finish a song without failing at least once this week. | 30 |
-| 🎶 | Mixing It Up | Small | Play 3 different songs this week. | 30 |
 | 🗓️ | Stopping By | Small | Play on 2 different days this week. | 30 |
+| 💯 | One Clean Take | Small | Full combo any song, at some point this week. | 30 |
 | 📅 | Regular Visitor | Medium | Play on 4 different days this week. | 60 |
+| 🔥 | Raising The Bar | Medium | Finish a song on Hard or Expert difficulty without failing, at some point this week. | 60 |
 | 🏅 | Weekly Dedication | Large | Play on 6 different days this week. | 120 |
 
-The 4 missions above that count something (songs or days) show an X/Y
-progress readout under their description until they're complete.
+The missions above that count days played show an X/Y progress readout
+under their description until they're complete.
 
 Same as daily missions: a toast pops up when you complete one.

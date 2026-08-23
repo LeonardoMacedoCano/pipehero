@@ -4,17 +4,20 @@ import { getRequestUser } from "./requestUser.js";
 import { applyLoginStreak, computeStreakCoinReward, getServerTimeZone, toServerDateString, toServerWeekStart } from "./economy.js";
 import {
   DAILY_LOGIN_CODE,
-  DAILY_MISSIONS,
+  DAILY_MISSIONS_PER_DAY,
   DAILY_MISSION_ALL_CLEAR_BONUS_COINS,
+  DAILY_MISSION_POOL,
   WEEKLY_MISSIONS,
   WEEKLY_MISSION_ALL_CLEAR_BONUS_COINS,
-  computeWeeklyMissionProgress,
+  computeMissionProgress,
   gatherWeeklyMissionStats,
   getCompletedMissionCodesForToday,
   getCompletedWeeklyMissionCodesForWeek,
+  getDailyMissionProgressStats,
   isAllClearCode,
   isWeeklyAllClearCode,
   recordDailyLoginCompletion,
+  selectDailyMissions,
 } from "./missions.js";
 
 function emptyEconomySnapshot() {
@@ -35,15 +38,20 @@ function emptyEconomySnapshot() {
         description: "Log in to start (or keep) your streak.",
         rewardCoins: 5,
         completed: false,
+        progress: null,
       },
-      ...DAILY_MISSIONS.map((mission) => ({ ...mission, completed: false })),
+      ...DAILY_MISSION_POOL.slice(0, DAILY_MISSIONS_PER_DAY).map((mission) => ({
+        ...mission,
+        completed: false,
+        progress: computeMissionProgress(mission, { distinctSongsPlayedToday: 0 }),
+      })),
     ],
     allClearBonusCoins: DAILY_MISSION_ALL_CLEAR_BONUS_COINS,
     allClearCompletedToday: false,
     missionsThisWeek: WEEKLY_MISSIONS.map((mission) => ({
       ...mission,
       completed: false,
-      progress: computeWeeklyMissionProgress(mission, { distinctDaysPlayedThisWeek: 0, distinctSongsPlayedThisWeek: 0 }),
+      progress: computeMissionProgress(mission, { distinctDaysPlayedThisWeek: 0 }),
     })),
     weeklyAllClearBonusCoins: WEEKLY_MISSION_ALL_CLEAR_BONUS_COINS,
     weeklyAllClearCompletedThisWeek: false,
@@ -64,9 +72,10 @@ export async function handleEconomyRequest(req: IncomingMessage, res: ServerResp
     const today = toServerDateString();
     const loginResult = await recordDailyLoginCompletion(user.id, today);
     const completedCodes = await getCompletedMissionCodesForToday(user.id, today);
+    const dailyProgressStats = await getDailyMissionProgressStats(user.id, today);
     const weekStart = toServerWeekStart();
     const completedWeeklyCodes = await getCompletedWeeklyMissionCodesForWeek(user.id, weekStart);
-    const weeklyStats = await gatherWeeklyMissionStats(user.id, weekStart, false);
+    const weeklyStats = await gatherWeeklyMissionStats(user.id, weekStart, { failed: false, isHardOrExpert: false, fullCombo: false });
 
     const loginMission = {
       code: DAILY_LOGIN_CODE,
@@ -75,6 +84,7 @@ export async function handleEconomyRequest(req: IncomingMessage, res: ServerResp
       description: `Open the game today to keep your streak going (day ${streakResult.state.currentStreak}).`,
       rewardCoins: computeStreakCoinReward(streakResult.state.currentStreak).total,
       completed: true,
+      progress: null,
     };
 
     sendJson(res, 200, {
@@ -88,14 +98,18 @@ export async function handleEconomyRequest(req: IncomingMessage, res: ServerResp
       milestoneHit: streakResult.milestoneHit,
       missionsToday: [
         loginMission,
-        ...DAILY_MISSIONS.map((mission) => ({ ...mission, completed: completedCodes.has(mission.code) })),
+        ...selectDailyMissions(user.id, today).map((mission) => ({
+          ...mission,
+          completed: completedCodes.has(mission.code),
+          progress: computeMissionProgress(mission, dailyProgressStats),
+        })),
       ],
       allClearBonusCoins: DAILY_MISSION_ALL_CLEAR_BONUS_COINS,
       allClearCompletedToday: [...completedCodes].some(isAllClearCode),
       missionsThisWeek: WEEKLY_MISSIONS.map((mission) => ({
         ...mission,
         completed: completedWeeklyCodes.has(mission.code),
-        progress: computeWeeklyMissionProgress(mission, weeklyStats),
+        progress: computeMissionProgress(mission, weeklyStats),
       })),
       weeklyAllClearBonusCoins: WEEKLY_MISSION_ALL_CLEAR_BONUS_COINS,
       weeklyAllClearCompletedThisWeek: [...completedWeeklyCodes].some(isWeeklyAllClearCode),
