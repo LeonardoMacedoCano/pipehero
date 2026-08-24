@@ -63,6 +63,13 @@ npm run dev
 Opens `http://localhost:5511` with 2 synthetic test songs already
 included — no need for real content to try it out.
 
+Want to try it with your own Clone Hero songs instead? Point
+`SONGS_DIR` at a local folder:
+
+```
+SONGS_DIR=/path/to/your/songs npm run dev
+```
+
 ## More info
 
 | I want to... | See |
