@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { ToastStack, ToastStackProvider, useToastStack, type ToastStackItem } from "lcano-react-ui";
 
 export interface UnlockedAchievement {
@@ -11,8 +12,8 @@ export { ToastStackProvider as AchievementToastProvider };
 
 export function useAchievementToast(): { notify: (achievements: UnlockedAchievement[]) => void } {
   const { notify } = useToastStack();
-  return {
-    notify: (achievements) =>
+  const notifyAchievements = useCallback(
+    (achievements: UnlockedAchievement[]) =>
       notify(
         achievements.map((achievement) => ({
           icon: achievement.icon,
@@ -21,7 +22,9 @@ export function useAchievementToast(): { notify: (achievements: UnlockedAchievem
           description: achievement.description,
         }))
       ),
-  };
+    [notify]
+  );
+  return { notify: notifyAchievements };
 }
 
 export function AchievementToastStack({ onView }: { onView: (item: ToastStackItem) => void }) {
