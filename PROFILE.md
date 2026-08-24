@@ -1,7 +1,8 @@
 # Profile
 
 Beyond themes and effects (see [`SETTINGS.md`](./SETTINGS.md#appearance-themes)), the **🛍️ Shop**
-sells 6 more cosmetic categories — none of them are free, all of them are bought with coins (see
+(how the page itself works — categories, pagination, preview — is in
+[`SETTINGS.md`](./SETTINGS.md#shop)) sells 6 more cosmetic categories — none of them are free, all of them are bought with coins (see
 [`ECONOMY.md`](./ECONOMY.md)). These equip either **right there in the Shop** (an owned item shows
 an "Equip" button; equip it again to unequip) or from the **Customize** tab of your own **🪪
 Profile** screen — same mechanics, whichever's handy. Avatar, border, background and player tag
