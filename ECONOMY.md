@@ -4,7 +4,8 @@ Coins require being **logged in with Google** — see
 [`SETTINGS.md`](./SETTINGS.md#account). Everything below is tracked per
 account; playing while logged out doesn't earn anything.
 
-Spend coins in the **🛍️ Shop** page on paid themes and effects — see
+Spend coins in the **🛍️ Shop** page (how the page itself works — categories, pagination,
+preview — is in [`SETTINGS.md`](./SETTINGS.md#shop)) on paid themes and effects — see
 [`SETTINGS.md`](./SETTINGS.md#appearance-themes) for what's free vs. paid and how much each
 costs — plus profile cosmetics (avatar, border, background, player tag, achievement frame,
 achievement effect) — see [`PROFILE.md`](./PROFILE.md).
