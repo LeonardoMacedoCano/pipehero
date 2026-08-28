@@ -36,7 +36,7 @@ let testUserId: number | null = null;
 let testSessionId: string | null = null;
 
 try {
-  const { findOrCreateUser, createSession, signValue, destroySession } = await import("../../src/server/session.js");
+  const { findOrCreateUser, createSession, signValue } = await import("../../src/server/session.js");
 
   const meRes = await fetch(`${BASE_URL}/api/auth/me`);
   const meBody = await meRes.json();

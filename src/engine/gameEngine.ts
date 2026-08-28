@@ -139,11 +139,6 @@ export function createGameEngine(
     return pending.some((event) => event.state === "pending" && Math.abs(event.time - time) <= windows.good);
   }
 
-  function isHighestForTarget(target: Fret): boolean {
-    if (!heldFrets.has(target)) return false;
-    return isHighestForChord([target]);
-  }
-
   function isHighestForChord(frets: readonly Fret[]): boolean {
     const targetRanks = frets.map((fret) => FRET_RANK[fret]).filter((rank): rank is number => rank !== undefined);
     const maxTargetRank = targetRanks.length > 0 ? Math.max(...targetRanks) : undefined;

@@ -298,7 +298,7 @@ export function useGamePlaythrough({
     if (!audio.paused || failedAtRef.current !== null) {
       rafRef.current = requestAnimationFrame(loop);
     }
-  }, [notes, noteByKey, pauseAllAudio]);
+  }, [notes, noteByKey, starPowerPhrases, pauseAllAudio]);
 
   const start = useCallback(async () => {
     const audioElements = audioElementsRef.current.filter((el): el is HTMLAudioElement => el !== null);
