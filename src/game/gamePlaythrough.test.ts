@@ -21,7 +21,7 @@ function note(overrides: Partial<Note> = {}): Note {
 
 test("pressFret uses the audio time converted by the offset, not the raw time", () => {
   const notes = [note({ time: 5.0, fret: 0 })];
-  let fakeAudioTime = 4.0;
+  const fakeAudioTime = 4.0;
   const playthrough = createPlaythrough({
     notes,
     offsetSeconds: 1.0,
@@ -35,7 +35,7 @@ test("pressFret uses the audio time converted by the offset, not the raw time", 
 
 test("tick() marks an automatic miss when the audio clock passes the window", () => {
   const notes = [note({ time: 5.0, fret: 0 })];
-  let fakeAudioTime = 5.5;
+  const fakeAudioTime = 5.5;
   const playthrough = createPlaythrough({ notes, getAudioTime: () => fakeAudioTime });
 
   const { newlyMissed } = playthrough.tick();
@@ -69,7 +69,7 @@ test("full simulation: advance the clock and press each note at the right time",
 
 test("a chord (two notes flattened at the same time) is grouped and judged as a single event", () => {
   const notes = [note({ time: 1.0, fret: 0, isChord: true }), note({ time: 1.0, fret: 2, isChord: true })];
-  let fakeAudioTime = 1.0;
+  const fakeAudioTime = 1.0;
   const playthrough = createPlaythrough({ notes, getAudioTime: () => fakeAudioTime });
 
   const first = playthrough.pressFret(0);
@@ -98,7 +98,7 @@ test("sustain: releaseFret before the end drops it through the playthrough layer
 
 test("custom windows reach the engine: an input that would be unmatched on Expert becomes a hit on Easy", () => {
   const notes = [note({ time: 1.0, fret: 0 })];
-  let fakeAudioTime = 1.12;
+  const fakeAudioTime = 1.12;
   const playthrough = createPlaythrough({
     notes,
     getAudioTime: () => fakeAudioTime,

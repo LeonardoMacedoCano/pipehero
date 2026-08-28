@@ -66,13 +66,14 @@ decision that lets almost everything be tested without a browser.
 |---|---|
 | `npm run dev` | Development server (Vite), port 5511 |
 | `npm run typecheck` | Checks types for the whole project (`tsc --noEmit`) |
+| `npm run lint` | ESLint (`eslint .`) — TypeScript correctness rules + React hooks rules for `src/ui/` |
 | `npm run build` | Builds the production version: frontend in `dist/` + compiled server in `server-dist/` |
 | `npm start` | Runs the production server (needs a build first) |
 | `npm test` | Unit tests (`node --test`, via `tsx`) |
 | `npm run test:integration` | Integration tests (real server, real render, simulated DOM) |
-| `npm run test:all` | Both of the above |
+| `npm run test:all` | `typecheck` + `lint` + `test` + `test:integration`, in that order |
 | `npm run generate-dev-song` | Generates/regenerates the synthetic placeholder songs |
 | `npm run generate-test-chart` | Generates/regenerates the complex synthetic chart used in tests (`test/fixtures/synthetic-complex.chart`) |
 
-CI (`.github/workflows/test.yml`) runs `typecheck` + `test:all` on
-every push/PR to `main`.
+CI (`.github/workflows/test.yml`) runs `typecheck`, `lint`, the
+production build and `test:integration` on every push/PR to `main`.
