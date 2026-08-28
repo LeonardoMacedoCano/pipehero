@@ -1,34 +1,12 @@
-import { readFile } from "node:fs/promises";
-import { extname, join, normalize, resolve } from "node:path";
+import { resolve } from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { listSongs } from "./src/server/songLibrary.js";
-import { handleAuthRequest } from "./src/server/authRoutes.js";
-import { handleScoreRequest } from "./src/server/scoreRoutes.js";
-import { handleFriendsRequest } from "./src/server/friendsRoutes.js";
-import { handleSettingsRequest } from "./src/server/settingsRoutes.js";
-import { handleEconomyRequest } from "./src/server/economyRoutes.js";
-import { handleShopRequest } from "./src/server/shopRoutes.js";
+import { handleApiRequest } from "./src/server/apiDispatch.js";
+import { serveSongAsset } from "./src/server/songAssets.js";
 import { runMigrations } from "./src/server/migrate.js";
-import { isInsideDir } from "./src/server/pathGuard.js";
 import packageJson from "./package.json" with { type: "json" };
-
-const MIME_TYPES: Record<string, string> = {
-  ".chart": "text/plain; charset=utf-8",
-  ".ini": "text/plain; charset=utf-8",
-  ".mid": "audio/midi",
-  ".wav": "audio/wav",
-  ".ogg": "audio/ogg",
-  ".opus": "audio/ogg",
-  ".mp3": "audio/mpeg",
-  ".flac": "audio/flac",
-  ".m4a": "audio/mp4",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".webp": "image/webp",
-};
 
 function songsMiddlewarePlugin(songsDir: string): Plugin {
   return {
@@ -37,29 +15,7 @@ function songsMiddlewarePlugin(songsDir: string): Plugin {
       void runMigrations();
 
       server.middlewares.use(async (req: IncomingMessage, res: ServerResponse, next) => {
-        if (req.url?.startsWith("/api/auth/")) {
-          if (await handleAuthRequest(req, res)) return;
-        }
-
-        if (req.url?.startsWith("/api/scores") || req.url?.startsWith("/api/achievements")) {
-          if (await handleScoreRequest(req, res)) return;
-        }
-
-        if (req.url?.startsWith("/api/friends") || req.url?.startsWith("/api/leaderboard")) {
-          if (await handleFriendsRequest(req, res)) return;
-        }
-
-        if (req.url?.startsWith("/api/settings/")) {
-          if (await handleSettingsRequest(req, res)) return;
-        }
-
-        if (req.url?.startsWith("/api/economy")) {
-          if (await handleEconomyRequest(req, res)) return;
-        }
-
-        if (req.url?.startsWith("/api/shop")) {
-          if (await handleShopRequest(req, res)) return;
-        }
+        if (await handleApiRequest(req, res)) return;
 
         if (req.url === "/api/songs") {
           const songs = await listSongs(songsDir);
@@ -69,21 +25,7 @@ function songsMiddlewarePlugin(songsDir: string): Plugin {
         }
 
         if (req.url?.startsWith("/songs/")) {
-          const relPath = decodeURIComponent(req.url.slice("/songs/".length));
-          const filePath = normalize(join(songsDir, relPath));
-          if (!isInsideDir(filePath, songsDir)) {
-            res.writeHead(403);
-            res.end("Forbidden");
-            return;
-          }
-          try {
-            const data = await readFile(filePath);
-            res.setHeader("Content-Type", MIME_TYPES[extname(filePath)] ?? "application/octet-stream");
-            res.end(data);
-          } catch {
-            res.writeHead(404);
-            res.end("Not found");
-          }
+          await serveSongAsset(req, res, songsDir);
           return;
         }
 
