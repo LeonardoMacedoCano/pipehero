@@ -224,6 +224,8 @@ export async function gatherScoreSubmissionStats(
 }
 
 export async function computeGlobalUnlockPercents(): Promise<Map<string, number>> {
+  if (!process.env.DATABASE_URL) return new Map();
+
   const [{ count: totalUsers }] = await query<{ count: string }>("SELECT COUNT(*)::int AS count FROM users");
   const total = Number(totalUsers);
 
