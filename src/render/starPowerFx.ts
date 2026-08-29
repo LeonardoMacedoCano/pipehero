@@ -1,10 +1,20 @@
 import { highwayEdgeX, type RenderConfig } from "./layout.js";
-import type { CanvasLike2D } from "./canvasLike.js";
+import type { CanvasGradientLike, CanvasLike2D } from "./canvasLike.js";
 import { dropPath } from "./dropShape.js";
 import { hexToRgbTriplet, lighten } from "./colorUtils.js";
 import { clamp01, lerp } from "./mathUtils.js";
 
 export const STAR_POWER_BOLT_CORE_COLOR = "#f6efff";
+
+const rgbTripletCache = new Map<string, string>();
+function cachedRgbTriplet(hex: string): string {
+  let triplet = rgbTripletCache.get(hex);
+  if (triplet === undefined) {
+    triplet = hexToRgbTriplet(hex);
+    rgbTripletCache.set(hex, triplet);
+  }
+  return triplet;
+}
 
 export function pseudoRandom(seed: number): number {
   const x = Math.sin(seed * 12.9898) * 43758.5453;
@@ -326,44 +336,68 @@ function drawCrackleBolt(
 
 export const STAR_POWER_GLOW_PULSE_HZ = 3.2;
 
+const GLOW_RADIUS_BUCKET_PX = 1;
+const auraGradientCache = new Map<string, CanvasGradientLike>();
+
 export function drawStarPowerDropAura(ctx: CanvasLike2D, glowColor: string, x: number, y: number, radius: number, currentTime: number): void {
   const pulse = 0.7 + 0.3 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2);
-  const glowRgb = hexToRgbTriplet(glowColor);
-  const auraRadius = radius * 1.9;
-  const aura = ctx.createRadialGradient(x, y, 0, x, y, auraRadius);
-  aura.addColorStop(0, `rgba(${glowRgb}, ${0.32 * pulse})`);
-  aura.addColorStop(0.55, `rgba(${glowRgb}, ${0.13 * pulse})`);
-  aura.addColorStop(1, `rgba(${glowRgb}, 0)`);
-  ctx.globalAlpha = 1;
+  const bucket = Math.max(GLOW_RADIUS_BUCKET_PX, Math.round(radius / GLOW_RADIUS_BUCKET_PX) * GLOW_RADIUS_BUCKET_PX);
+  const auraRadius = bucket * 1.9;
+  const key = `${glowColor}|${bucket}`;
+  let aura = auraGradientCache.get(key);
+  if (!aura) {
+    const glowRgb = cachedRgbTriplet(glowColor);
+    aura = ctx.createRadialGradient(0, 0, 0, 0, 0, auraRadius);
+    aura.addColorStop(0, `rgba(${glowRgb}, 0.32)`);
+    aura.addColorStop(0.55, `rgba(${glowRgb}, 0.13)`);
+    aura.addColorStop(1, `rgba(${glowRgb}, 0)`);
+    auraGradientCache.set(key, aura);
+  }
+  ctx.globalAlpha = pulse;
   ctx.fillStyle = aura;
+  ctx.translate(x, y);
   ctx.beginPath();
-  ctx.arc(x, y, auraRadius, 0, Math.PI * 2);
+  ctx.arc(0, 0, auraRadius, 0, Math.PI * 2);
   ctx.fill();
+  ctx.translate(-x, -y);
+  ctx.globalAlpha = 1;
 }
+
+const haloGradientCache = new Map<string, { bloom: CanvasGradientLike; ring: CanvasGradientLike; bloomRadius: number; ringOuter: number }>();
 
 export function drawStarPowerDropHalo(ctx: CanvasLike2D, glowColor: string, x: number, y: number, radius: number, currentTime: number): void {
   const pulse = 0.75 + 0.25 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2);
-  const glowRgb = hexToRgbTriplet(glowColor);
-  const ringRgb = hexToRgbTriplet(lighten(glowColor, 0.2));
+  const bucket = Math.max(GLOW_RADIUS_BUCKET_PX, Math.round(radius / GLOW_RADIUS_BUCKET_PX) * GLOW_RADIUS_BUCKET_PX);
+  const key = `${glowColor}|${bucket}`;
+  let entry = haloGradientCache.get(key);
+  if (!entry) {
+    const glowRgb = cachedRgbTriplet(glowColor);
+    const ringRgb = cachedRgbTriplet(lighten(glowColor, 0.2));
+    const bloomRadius = bucket * 2.6;
+    const bloom = ctx.createRadialGradient(0, 0, bucket, 0, 0, bloomRadius);
+    bloom.addColorStop(0, `rgba(${glowRgb}, 0.3)`);
+    bloom.addColorStop(1, `rgba(${glowRgb}, 0)`);
+    const ringOuter = bucket * 1.4;
+    const ring = ctx.createRadialGradient(0, 0, bucket * 1.02, 0, 0, ringOuter);
+    ring.addColorStop(0, `rgba(${ringRgb}, 0.85)`);
+    ring.addColorStop(1, `rgba(${ringRgb}, 0)`);
+    entry = { bloom, ring, bloomRadius, ringOuter };
+    haloGradientCache.set(key, entry);
+  }
 
-  const bloomRadius = radius * 2.6;
-  const bloom = ctx.createRadialGradient(x, y, radius, x, y, bloomRadius);
-  bloom.addColorStop(0, `rgba(${glowRgb}, ${0.3 * pulse})`);
-  bloom.addColorStop(1, `rgba(${glowRgb}, 0)`);
+  ctx.translate(x, y);
+  ctx.globalAlpha = pulse;
+  ctx.fillStyle = entry.bloom;
+  ctx.beginPath();
+  ctx.arc(0, 0, entry.bloomRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = entry.ring;
+  ctx.beginPath();
+  ctx.arc(0, 0, entry.ringOuter, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.translate(-x, -y);
   ctx.globalAlpha = 1;
-  ctx.fillStyle = bloom;
-  ctx.beginPath();
-  ctx.arc(x, y, bloomRadius, 0, Math.PI * 2);
-  ctx.fill();
-
-  const ringOuter = radius * 1.4;
-  const ring = ctx.createRadialGradient(x, y, radius * 1.02, x, y, ringOuter);
-  ring.addColorStop(0, `rgba(${ringRgb}, ${0.85 * pulse})`);
-  ring.addColorStop(1, `rgba(${ringRgb}, 0)`);
-  ctx.fillStyle = ring;
-  ctx.beginPath();
-  ctx.arc(x, y, ringOuter, 0, Math.PI * 2);
-  ctx.fill();
 }
 
 export function drawStarPowerDropRim(ctx: CanvasLike2D, glowColor: string, x: number, y: number, radius: number, currentTime: number): void {
@@ -432,6 +466,36 @@ export const STAR_POWER_COLLECT_DURATION_SECONDS = 0.5;
 const STAR_POWER_COLLECT_BOLT_COUNT: number = 5;
 const STAR_POWER_COLLECT_FLASH_DURATION_SECONDS = 0.16;
 
+interface CollectBoltShape {
+  startXOffsetRatio: number;
+  local: BoltPoint[];
+  forkLocal: BoltPoint[] | null;
+}
+const collectBoltShapeCache = new Map<string, CollectBoltShape>();
+
+function getCollectBoltShape(boltCount: number, i: number): CollectBoltShape {
+  const key = `${boltCount}|${i}`;
+  const cached = collectBoltShapeCache.get(key);
+  if (cached) return cached;
+
+  const seed = i * 41.3;
+  const spread = boltCount === 1 ? 0 : (i / (boltCount - 1)) * 2 - 1;
+  const baseAngle = -Math.PI / 2 + spread * 0.4 + (pseudoRandom(seed + 5) - 0.5) * 0.3;
+  const displacementRatio = 0.2 + pseudoRandom(seed + 12) * 0.1;
+  const local = jaggedBoltPath(0, 0, baseAngle, 1, seed, displacementRatio, 4);
+
+  let forkLocal: BoltPoint[] | null = null;
+  if (pseudoRandom(seed + 13.1) > 0.4 && local.length > 2) {
+    const forkOrigin = local[Math.floor(local.length / 2)];
+    const forkAngle = baseAngle + (pseudoRandom(seed + 27.4) - 0.5) * 1.6;
+    forkLocal = jaggedBoltPath(forkOrigin.x, forkOrigin.y, forkAngle, 0.4, seed + 60, 0.22, 3);
+  }
+
+  const shape: CollectBoltShape = { startXOffsetRatio: spread * 1.2, local, forkLocal };
+  collectBoltShapeCache.set(key, shape);
+  return shape;
+}
+
 export function drawStarPowerCollectBurst(
   ctx: CanvasLike2D,
   glowColor: string,
@@ -459,16 +523,14 @@ export function drawStarPowerCollectBurst(
   }
 
   const boltCount = Math.max(1, Math.round(STAR_POWER_COLLECT_BOLT_COUNT * richness));
+  const alpha = (1 - fadeT) * 0.95;
   for (let i = 0; i < boltCount; i++) {
     const seed = i * 41.3;
-    const spread = boltCount === 1 ? 0 : (i / (boltCount - 1)) * 2 - 1;
-    const startX = x + spread * config.noteMaxRadius * 1.2;
-    const baseAngle = -Math.PI / 2 + spread * 0.4 + (pseudoRandom(seed + 5) - 0.5) * 0.3;
+    const shape = getCollectBoltShape(boltCount, i);
+    const startX = x + shape.startXOffsetRatio * config.noteMaxRadius;
     const length = travel * growT * (0.85 + pseudoRandom(seed + 8.2) * 0.3);
-    const displacementRatio = 0.2 + pseudoRandom(seed + 12) * 0.1;
-    const alpha = (1 - fadeT) * 0.95;
 
-    const points = jaggedBoltPath(startX, y, baseAngle, length, seed, displacementRatio, 4);
+    const points = shape.local.map((p) => ({ x: startX + p.x * length, y: y + p.y * length }));
     strokeBoltPath(
       ctx,
       glowColor,
@@ -481,10 +543,8 @@ export function drawStarPowerCollectBurst(
       0.7
     );
 
-    if (pseudoRandom(seed + 13.1) > 0.4 && points.length > 2) {
-      const forkOrigin = points[Math.floor(points.length / 2)];
-      const forkAngle = baseAngle + (pseudoRandom(seed + 27.4) - 0.5) * 1.6;
-      const forkPoints = jaggedBoltPath(forkOrigin.x, forkOrigin.y, forkAngle, length * 0.4, seed + 60, 0.22, 3);
+    if (shape.forkLocal) {
+      const forkPoints = shape.forkLocal.map((p) => ({ x: startX + p.x * length, y: y + p.y * length }));
       strokeBoltPath(
         ctx,
         glowColor,

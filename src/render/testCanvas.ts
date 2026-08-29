@@ -4,15 +4,18 @@ export function fakeCtx(): CanvasLike2D & {
   fillStyles: unknown[];
   arcCalls: { x: number; y: number; radius: number }[];
   lineToCalls: { x: number; y: number }[];
+  translateNet: { x: number; y: number };
 } {
   const fillStyles: unknown[] = [];
   const arcCalls: { x: number; y: number; radius: number }[] = [];
   const lineToCalls: { x: number; y: number }[] = [];
+  const translateNet = { x: 0, y: 0 };
   const gradient = { addColorStop() {} };
   return {
     fillStyles,
     arcCalls,
     lineToCalls,
+    translateNet,
     lineWidth: 0,
     lineCap: "butt",
     lineJoin: "miter",
@@ -25,6 +28,10 @@ export function fakeCtx(): CanvasLike2D & {
     },
     set fillStyle(value: unknown) {
       fillStyles.push(value);
+    },
+    translate(x: number, y: number) {
+      translateNet.x += x;
+      translateNet.y += y;
     },
     createLinearGradient: () => gradient,
     createRadialGradient: () => gradient,
