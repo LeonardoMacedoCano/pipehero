@@ -70,6 +70,24 @@ test("drawFrame sparks a note that falls inside an unbroken star power phrase", 
   );
 });
 
+test("drawFrame caps how many notes spark per frame in a dense star power phrase", () => {
+  const phrase = [{ startTime: 0, endTime: 3 }];
+  const makeNotes = (n: number) => Array.from({ length: n }, (_, i) => note({ id: i, time: 0.85 + i * 0.02, fret: (i % 5) as Note["fret"] }));
+
+  const sparkCost = (notes: Note[]) => {
+    const withPhrase = fakeCtx();
+    drawFrame(withPhrase, notes, 0.9, RENDER_CONFIG, undefined, undefined, undefined, undefined, null, undefined, COLORS, false, phrase);
+    const withoutPhrase = fakeCtx();
+    drawFrame(withoutPhrase, notes, 0.9, RENDER_CONFIG, undefined, undefined, undefined, undefined, null, undefined, COLORS, false, []);
+    return withPhrase.lineToCalls.length - withoutPhrase.lineToCalls.length;
+  };
+
+  const costFew = sparkCost(makeNotes(5));
+  const costMany = sparkCost(makeNotes(14));
+  assert.ok(costFew > 0, "a handful of phrase notes should still spark");
+  assert.ok(costMany <= costFew * 1.15, `14 phrase notes must not cost much more spark work than 5 (got ${costMany} vs ${costFew})`);
+});
+
 test("drawFrame doesn't spark a note outside any star power phrase", () => {
   const notes = [note({ time: 1 })];
 

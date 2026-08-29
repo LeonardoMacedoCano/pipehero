@@ -9,6 +9,7 @@ import {
   drawAmbientLightningBolts,
   drawStarPowerCollectBurst,
   drawStarPowerDropAura,
+  drawStarPowerDropHalo,
   drawStarPowerDropRim,
   drawStarPowerDropRimCheap,
   drawStarPowerSparks,
@@ -78,6 +79,25 @@ test("drawStarPowerDropAura and drawStarPowerDropRim do not throw", () => {
   const ctx = fakeCtx();
   assert.doesNotThrow(() => drawStarPowerDropAura(ctx, GLOW_COLOR, 10, 10, 20, 0.5));
   assert.doesNotThrow(() => drawStarPowerDropRim(ctx, GLOW_COLOR, 10, 10, 20, 0.5));
+});
+
+test("drawStarPowerDropAura and drawStarPowerDropHalo leave the canvas transform where they found it", () => {
+  const ctx = fakeCtx();
+  drawStarPowerDropAura(ctx, GLOW_COLOR, 137, 421, 22, 0.5);
+  drawStarPowerDropHalo(ctx, GLOW_COLOR, 88, 260, 18, 0.9);
+  drawStarPowerDropAura(ctx, GLOW_COLOR, 44, 900, 31, 1.7);
+  assert.equal(ctx.translateNet.x, 0);
+  assert.equal(ctx.translateNet.y, 0);
+});
+
+test("drawStarPowerCollectBurst grows one cached bolt shape over time instead of re-rolling it", () => {
+  const early = fakeCtx();
+  const late = fakeCtx();
+  drawStarPowerCollectBurst(early, GLOW_COLOR, 200, 600, RENDER_CONFIG, 0.12);
+  drawStarPowerCollectBurst(late, GLOW_COLOR, 200, 600, RENDER_CONFIG, 0.45);
+  assert.equal(early.lineToCalls.length, late.lineToCalls.length, "same vertex count each frame (shape cached, only scaled)");
+  const reach = (ctx: ReturnType<typeof fakeCtx>) => Math.max(...ctx.lineToCalls.map((p) => Math.hypot(p.x - 200, p.y - 600)));
+  assert.ok(reach(late) > reach(early), "the later frame's bolts reach further from the origin");
 });
 
 test("drawStarPowerDropRimCheap does not throw and never touches shadowBlur", () => {
