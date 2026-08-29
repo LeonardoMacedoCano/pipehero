@@ -23,4 +23,14 @@ export interface CanvasLike2D {
   bezierCurveTo(cp1x: number, cp1y: number, cp2x: number, cp2y: number, x: number, y: number): void;
   fill(): void;
   stroke(): void;
+  drawImage(image: CanvasImageSourceLike, dx: number, dy: number, dw: number, dh: number): void;
 }
+
+export type CanvasImageSourceLike = unknown;
+
+export interface SpriteCanvasLike {
+  source: CanvasImageSourceLike;
+  ctx: CanvasLike2D;
+}
+
+export type CreateSpriteCanvas = (sizePx: number) => SpriteCanvasLike | null;

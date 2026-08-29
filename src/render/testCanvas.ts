@@ -42,5 +42,6 @@ export function fakeCtx(): CanvasLike2D & {
     bezierCurveTo() {},
     fill() {},
     stroke() {},
+    drawImage() {},
   };
 }

@@ -6,6 +6,7 @@ export interface GraphicsSettings {
   boltCountMultiplier: number;
   maxDevicePixelRatio: number;
   intenseDropStyle: "full" | "tint";
+  dropRimGlowStyle: "shadow" | "layered";
 }
 
 export const DEFAULT_GRAPHICS_QUALITY: GraphicsQuality = "medium";
@@ -17,6 +18,7 @@ const GRAPHICS_SETTINGS_BY_QUALITY: Record<GraphicsQuality, GraphicsSettings> = 
     boltCountMultiplier: 1,
     maxDevicePixelRatio: 1.5,
     intenseDropStyle: "tint",
+    dropRimGlowStyle: "layered",
   },
   medium: {
     lightningEffectsEnabled: true,
@@ -24,6 +26,7 @@ const GRAPHICS_SETTINGS_BY_QUALITY: Record<GraphicsQuality, GraphicsSettings> = 
     boltCountMultiplier: 1,
     maxDevicePixelRatio: 2,
     intenseDropStyle: "full",
+    dropRimGlowStyle: "shadow",
   },
   high: {
     lightningEffectsEnabled: true,
@@ -31,6 +34,7 @@ const GRAPHICS_SETTINGS_BY_QUALITY: Record<GraphicsQuality, GraphicsSettings> = 
     boltCountMultiplier: 1.5,
     maxDevicePixelRatio: Infinity,
     intenseDropStyle: "full",
+    dropRimGlowStyle: "shadow",
   },
 };
 
