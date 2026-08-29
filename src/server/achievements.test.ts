@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   ACHIEVEMENTS,
+  computeGlobalUnlockPercents,
   evaluateCompareUnlocks,
   evaluateFailureUnlocks,
   evaluateFriendAcceptedUnlocks,
@@ -211,4 +212,15 @@ test("every code produced by the evaluators exists in the catalog", () => {
     ...evaluateShopPurchaseUnlocks("vanity_nepoBaby"),
   ];
   for (const code of produced) assert.ok(CODES.has(code), `unknown achievement code: ${code}`);
+});
+
+test("computeGlobalUnlockPercents returns an empty map instead of touching the database when DATABASE_URL isn't set", async () => {
+  const original = process.env.DATABASE_URL;
+  delete process.env.DATABASE_URL;
+  try {
+    const percents = await computeGlobalUnlockPercents();
+    assert.equal(percents.size, 0);
+  } finally {
+    if (original !== undefined) process.env.DATABASE_URL = original;
+  }
 });
