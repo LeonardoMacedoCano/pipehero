@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ContextMessageProvider, type ToastStackItem } from "lcano-react-ui";
 import { ThemeControlProvider, useThemeControl } from "./contexts/theme/ThemeControlProvider.js";
+import { useGraphicsQuality } from "./hooks/useGraphicsQuality.js";
 import { AuthProvider } from "./hooks/useAuth.js";
 import { EconomyProvider } from "./hooks/useEconomy.js";
 import { ShopProvider } from "./hooks/useShop.js";
@@ -24,7 +25,8 @@ type Screen = { name: MenuScreenName } | { name: "game"; params: StartGameParams
 
 function AppGlobalStyles() {
   const { themeEffectId } = useThemeControl();
-  return <GlobalStyles $themeEffectId={themeEffectId} />;
+  const graphicsQuality = useGraphicsQuality();
+  return <GlobalStyles $themeEffectId={themeEffectId} $cheapEffects={graphicsQuality === "low"} />;
 }
 
 export default function App() {
