@@ -2,7 +2,7 @@ import { createGlobalStyle } from "styled-components";
 import { themeEffectCss } from "./themes/effectStyles.js";
 import { LANDSCAPE_MEDIA_QUERY, MOBILE_LAYOUT_MEDIA_QUERY } from "./responsive.js";
 
-export const GlobalStyles = createGlobalStyle<{ $themeEffectId: string }>`
+export const GlobalStyles = createGlobalStyle<{ $themeEffectId: string; $cheapEffects: boolean }>`
   * {
     margin: 0;
     padding: 0;
@@ -39,5 +39,6 @@ export const GlobalStyles = createGlobalStyle<{ $themeEffectId: string }>`
     background: none;
   }
 
-  ${({ $themeEffectId }) => themeEffectCss($themeEffectId, { selector: "#root", bloomPosition: "fixed", bloomZIndex: 40 })}
+  ${({ $themeEffectId, $cheapEffects }) =>
+    themeEffectCss($themeEffectId, { selector: "#root", bloomPosition: "fixed", bloomZIndex: 40, cheapMode: $cheapEffects })}
 `;

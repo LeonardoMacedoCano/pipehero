@@ -4,6 +4,9 @@ import { parseChart } from "../../node_modules/parsehero/dist/index.js";
 import { loadTrack } from "../../src/engine/chartTrack.js";
 import { drawFrame } from "../../src/render/draw.js";
 import { RENDER_CONFIG, LANE_COLORS, noteRenderKey, highwayBuildConfig } from "../../src/render/layout.js";
+import type { CanvasLike2D } from "../../src/render/canvasLike.js";
+import { COLORS } from "../../src/colors.js";
+import { DEFAULT_GRAPHICS_QUALITY, graphicsSettingsFor } from "../../src/render/graphicsQuality.js";
 
 const OUT_DIR = "test/integration/screenshots";
 mkdirSync(OUT_DIR, { recursive: true });
@@ -79,6 +82,57 @@ for (const { dx, dy } of candidateOffsets) {
 checks.push({
   name: `some point near the edge of the 1st drop has the right lane color (expected ~${expectedHex}, last sample rgb(${lastSampled?.[0]},${lastSampled?.[1]},${lastSampled?.[2]}))`,
   ok: pixelMatches,
+});
+
+function createNodeSpriteCanvas(size: number): { source: unknown; ctx: CanvasLike2D } {
+  const spriteCanvas = createCanvas(size, size);
+  return { source: spriteCanvas, ctx: spriteCanvas.getContext("2d") as unknown as CanvasLike2D };
+}
+
+const spriteCacheCanvas = createCanvas(RENDER_CONFIG.canvasWidth, RENDER_CONFIG.canvasHeight);
+const spriteCacheCtx = spriteCacheCanvas.getContext("2d");
+const visibleViaSpriteCache = drawFrame(
+  spriteCacheCtx as unknown as CanvasLike2D,
+  notes,
+  firstNoteTime,
+  RENDER_CONFIG,
+  new Map(),
+  new Set(),
+  new Set(),
+  new Map(),
+  null,
+  new Map(),
+  COLORS,
+  false,
+  [],
+  [],
+  new Map(),
+  graphicsSettingsFor(DEFAULT_GRAPHICS_QUALITY),
+  createNodeSpriteCanvas
+);
+writeFileSync(`${OUT_DIR}/03b-first-note-via-sprite-cache.png`, spriteCacheCanvas.toBuffer("image/png"));
+const firstOnLineViaSpriteCache = visibleViaSpriteCache.find((n) => n.id === notes[0].id);
+let pixelMatchesViaSpriteCache = false;
+let lastSampledViaSpriteCache: Uint8ClampedArray | null = null;
+if (firstOnLineViaSpriteCache) {
+  for (const { dx, dy } of candidateOffsets) {
+    const sampleX = Math.round(firstOnLineViaSpriteCache.x + dx * firstOnLineViaSpriteCache.radius);
+    const sampleY = Math.round(firstOnLineViaSpriteCache.y + dy * firstOnLineViaSpriteCache.radius);
+    const sampled = spriteCacheCtx.getImageData(sampleX, sampleY, 1, 1).data;
+    lastSampledViaSpriteCache = sampled;
+    if (
+      Math.abs(sampled[0] - expectedRgb[0]) < 40 &&
+      Math.abs(sampled[1] - expectedRgb[1]) < 40 &&
+      Math.abs(sampled[2] - expectedRgb[2]) < 40
+    ) {
+      pixelMatchesViaSpriteCache = true;
+      break;
+    }
+  }
+}
+checks.push({
+  name: `sprite-cache render path also has the right lane color at the drop edge (expected ~${expectedHex}, last sample rgb(${lastSampledViaSpriteCache?.[0]},${lastSampledViaSpriteCache?.[1]},${lastSampledViaSpriteCache?.[2]}))`,
+  ok: pixelMatchesViaSpriteCache,
 });
 
 visible = drawFrame(ctx, notes, midNoteTime);

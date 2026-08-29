@@ -16,7 +16,7 @@ import {
 import { lighten, desaturate, mix } from "./colorUtils.js";
 import { COLORS, type Palette } from "../colors.js";
 import { phraseIndexAt } from "../engine/starPower.js";
-import type { CanvasGradientLike, CanvasLike2D } from "./canvasLike.js";
+import type { CanvasGradientLike, CanvasLike2D, CreateSpriteCanvas, SpriteCanvasLike } from "./canvasLike.js";
 import { dropPath } from "./dropShape.js";
 import { clamp01, lerp } from "./mathUtils.js";
 import { DEFAULT_GRAPHICS_QUALITY, graphicsSettingsFor, type GraphicsSettings } from "./graphicsQuality.js";
@@ -27,6 +27,7 @@ import {
   drawStarPowerDropAura,
   drawStarPowerDropHalo,
   drawStarPowerDropRim,
+  drawStarPowerDropRimCheap,
   drawStarPowerSparks,
   drawStarPowerHighwayWash,
   starPowerHighwayPulse,
@@ -442,6 +443,87 @@ function drawDrop(ctx: CanvasLike2D, x: number, y: number, radius: number, baseC
   applyGlossyShading(ctx, () => dropPath(ctx, x, y, radius), x, y, radius, baseColor, alpha);
 }
 
+function defaultCreateSpriteCanvas(sizePx: number): SpriteCanvasLike | null {
+  if (typeof document === "undefined") return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = sizePx;
+  canvas.height = sizePx;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  return { source: canvas, ctx: ctx as unknown as CanvasLike2D };
+}
+
+const DROP_SPRITE_SIZE_RATIO = 4;
+const DROP_SPRITE_CENTER_Y_RATIO = 0.55;
+
+interface DropSprite {
+  source: SpriteCanvasLike["source"];
+  size: number;
+  centerX: number;
+  centerY: number;
+  refRadius: number;
+}
+
+function renderDropSprite(createSpriteCanvas: CreateSpriteCanvas, color: string, refRadius: number): DropSprite | null {
+  const size = Math.max(1, Math.ceil(refRadius * DROP_SPRITE_SIZE_RATIO));
+  const sprite = createSpriteCanvas(size);
+  if (!sprite) return null;
+  const centerX = size / 2;
+  const centerY = size * DROP_SPRITE_CENTER_Y_RATIO;
+  drawDropShadow(sprite.ctx, centerX, centerY, refRadius, 1);
+  applyGlossyShading(sprite.ctx, () => dropPath(sprite.ctx, centerX, centerY, refRadius), centerX, centerY, refRadius, color, 1);
+  return { source: sprite.source, size, centerX, centerY, refRadius };
+}
+
+interface DropSpriteCache {
+  key: string;
+  sprites: Map<string, DropSprite | null>;
+}
+
+const dropSpriteCacheByCtx = new WeakMap<CanvasLike2D, DropSpriteCache>();
+
+function getDropSprite(
+  ctx: CanvasLike2D,
+  createSpriteCanvas: CreateSpriteCanvas,
+  cacheKey: string,
+  color: string,
+  refRadius: number
+): DropSprite | null {
+  let cache = dropSpriteCacheByCtx.get(ctx);
+  if (!cache || cache.key !== cacheKey) {
+    cache = { key: cacheKey, sprites: new Map() };
+    dropSpriteCacheByCtx.set(ctx, cache);
+  }
+  if (!cache.sprites.has(color)) {
+    cache.sprites.set(color, renderDropSprite(createSpriteCanvas, color, refRadius));
+  }
+  return cache.sprites.get(color) ?? null;
+}
+
+function drawDropCached(
+  ctx: CanvasLike2D,
+  createSpriteCanvas: CreateSpriteCanvas,
+  cacheKey: string,
+  x: number,
+  y: number,
+  radius: number,
+  refRadius: number,
+  color: string,
+  alpha: number
+): void {
+  if (alpha <= 0) return;
+  const sprite = getDropSprite(ctx, createSpriteCanvas, cacheKey, color, refRadius);
+  if (!sprite) {
+    drawDrop(ctx, x, y, radius, color, alpha);
+    return;
+  }
+  const scale = radius / sprite.refRadius;
+  const drawSize = sprite.size * scale;
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(sprite.source, x - sprite.centerX * scale, y - sprite.centerY * scale, drawSize, drawSize);
+  ctx.globalAlpha = 1;
+}
+
 const HOLD_SHAKE_FREQUENCY_HZ = 14;
 const HOLD_SHAKE_AMPLITUDE_RATIO = 0.06;
 
@@ -685,11 +767,13 @@ export function drawFrame(
   starPowerPhrases: StarPowerPhrase[] = EMPTY_STAR_POWER_PHRASES,
   starPowerPhraseBroken: readonly boolean[] = EMPTY_STAR_POWER_PHRASE_BROKEN,
   starPowerCollectAt: ReadonlyMap<string, number> = EMPTY_STAR_POWER_COLLECT_AT,
-  graphicsSettings: GraphicsSettings = graphicsSettingsFor(DEFAULT_GRAPHICS_QUALITY)
+  graphicsSettings: GraphicsSettings = graphicsSettingsFor(DEFAULT_GRAPHICS_QUALITY),
+  createSpriteCanvas: CreateSpriteCanvas = defaultCreateSpriteCanvas
 ): VisibleNote[] {
   const laneColors = laneColorsFor(palette);
   const intensity = intense ? 1.6 : 1;
   const frameStyles = getFrameInvariantStyles(ctx, config, palette, laneColors);
+  const dropSpriteCacheKey = String(config.noteMaxRadius);
 
   ctx.fillStyle = palette.canvasBackground;
   ctx.fillRect(0, 0, config.canvasWidth, config.canvasHeight);
@@ -847,8 +931,14 @@ export function drawFrame(
       const halfWidth = Math.abs(laneX(lastFret, progress, config) - laneX(firstFret, progress, config)) / 2;
       drawOpenNoteBar(ctx, note.x, note.y, halfWidth, note.radius * 0.7, color, alpha);
     } else {
-      drawDrop(ctx, note.x, note.y, note.radius, color, alpha);
-      if (noteGlowing) drawStarPowerDropRim(ctx, palette.info, note.x, note.y, note.radius, currentTime);
+      drawDropCached(ctx, createSpriteCanvas, dropSpriteCacheKey, note.x, note.y, note.radius, config.noteMaxRadius, color, alpha);
+      if (noteGlowing) {
+        if (graphicsSettings.dropRimGlowStyle === "layered") {
+          drawStarPowerDropRimCheap(ctx, palette.info, note.x, note.y, note.radius, currentTime);
+        } else {
+          drawStarPowerDropRim(ctx, palette.info, note.x, note.y, note.radius, currentTime);
+        }
+      }
     }
     if (inActiveStarPowerPhrase && graphicsSettings.lightningEffectsEnabled) {
       drawStarPowerSparks(ctx, palette.info, note.x, sparkOriginY, note.radius, currentTime, note.time, graphicsSettings.boltCountMultiplier);

@@ -10,6 +10,7 @@ import {
   drawStarPowerCollectBurst,
   drawStarPowerDropAura,
   drawStarPowerDropRim,
+  drawStarPowerDropRimCheap,
   drawStarPowerSparks,
   drawStarPowerHighwayWash,
   starPowerHighwayPulse,
@@ -77,6 +78,12 @@ test("drawStarPowerDropAura and drawStarPowerDropRim do not throw", () => {
   const ctx = fakeCtx();
   assert.doesNotThrow(() => drawStarPowerDropAura(ctx, GLOW_COLOR, 10, 10, 20, 0.5));
   assert.doesNotThrow(() => drawStarPowerDropRim(ctx, GLOW_COLOR, 10, 10, 20, 0.5));
+});
+
+test("drawStarPowerDropRimCheap does not throw and never touches shadowBlur", () => {
+  const ctx = fakeCtx();
+  assert.doesNotThrow(() => drawStarPowerDropRimCheap(ctx, GLOW_COLOR, 10, 10, 20, 0.5));
+  assert.equal(ctx.shadowBlur, 0);
 });
 
 test("drawStarPowerSparks does not throw", () => {

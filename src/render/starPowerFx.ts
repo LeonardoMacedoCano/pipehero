@@ -379,6 +379,30 @@ export function drawStarPowerDropRim(ctx: CanvasLike2D, glowColor: string, x: nu
   ctx.globalAlpha = 1;
 }
 
+export function drawStarPowerDropRimCheap(ctx: CanvasLike2D, glowColor: string, x: number, y: number, radius: number, currentTime: number): void {
+  const pulse = 0.7 + 0.3 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2 + 1.5);
+  const baseAlpha = 0.2 + 0.25 * pulse;
+
+  ctx.strokeStyle = glowColor;
+  ctx.globalAlpha = baseAlpha * 0.35;
+  ctx.lineWidth = Math.max(2, radius * 0.22);
+  dropPath(ctx, x, y, radius);
+  ctx.stroke();
+
+  ctx.globalAlpha = baseAlpha * 0.6;
+  ctx.lineWidth = Math.max(1.5, radius * 0.13);
+  dropPath(ctx, x, y, radius);
+  ctx.stroke();
+
+  ctx.strokeStyle = STAR_POWER_BOLT_CORE_COLOR;
+  ctx.globalAlpha = baseAlpha;
+  ctx.lineWidth = Math.max(1, radius * 0.07);
+  dropPath(ctx, x, y, radius);
+  ctx.stroke();
+
+  ctx.globalAlpha = 1;
+}
+
 const STAR_POWER_SPARK_COUNT = 3;
 const STAR_POWER_SPARK_ANGLE_SPREAD = Math.PI * 1.7;
 const STAR_POWER_SPARK_REROLL_HZ = 4.2;

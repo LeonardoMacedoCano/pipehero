@@ -9,6 +9,7 @@ import { getGraphicsQuality } from "../../render/graphicsQualityStore.js";
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
 import { playBooSound } from "../../audio/booSound.js";
+import { isAudioElementFormatSupported } from "../../audio/audioFormatSupport.js";
 import type { Palette } from "../../colors.js";
 import {
   fretForBinding,
@@ -122,6 +123,7 @@ export function useGamePlaythrough({
 
   const [hud, setHud] = useState<Hud>(INITIAL_HUD);
   const [needsTapToStart, setNeedsTapToStart] = useState(false);
+  const [audioUnsupported, setAudioUnsupported] = useState(false);
   const [phase, setPhase] = useState<GamePhase>("playing");
   const [results, setResults] = useState<GameState | null>(null);
 
@@ -238,11 +240,11 @@ export function useGamePlaythrough({
       }
     }
 
-    const state = playthrough.getState();
+    const state = playthrough.getFrameState();
     minRockMeterRef.current = Math.min(minRockMeterRef.current, state.rockMeter);
     if (state.failed && failedAtRef.current === null) {
       failedAtRef.current = performance.now();
-      resultsSnapshotRef.current = state;
+      resultsSnapshotRef.current = playthrough.getState();
       pauseAllAudio();
       playBooSound();
     }
@@ -322,6 +324,13 @@ export function useGamePlaythrough({
     minRockMeterRef.current = 100;
     setResults(null);
     setPhase("playing");
+
+    if (audioElements.some((audio) => !isAudioElementFormatSupported(audio))) {
+      setAudioUnsupported(true);
+      return;
+    }
+    setAudioUnsupported(false);
+
     try {
       await Promise.all(audioElements.map((audio) => audio.play()));
       setNeedsTapToStart(false);
@@ -337,6 +346,7 @@ export function useGamePlaythrough({
     stop();
     setHud(INITIAL_HUD);
     setNeedsTapToStart(false);
+    setAudioUnsupported(false);
     setPhase("playing");
     setResults(null);
 
@@ -510,6 +520,7 @@ export function useGamePlaythrough({
     getAudioRef,
     hud,
     needsTapToStart,
+    audioUnsupported,
     phase,
     results,
     minRockMeterRef,
