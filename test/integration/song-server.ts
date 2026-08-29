@@ -47,6 +47,12 @@ try {
   const indexRes = await fetch(`${BASE_URL}/index.html`);
   checks.push({ name: "/index.html responds 200", ok: indexRes.status === 200 });
 
+  const emojiRes = await fetch(`${BASE_URL}/emoji/1f525.svg`);
+  checks.push({
+    name: "vendored emoji SVG is served with an image/svg+xml content type",
+    ok: emojiRes.status === 200 && (emojiRes.headers.get("content-type") ?? "").includes("image/svg+xml"),
+  });
+
   const spaRes = await fetch(`${BASE_URL}/a-route-that-does-not-exist`);
   checks.push({ name: "unknown route falls back to SPA (200, index.html)", ok: spaRes.status === 200 });
 
