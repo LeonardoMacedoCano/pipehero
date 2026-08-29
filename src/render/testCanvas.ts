@@ -5,22 +5,38 @@ export function fakeCtx(): CanvasLike2D & {
   arcCalls: { x: number; y: number; radius: number }[];
   lineToCalls: { x: number; y: number }[];
   translateNet: { x: number; y: number };
+  maxShadowBlur: number;
+  drawImageCalls: number;
 } {
   const fillStyles: unknown[] = [];
   const arcCalls: { x: number; y: number; radius: number }[] = [];
   const lineToCalls: { x: number; y: number }[] = [];
   const translateNet = { x: 0, y: 0 };
+  const counters = { drawImage: 0 };
+  const shadow = { blur: 0, max: 0 };
   const gradient = { addColorStop() {} };
   return {
     fillStyles,
     arcCalls,
     lineToCalls,
     translateNet,
+    get maxShadowBlur() {
+      return shadow.max;
+    },
+    get drawImageCalls() {
+      return counters.drawImage;
+    },
     lineWidth: 0,
     lineCap: "butt",
     lineJoin: "miter",
     globalAlpha: 1,
-    shadowBlur: 0,
+    get shadowBlur() {
+      return shadow.blur;
+    },
+    set shadowBlur(value: number) {
+      shadow.blur = value;
+      if (value > shadow.max) shadow.max = value;
+    },
     shadowColor: "",
     strokeStyle: "",
     get fillStyle() {
@@ -49,6 +65,8 @@ export function fakeCtx(): CanvasLike2D & {
     bezierCurveTo() {},
     fill() {},
     stroke() {},
-    drawImage() {},
+    drawImage() {
+      counters.drawImage++;
+    },
   };
 }

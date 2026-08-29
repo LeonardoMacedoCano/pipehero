@@ -22,6 +22,7 @@ import { clamp01, lerp } from "./mathUtils.js";
 import { DEFAULT_GRAPHICS_QUALITY, graphicsSettingsFor, type GraphicsSettings } from "./graphicsQuality.js";
 import {
   STAR_POWER_COLLECT_DURATION_SECONDS,
+  STAR_POWER_HALO_RADIUS_RATIO,
   drawAmbientLightningBolts,
   drawStarPowerCollectBurst,
   drawStarPowerDropAura,
@@ -30,6 +31,7 @@ import {
   drawStarPowerDropRimCheap,
   drawStarPowerSparks,
   drawStarPowerHighwayWash,
+  starPowerGlowPulse,
   starPowerHighwayPulse,
 } from "./starPowerFx.js";
 
@@ -525,6 +527,59 @@ function drawDropCached(
   ctx.globalAlpha = 1;
 }
 
+type StarPowerGlowStyle = "aura" | "halo";
+const STAR_POWER_GLOW_SPRITE_SIZE_RATIO = (STAR_POWER_HALO_RADIUS_RATIO + 0.4) * 2;
+const starPowerGlowSpriteCacheByCtx = new WeakMap<CanvasLike2D, { key: string; sprites: Map<string, DropSprite | null> }>();
+
+function renderStarPowerGlowSprite(
+  createSpriteCanvas: CreateSpriteCanvas,
+  style: StarPowerGlowStyle,
+  glowColor: string,
+  refRadius: number
+): DropSprite | null {
+  const size = Math.max(1, Math.ceil(refRadius * STAR_POWER_GLOW_SPRITE_SIZE_RATIO));
+  const sprite = createSpriteCanvas(size);
+  if (!sprite) return null;
+  const center = size / 2;
+  if (style === "halo") drawStarPowerDropHalo(sprite.ctx, glowColor, center, center, refRadius, 1);
+  else drawStarPowerDropAura(sprite.ctx, glowColor, center, center, refRadius, 1);
+  return { source: sprite.source, size, centerX: center, centerY: center, refRadius };
+}
+
+function drawStarPowerDropGlowCached(
+  ctx: CanvasLike2D,
+  createSpriteCanvas: CreateSpriteCanvas,
+  cacheKey: string,
+  style: StarPowerGlowStyle,
+  x: number,
+  y: number,
+  radius: number,
+  refRadius: number,
+  glowColor: string,
+  pulse: number
+): void {
+  let cache = starPowerGlowSpriteCacheByCtx.get(ctx);
+  if (!cache || cache.key !== cacheKey) {
+    cache = { key: cacheKey, sprites: new Map() };
+    starPowerGlowSpriteCacheByCtx.set(ctx, cache);
+  }
+  const spriteKey = `${style}|${glowColor}`;
+  if (!cache.sprites.has(spriteKey)) {
+    cache.sprites.set(spriteKey, renderStarPowerGlowSprite(createSpriteCanvas, style, glowColor, refRadius));
+  }
+  const sprite = cache.sprites.get(spriteKey) ?? null;
+  if (!sprite) {
+    if (style === "halo") drawStarPowerDropHalo(ctx, glowColor, x, y, radius, pulse);
+    else drawStarPowerDropAura(ctx, glowColor, x, y, radius, pulse);
+    return;
+  }
+  const scale = radius / sprite.refRadius;
+  const drawSize = sprite.size * scale;
+  ctx.globalAlpha = pulse;
+  ctx.drawImage(sprite.source, x - sprite.centerX * scale, y - sprite.centerY * scale, drawSize, drawSize);
+  ctx.globalAlpha = 1;
+}
+
 const HOLD_SHAKE_FREQUENCY_HZ = 14;
 const HOLD_SHAKE_AMPLITUDE_RATIO = 0.06;
 
@@ -902,11 +957,18 @@ export function drawFrame(
     const sparkOriginY = note.y + note.radius * 0.1;
 
     if (noteGlowing) {
-      if (graphicsSettings.intenseDropStyle === "tint") {
-        drawStarPowerDropHalo(ctx, palette.info, note.x, note.y, note.radius, currentTime);
-      } else {
-        drawStarPowerDropAura(ctx, palette.info, note.x, note.y, note.radius, currentTime);
-      }
+      drawStarPowerDropGlowCached(
+        ctx,
+        createSpriteCanvas,
+        dropSpriteCacheKey,
+        graphicsSettings.intenseDropStyle === "tint" ? "halo" : "aura",
+        note.x,
+        note.y,
+        note.radius,
+        config.noteMaxRadius,
+        palette.info,
+        starPowerGlowPulse(currentTime)
+      );
     }
 
     const isSustain = note.fret !== 7 && note.duration > 0;
