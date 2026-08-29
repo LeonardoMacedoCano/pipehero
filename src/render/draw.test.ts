@@ -88,6 +88,19 @@ test("drawFrame caps how many notes spark per frame in a dense star power phrase
   assert.ok(costMany <= costFew * 1.15, `14 phrase notes must not cost much more spark work than 5 (got ${costMany} vs ${costFew})`);
 });
 
+test("drawFrame blits the Star Power drop glow from a cached sprite instead of re-filling gradients", () => {
+  const notes = [note({ time: 1 })];
+  const makeSpriteCanvas = () => ({ source: {}, ctx: fakeCtx() });
+
+  const glowing = fakeCtx();
+  drawFrame(glowing, notes, 0.9, RENDER_CONFIG, undefined, undefined, undefined, undefined, null, undefined, COLORS, true, [], [], undefined, undefined, makeSpriteCanvas);
+
+  const plain = fakeCtx();
+  drawFrame(plain, notes, 0.9, RENDER_CONFIG, undefined, undefined, undefined, undefined, null, undefined, COLORS, false, [], [], undefined, undefined, makeSpriteCanvas);
+
+  assert.equal(glowing.drawImageCalls, plain.drawImageCalls + 1, "the Star Power glow adds exactly one sprite blit");
+});
+
 test("drawFrame doesn't spark a note outside any star power phrase", () => {
   const notes = [note({ time: 1 })];
 
