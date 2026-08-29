@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { memo, useId } from "react";
 import styled, { css, keyframes, useTheme, type DefaultTheme } from "styled-components";
 import IronPipeFrame from "./IronPipeFrame.js";
 import { STAR_POWER_ACTIVATION_THRESHOLD, STAR_POWER_METER_EPSILON } from "../../engine/gameEngine.js";
@@ -62,7 +62,7 @@ function RockHandGlyph({ color }: { color: string }) {
   );
 }
 
-export default function PowerGauge({
+function PowerGauge({
   rockMeter,
   starPowerMeter,
   starPowerActive,
@@ -146,6 +146,8 @@ export default function PowerGauge({
     </IronPipeFrame>
   );
 }
+
+export default memo(PowerGauge);
 
 const flicker = keyframes`
   0%, 100% { filter: drop-shadow(0 0 5px currentColor); opacity: 1; }
