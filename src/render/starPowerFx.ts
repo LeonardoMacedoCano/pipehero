@@ -90,22 +90,24 @@ function strokeBoltPath(
 ): void {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.shadowBlur = glowBlur;
-  ctx.shadowColor = glowColor;
+  ctx.shadowBlur = 0;
   ctx.strokeStyle = glowColor;
-  ctx.lineWidth = glowWidth;
-  ctx.globalAlpha = alpha * glowAlphaScale;
+
+  ctx.globalAlpha = alpha * glowAlphaScale * 0.3;
+  ctx.lineWidth = glowWidth + glowBlur * 1.4;
+  strokePolyline(ctx, points);
+
+  ctx.globalAlpha = alpha * glowAlphaScale * 0.7;
+  ctx.lineWidth = glowWidth + glowBlur * 0.5;
   strokePolyline(ctx, points);
 
   ctx.lineCap = "butt";
   ctx.lineJoin = "miter";
-  ctx.shadowBlur = glowBlur * 0.35;
   ctx.strokeStyle = coreColor;
   ctx.globalAlpha = alpha;
   ctx.lineWidth = coreWidthTip;
   strokePolyline(ctx, points);
 
-  ctx.shadowBlur = 0;
   const midCount = Math.max(2, Math.ceil(points.length * 0.7));
   ctx.lineWidth = coreWidthMid;
   strokePolyline(ctx, points.slice(0, midCount));
@@ -336,80 +338,70 @@ function drawCrackleBolt(
 
 export const STAR_POWER_GLOW_PULSE_HZ = 3.2;
 
-const GLOW_RADIUS_BUCKET_PX = 1;
-const auraGradientCache = new Map<string, CanvasGradientLike>();
+export function starPowerGlowPulse(currentTime: number): number {
+  return 0.7 + 0.3 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2);
+}
 
-export function drawStarPowerDropAura(ctx: CanvasLike2D, glowColor: string, x: number, y: number, radius: number, currentTime: number): void {
-  const pulse = 0.7 + 0.3 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2);
-  const bucket = Math.max(GLOW_RADIUS_BUCKET_PX, Math.round(radius / GLOW_RADIUS_BUCKET_PX) * GLOW_RADIUS_BUCKET_PX);
-  const auraRadius = bucket * 1.9;
-  const key = `${glowColor}|${bucket}`;
-  let aura = auraGradientCache.get(key);
-  if (!aura) {
-    const glowRgb = cachedRgbTriplet(glowColor);
-    aura = ctx.createRadialGradient(0, 0, 0, 0, 0, auraRadius);
-    aura.addColorStop(0, `rgba(${glowRgb}, 0.32)`);
-    aura.addColorStop(0.55, `rgba(${glowRgb}, 0.13)`);
-    aura.addColorStop(1, `rgba(${glowRgb}, 0)`);
-    auraGradientCache.set(key, aura);
-  }
-  ctx.globalAlpha = pulse;
+export const STAR_POWER_AURA_RADIUS_RATIO = 1.9;
+export const STAR_POWER_HALO_RADIUS_RATIO = 2.6;
+
+export function drawStarPowerDropAura(ctx: CanvasLike2D, glowColor: string, x: number, y: number, radius: number, alpha: number = 1): void {
+  const glowRgb = cachedRgbTriplet(glowColor);
+  const auraRadius = radius * STAR_POWER_AURA_RADIUS_RATIO;
+  const aura = ctx.createRadialGradient(x, y, 0, x, y, auraRadius);
+  aura.addColorStop(0, `rgba(${glowRgb}, 0.32)`);
+  aura.addColorStop(0.55, `rgba(${glowRgb}, 0.13)`);
+  aura.addColorStop(1, `rgba(${glowRgb}, 0)`);
+  ctx.globalAlpha = alpha;
   ctx.fillStyle = aura;
-  ctx.translate(x, y);
   ctx.beginPath();
-  ctx.arc(0, 0, auraRadius, 0, Math.PI * 2);
+  ctx.arc(x, y, auraRadius, 0, Math.PI * 2);
   ctx.fill();
-  ctx.translate(-x, -y);
   ctx.globalAlpha = 1;
 }
 
-const haloGradientCache = new Map<string, { bloom: CanvasGradientLike; ring: CanvasGradientLike; bloomRadius: number; ringOuter: number }>();
+export function drawStarPowerDropHalo(ctx: CanvasLike2D, glowColor: string, x: number, y: number, radius: number, alpha: number = 1): void {
+  const glowRgb = cachedRgbTriplet(glowColor);
+  const ringRgb = cachedRgbTriplet(lighten(glowColor, 0.2));
 
-export function drawStarPowerDropHalo(ctx: CanvasLike2D, glowColor: string, x: number, y: number, radius: number, currentTime: number): void {
-  const pulse = 0.75 + 0.25 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2);
-  const bucket = Math.max(GLOW_RADIUS_BUCKET_PX, Math.round(radius / GLOW_RADIUS_BUCKET_PX) * GLOW_RADIUS_BUCKET_PX);
-  const key = `${glowColor}|${bucket}`;
-  let entry = haloGradientCache.get(key);
-  if (!entry) {
-    const glowRgb = cachedRgbTriplet(glowColor);
-    const ringRgb = cachedRgbTriplet(lighten(glowColor, 0.2));
-    const bloomRadius = bucket * 2.6;
-    const bloom = ctx.createRadialGradient(0, 0, bucket, 0, 0, bloomRadius);
-    bloom.addColorStop(0, `rgba(${glowRgb}, 0.3)`);
-    bloom.addColorStop(1, `rgba(${glowRgb}, 0)`);
-    const ringOuter = bucket * 1.4;
-    const ring = ctx.createRadialGradient(0, 0, bucket * 1.02, 0, 0, ringOuter);
-    ring.addColorStop(0, `rgba(${ringRgb}, 0.85)`);
-    ring.addColorStop(1, `rgba(${ringRgb}, 0)`);
-    entry = { bloom, ring, bloomRadius, ringOuter };
-    haloGradientCache.set(key, entry);
-  }
-
-  ctx.translate(x, y);
-  ctx.globalAlpha = pulse;
-  ctx.fillStyle = entry.bloom;
+  const bloomRadius = radius * STAR_POWER_HALO_RADIUS_RATIO;
+  const bloom = ctx.createRadialGradient(x, y, radius, x, y, bloomRadius);
+  bloom.addColorStop(0, `rgba(${glowRgb}, 0.3)`);
+  bloom.addColorStop(1, `rgba(${glowRgb}, 0)`);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = bloom;
   ctx.beginPath();
-  ctx.arc(0, 0, entry.bloomRadius, 0, Math.PI * 2);
+  ctx.arc(x, y, bloomRadius, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = entry.ring;
+  const ringOuter = radius * 1.4;
+  const ring = ctx.createRadialGradient(x, y, radius * 1.02, x, y, ringOuter);
+  ring.addColorStop(0, `rgba(${ringRgb}, 0.85)`);
+  ring.addColorStop(1, `rgba(${ringRgb}, 0)`);
+  ctx.fillStyle = ring;
   ctx.beginPath();
-  ctx.arc(0, 0, entry.ringOuter, 0, Math.PI * 2);
+  ctx.arc(x, y, ringOuter, 0, Math.PI * 2);
   ctx.fill();
-  ctx.translate(-x, -y);
   ctx.globalAlpha = 1;
 }
 
 export function drawStarPowerDropRim(ctx: CanvasLike2D, glowColor: string, x: number, y: number, radius: number, currentTime: number): void {
   const pulse = 0.7 + 0.3 * Math.sin(currentTime * STAR_POWER_GLOW_PULSE_HZ * Math.PI * 2 + 1.5);
-  ctx.shadowBlur = radius * 0.4;
-  ctx.shadowColor = glowColor;
-  ctx.strokeStyle = STAR_POWER_BOLT_CORE_COLOR;
-  ctx.lineWidth = Math.max(1, radius * 0.07);
-  ctx.globalAlpha = 0.2 + 0.25 * pulse;
+  const baseAlpha = 0.2 + 0.25 * pulse;
+  ctx.shadowBlur = 0;
+
+  ctx.strokeStyle = glowColor;
+  ctx.globalAlpha = baseAlpha * 0.5;
+  ctx.lineWidth = Math.max(2, radius * 0.3);
   dropPath(ctx, x, y, radius);
   ctx.stroke();
-  ctx.shadowBlur = 0;
+
+  ctx.strokeStyle = STAR_POWER_BOLT_CORE_COLOR;
+  ctx.globalAlpha = baseAlpha;
+  ctx.lineWidth = Math.max(1, radius * 0.07);
+  dropPath(ctx, x, y, radius);
+  ctx.stroke();
+
   ctx.globalAlpha = 1;
 }
 
@@ -512,14 +504,18 @@ export function drawStarPowerCollectBurst(
 
   const flashT = clamp01(elapsedSeconds / STAR_POWER_COLLECT_FLASH_DURATION_SECONDS);
   if (flashT < 1) {
-    ctx.shadowBlur = config.noteMaxRadius * 0.9;
-    ctx.shadowColor = glowColor;
+    const flashAlpha = (1 - flashT) * 0.85;
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = `rgba(${cachedRgbTriplet(glowColor)}, 1)`;
+    ctx.globalAlpha = flashAlpha * 0.4;
+    ctx.beginPath();
+    ctx.arc(x, y, config.noteMaxRadius * lerp(0.9, 2.3, flashT), 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = STAR_POWER_BOLT_CORE_COLOR;
-    ctx.globalAlpha = (1 - flashT) * 0.85;
+    ctx.globalAlpha = flashAlpha;
     ctx.beginPath();
     ctx.arc(x, y, config.noteMaxRadius * lerp(0.35, 1.4, flashT), 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
   }
 
   const boltCount = Math.max(1, Math.round(STAR_POWER_COLLECT_BOLT_COUNT * richness));
@@ -630,16 +626,22 @@ export function starPowerHighwayPulse(currentTime: number): number {
   return 0.55 + 0.35 * Math.sin(currentTime * STAR_POWER_HIGHWAY_PULSE_HZ * Math.PI * 2);
 }
 
+const highwayWashGradientCache = new Map<string, CanvasGradientLike>();
+
 export function drawStarPowerHighwayWash(ctx: CanvasLike2D, glowColor: string, config: RenderConfig, currentTime: number): void {
   const pulse = starPowerHighwayPulse(currentTime);
-  const glowRgb = hexToRgbTriplet(glowColor);
+  const key = `${glowColor}|${config.hitLineY}`;
+  let wash = highwayWashGradientCache.get(key);
+  if (!wash) {
+    const glowRgb = cachedRgbTriplet(glowColor);
+    wash = ctx.createLinearGradient(0, 0, 0, config.hitLineY);
+    wash.addColorStop(0, `rgba(${glowRgb}, 0)`);
+    wash.addColorStop(0.5, `rgba(${glowRgb}, 0.06)`);
+    wash.addColorStop(1, `rgba(${glowRgb}, 0.24)`);
+    highwayWashGradientCache.set(key, wash);
+  }
 
-  const wash = ctx.createLinearGradient(0, 0, 0, config.hitLineY);
-  wash.addColorStop(0, `rgba(${glowRgb}, 0)`);
-  wash.addColorStop(0.5, `rgba(${glowRgb}, ${0.06 * pulse})`);
-  wash.addColorStop(1, `rgba(${glowRgb}, ${0.24 * pulse})`);
-
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = pulse;
   ctx.fillStyle = wash;
   ctx.beginPath();
   ctx.moveTo(highwayEdgeX(-1, 0, config), 0);
@@ -648,4 +650,5 @@ export function drawStarPowerHighwayWash(ctx: CanvasLike2D, glowColor: string, c
   ctx.lineTo(highwayEdgeX(-1, 1, config), config.hitLineY);
   ctx.closePath();
   ctx.fill();
+  ctx.globalAlpha = 1;
 }

@@ -106,6 +106,20 @@ test("drawStarPowerDropRimCheap does not throw and never touches shadowBlur", ()
   assert.equal(ctx.shadowBlur, 0);
 });
 
+test("no Star Power effect uses canvas shadowBlur (it is the dominant raster cost)", () => {
+  const ctx = fakeCtx();
+  for (let t = 0; t < 2; t += 0.25) {
+    drawStarPowerSparks(ctx, GLOW_COLOR, 40, 40, 22, t, 3, 1.5);
+    drawStarPowerCollectBurst(ctx, GLOW_COLOR, 40, 40, RENDER_CONFIG, t % 0.5, 1.5);
+    drawStarPowerDropRim(ctx, GLOW_COLOR, 40, 40, 22, t);
+    drawStarPowerDropAura(ctx, GLOW_COLOR, 40, 40, 22, 0.8);
+    drawStarPowerDropHalo(ctx, GLOW_COLOR, 40, 40, 22, 0.8);
+    drawAmbientLightningBolts(ctx, GLOW_COLOR, RENDER_CONFIG, t);
+    drawStarPowerHighwayWash(ctx, GLOW_COLOR, RENDER_CONFIG, t);
+  }
+  assert.equal(ctx.maxShadowBlur, 0);
+});
+
 test("drawStarPowerSparks does not throw", () => {
   const ctx = fakeCtx();
   assert.doesNotThrow(() => drawStarPowerSparks(ctx, GLOW_COLOR, 10, 10, 20, 0.5, 3));
