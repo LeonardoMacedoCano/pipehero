@@ -1,3 +1,4 @@
+import { memo } from "react";
 import styled, { keyframes } from "styled-components";
 import IronPipeFrame from "./IronPipeFrame.js";
 
@@ -10,7 +11,7 @@ function scoreFontSize(digits: number): string {
   return "1.05em";
 }
 
-export default function ScoreBox({
+function ScoreBox({
   score,
   combo,
   multiplier,
@@ -36,6 +37,8 @@ export default function ScoreBox({
     </IronPipeFrame>
   );
 }
+
+export default memo(ScoreBox);
 
 const pulse = keyframes`
   0%, 100% { box-shadow: 0 0 6px 1px currentColor; }

@@ -192,21 +192,29 @@ export function noteRenderKey(fret: Fret, time: number): string {
   return `${fret}:${time}`;
 }
 
+const visibleWindowByNotes = new WeakMap<Note[], { startIdx: number; lastTime: number }>();
+
 export function getVisibleNotes(notes: Note[], currentTime: number, config: RenderConfig = RENDER_CONFIG): VisibleNote[] {
-  return notes
-    .filter((note) => {
-      const timeUntilStart = note.time - currentTime;
-      const timeUntilEnd = note.time + note.duration - currentTime;
-      return timeUntilStart <= config.approachTime && timeUntilEnd >= -config.despawnAfter;
-    })
-    .map((note) => {
-      const progress = visualProgress(progressFor(note.time, currentTime, config), config);
-      return {
-        ...note,
-        x: laneX(note.fret, progress, config),
-        y: progress * config.hitLineY,
-        radius: noteRadiusAt(progress, config),
-        sustainDrops: note.duration > 0 ? sustainDrops(note, currentTime, config) : [],
-      };
+  const cached = visibleWindowByNotes.get(notes);
+  let startIdx = cached && currentTime >= cached.lastTime ? cached.startIdx : 0;
+  while (startIdx < notes.length && notes[startIdx].time + notes[startIdx].duration - currentTime < -config.despawnAfter) {
+    startIdx++;
+  }
+  visibleWindowByNotes.set(notes, { startIdx, lastTime: currentTime });
+
+  const visible: VisibleNote[] = [];
+  for (let i = startIdx; i < notes.length; i++) {
+    const note = notes[i];
+    if (note.time - currentTime > config.approachTime) break;
+    if (note.time + note.duration - currentTime < -config.despawnAfter) continue;
+    const progress = visualProgress(progressFor(note.time, currentTime, config), config);
+    visible.push({
+      ...note,
+      x: laneX(note.fret, progress, config),
+      y: progress * config.hitLineY,
+      radius: noteRadiusAt(progress, config),
+      sustainDrops: note.duration > 0 ? sustainDrops(note, currentTime, config) : [],
     });
+  }
+  return visible;
 }

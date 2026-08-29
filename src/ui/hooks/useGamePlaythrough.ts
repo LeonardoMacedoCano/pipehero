@@ -3,9 +3,9 @@ import type { Difficulty, Fret, GameEvent, GameState, Note, StarPowerPhrase } fr
 import { createPlaythrough } from "../../game/gamePlaythrough.js";
 import { drawFrame, ABSORB_DURATION_SECONDS, OPEN_RESIDUE_FALL_SECONDS } from "../../render/draw.js";
 import { STAR_POWER_COLLECT_DURATION_SECONDS } from "../../render/starPowerFx.js";
-import { clampDevicePixelRatio, createRenderConfig, highwayBuildConfig, noteRenderKey } from "../../render/layout.js";
-import { graphicsSettingsFor } from "../../render/graphicsQuality.js";
-import { getGraphicsQuality } from "../../render/graphicsQualityStore.js";
+import { clampDevicePixelRatio, createRenderConfig, highwayBuildConfig, noteRenderKey, type RenderConfig } from "../../render/layout.js";
+import { graphicsSettingsFor, type GraphicsQuality } from "../../render/graphicsQuality.js";
+import { getGraphicsQuality, subscribeGraphicsQuality } from "../../render/graphicsQualityStore.js";
 import { getCalibration } from "../../audio/calibrationStore.js";
 import { playMissClank } from "../../audio/missSound.js";
 import { playBooSound } from "../../audio/booSound.js";
@@ -98,6 +98,7 @@ export function useGamePlaythrough({
   const rafRef = useRef<number | null>(null);
   const judgedHitsRef = useRef<Map<string, number>>(new Map());
   const holdingKeysRef = useRef<Set<string>>(new Set());
+  const prevHoldingKeysRef = useRef<Set<string>>(new Set());
   const missedKeysRef = useRef<Set<string>>(new Set());
   const errorClicksRef = useRef<Map<Fret, number>>(new Map());
   const openHoldReleaseAtRef = useRef<Map<string, number>>(new Map());
@@ -109,6 +110,9 @@ export function useGamePlaythrough({
   const failedAtRef = useRef<number | null>(null);
   const resultsSnapshotRef = useRef<GameState | null>(null);
   const minRockMeterRef = useRef<number>(100);
+  const graphicsQualityRef = useRef<GraphicsQuality>(getGraphicsQuality());
+  const renderConfigCacheRef = useRef<{ key: string; config: RenderConfig } | null>(null);
+  const lastHudRef = useRef<Hud>(INITIAL_HUD);
 
   const noteByKey = useMemo(() => {
     const map = new Map<string, Note>();
@@ -171,13 +175,18 @@ export function useGamePlaythrough({
       }
     }
 
-    const graphicsSettings = graphicsSettingsFor(getGraphicsQuality());
-    const config = createRenderConfig(
-      canvas.width,
-      canvas.height,
-      clampDevicePixelRatio(window.devicePixelRatio || 1, graphicsSettings.maxDevicePixelRatio),
-      hitLineRatioRef.current
-    );
+    const graphicsSettings = graphicsSettingsFor(graphicsQualityRef.current);
+    const devicePixelRatio = clampDevicePixelRatio(window.devicePixelRatio || 1, graphicsSettings.maxDevicePixelRatio);
+    const configKey = `${canvas.width}x${canvas.height}:${devicePixelRatio}:${hitLineRatioRef.current}`;
+    let configCache = renderConfigCacheRef.current;
+    if (!configCache || configCache.key !== configKey) {
+      configCache = {
+        key: configKey,
+        config: createRenderConfig(canvas.width, canvas.height, devicePixelRatio, hitLineRatioRef.current),
+      };
+      renderConfigCacheRef.current = configCache;
+    }
+    const config = configCache.config;
 
     if (audio.ended) {
       if (endedAtRef.current === null) {
@@ -249,10 +258,13 @@ export function useGamePlaythrough({
       playBooSound();
     }
     const previouslyHoldingKeys = holdingKeysRef.current;
-    holdingKeysRef.current = new Set();
+    const nextHoldingKeys = prevHoldingKeysRef.current;
+    nextHoldingKeys.clear();
     for (const event of state.activeHolds) {
-      for (const fret of event.frets) holdingKeysRef.current.add(noteRenderKey(fret, event.time));
+      for (const fret of event.frets) nextHoldingKeys.add(noteRenderKey(fret, event.time));
     }
+    holdingKeysRef.current = nextHoldingKeys;
+    prevHoldingKeysRef.current = previouslyHoldingKeys;
     for (const key of previouslyHoldingKeys) {
       if (holdingKeysRef.current.has(key) || openHoldReleaseAtRef.current.has(key)) continue;
       const note = noteByKey.get(key);
@@ -287,15 +299,28 @@ export function useGamePlaythrough({
       graphicsSettings
     );
 
-    setHud({
-      score: state.score,
-      combo: state.combo,
-      multiplier: state.multiplier,
-      starPowerMeter: state.starPowerMeter,
-      starPowerActive: state.starPowerActive,
-      starPowerGainNonce: starPowerGainNonceRef.current,
-      rockMeter: state.rockMeter,
-    });
+    const prevHud = lastHudRef.current;
+    if (
+      prevHud.score !== state.score ||
+      prevHud.combo !== state.combo ||
+      prevHud.multiplier !== state.multiplier ||
+      prevHud.starPowerMeter !== state.starPowerMeter ||
+      prevHud.starPowerActive !== state.starPowerActive ||
+      prevHud.starPowerGainNonce !== starPowerGainNonceRef.current ||
+      prevHud.rockMeter !== state.rockMeter
+    ) {
+      const nextHud: Hud = {
+        score: state.score,
+        combo: state.combo,
+        multiplier: state.multiplier,
+        starPowerMeter: state.starPowerMeter,
+        starPowerActive: state.starPowerActive,
+        starPowerGainNonce: starPowerGainNonceRef.current,
+        rockMeter: state.rockMeter,
+      };
+      lastHudRef.current = nextHud;
+      setHud(nextHud);
+    }
 
     if (!audio.paused || failedAtRef.current !== null) {
       rafRef.current = requestAnimationFrame(loop);
@@ -313,10 +338,13 @@ export function useGamePlaythrough({
     }
     judgedHitsRef.current.clear();
     missedKeysRef.current.clear();
+    holdingKeysRef.current.clear();
+    prevHoldingKeysRef.current.clear();
     errorClicksRef.current.clear();
     openHoldReleaseAtRef.current.clear();
     starPowerCollectAtRef.current.clear();
     starPowerGainNonceRef.current = 0;
+    lastHudRef.current = INITIAL_HUD;
     lastErrorAtRef.current = null;
     endedAtRef.current = null;
     failedAtRef.current = null;
@@ -343,8 +371,16 @@ export function useGamePlaythrough({
   }, [stop, createFreshPlaythrough, loop]);
 
   useEffect(() => {
+    graphicsQualityRef.current = getGraphicsQuality();
+    return subscribeGraphicsQuality(() => {
+      graphicsQualityRef.current = getGraphicsQuality();
+    });
+  }, []);
+
+  useEffect(() => {
     stop();
     setHud(INITIAL_HUD);
+    lastHudRef.current = INITIAL_HUD;
     setNeedsTapToStart(false);
     setAudioUnsupported(false);
     setPhase("playing");
