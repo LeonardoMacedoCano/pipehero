@@ -98,6 +98,7 @@ export function useGamePlaythrough({
   const rafRef = useRef<number | null>(null);
   const judgedHitsRef = useRef<Map<string, number>>(new Map());
   const holdingKeysRef = useRef<Set<string>>(new Set());
+  const prevHoldingKeysRef = useRef<Set<string>>(new Set());
   const missedKeysRef = useRef<Set<string>>(new Set());
   const errorClicksRef = useRef<Map<Fret, number>>(new Map());
   const openHoldReleaseAtRef = useRef<Map<string, number>>(new Map());
@@ -257,10 +258,13 @@ export function useGamePlaythrough({
       playBooSound();
     }
     const previouslyHoldingKeys = holdingKeysRef.current;
-    holdingKeysRef.current = new Set();
+    const nextHoldingKeys = prevHoldingKeysRef.current;
+    nextHoldingKeys.clear();
     for (const event of state.activeHolds) {
-      for (const fret of event.frets) holdingKeysRef.current.add(noteRenderKey(fret, event.time));
+      for (const fret of event.frets) nextHoldingKeys.add(noteRenderKey(fret, event.time));
     }
+    holdingKeysRef.current = nextHoldingKeys;
+    prevHoldingKeysRef.current = previouslyHoldingKeys;
     for (const key of previouslyHoldingKeys) {
       if (holdingKeysRef.current.has(key) || openHoldReleaseAtRef.current.has(key)) continue;
       const note = noteByKey.get(key);
@@ -334,6 +338,8 @@ export function useGamePlaythrough({
     }
     judgedHitsRef.current.clear();
     missedKeysRef.current.clear();
+    holdingKeysRef.current.clear();
+    prevHoldingKeysRef.current.clear();
     errorClicksRef.current.clear();
     openHoldReleaseAtRef.current.clear();
     starPowerCollectAtRef.current.clear();
