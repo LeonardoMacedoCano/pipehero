@@ -1,4 +1,4 @@
-import type { Fret, GameEngine, GameEvent, JudgmentWindows, KeyDownResult, PlayableEvent, Rating, StarPowerPhrase, StrumResult } from "../types.js";
+import type { Fret, GameEngine, GameEvent, GameFrameState, JudgmentWindows, KeyDownResult, PlayableEvent, Rating, StarPowerPhrase, StrumResult } from "../types.js";
 import { classifyTiming, DEFAULT_JUDGMENT_WINDOWS } from "./judge.js";
 import { rockTierFor } from "./rockMeter.js";
 import { phraseIndexAt } from "./starPower.js";
@@ -80,6 +80,7 @@ export function createGameEngine(
   let starPowerMeter = 0;
   let starPowerActive = false;
   let lastUpdateTime: number | null = null;
+  let missScanCursor = 0;
 
   function scoreMultiplier(): number {
     const baseMultiplier = Math.min(MAX_BASE_MULTIPLIER, 1 + Math.floor(combo / MULTIPLIER_STREAK_STEP));
@@ -250,16 +251,18 @@ export function createGameEngine(
   function update(currentTime: number): GameEvent[] {
     if (!Number.isFinite(currentTime)) return [];
     const newlyMissed: GameEvent[] = [];
-    for (const event of pending) {
-      if (event.state === "pending" && currentTime - event.time > windows.good) {
-        event.state = "missed";
-        event.rating = "miss";
-        misses.push(event);
-        newlyMissed.push(event);
-        combo = 0;
-        loseRockMeter(ROCK_METER_MISS_LOSS);
-        breakStarPowerPhrase(event.starPowerPhraseIndex);
-      }
+    while (missScanCursor < pending.length && pending[missScanCursor].state !== "pending") missScanCursor++;
+    for (let i = missScanCursor; i < pending.length; i++) {
+      const event = pending[i];
+      if (event.state !== "pending") continue;
+      if (currentTime - event.time <= windows.good) break;
+      event.state = "missed";
+      event.rating = "miss";
+      misses.push(event);
+      newlyMissed.push(event);
+      combo = 0;
+      loseRockMeter(ROCK_METER_MISS_LOSS);
+      breakStarPowerPhrase(event.starPowerPhraseIndex);
     }
 
     for (const event of holdingEvents) {
@@ -304,5 +307,20 @@ export function createGameEngine(
     };
   }
 
-  return { handleKeyDown, handleKeyUp, strum, update, getState, activateStarPower };
+  function getFrameState(): GameFrameState {
+    return {
+      score,
+      combo,
+      multiplier: scoreMultiplier(),
+      starPowerMeter,
+      starPowerActive,
+      starPowerPhraseBroken: [...phraseBroken],
+      rockMeter,
+      failed,
+      activeHolds: [...holdingEvents],
+      droppedSustains: [...droppedSustains],
+    };
+  }
+
+  return { handleKeyDown, handleKeyUp, strum, update, getState, getFrameState, activateStarPower };
 }

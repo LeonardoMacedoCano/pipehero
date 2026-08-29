@@ -64,6 +64,19 @@ export interface GameState {
   idealScore: number;
 }
 
+export interface GameFrameState {
+  score: number;
+  combo: number;
+  multiplier: number;
+  starPowerMeter: number;
+  starPowerActive: boolean;
+  starPowerPhraseBroken: boolean[];
+  rockMeter: number;
+  failed: boolean;
+  activeHolds: GameEvent[];
+  droppedSustains: GameEvent[];
+}
+
 export type KeyDownResult =
   | { type: "unmatched"; fret: Fret; time: number; awaitingChord: boolean }
   | { type: "judged"; event: GameEvent; rating: Rating; starPowerPhraseCompleted: boolean };
@@ -78,6 +91,7 @@ export interface GameEngine {
   strum(time: number): StrumResult;
   update(currentTime: number): GameEvent[];
   getState(): GameState;
+  getFrameState(): GameFrameState;
   activateStarPower(): boolean;
 }
 
@@ -87,6 +101,7 @@ export interface Playthrough {
   releaseFret(fret: Fret): void;
   strum(): StrumResult;
   getState(): GameState;
+  getFrameState(): GameFrameState;
   currentChartTime(): number;
   activateStarPower(): boolean;
 }

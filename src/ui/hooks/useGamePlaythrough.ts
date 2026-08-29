@@ -238,11 +238,11 @@ export function useGamePlaythrough({
       }
     }
 
-    const state = playthrough.getState();
+    const state = playthrough.getFrameState();
     minRockMeterRef.current = Math.min(minRockMeterRef.current, state.rockMeter);
     if (state.failed && failedAtRef.current === null) {
       failedAtRef.current = performance.now();
-      resultsSnapshotRef.current = state;
+      resultsSnapshotRef.current = playthrough.getState();
       pauseAllAudio();
       playBooSound();
     }

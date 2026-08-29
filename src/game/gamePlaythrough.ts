@@ -48,12 +48,17 @@ export function createPlaythrough({
     return engine.getState();
   }
 
+  function getFrameState() {
+    return engine.getFrameState();
+  }
+
   return {
     tick,
     pressFret,
     releaseFret,
     strum,
     getState,
+    getFrameState,
     currentChartTime,
     activateStarPower: engine.activateStarPower,
   };
