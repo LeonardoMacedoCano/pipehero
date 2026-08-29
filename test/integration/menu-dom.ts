@@ -35,6 +35,9 @@ dom.window.HTMLMediaElement.prototype.play = function (this: HTMLMediaElement) {
 dom.window.HTMLMediaElement.prototype.pause = function (this: HTMLMediaElement) {
   audioPausedState.set(this, true);
 };
+dom.window.HTMLMediaElement.prototype.canPlayType = function () {
+  return "probably";
+};
 
 interface FakeGamepadButton {
   pressed: boolean;

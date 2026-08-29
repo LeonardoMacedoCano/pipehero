@@ -89,6 +89,7 @@ export default function GamePage({
     getAudioRef,
     hud,
     needsTapToStart,
+    audioUnsupported,
     phase,
     results,
     minRockMeterRef,
@@ -173,6 +174,11 @@ export default function GamePage({
                 />
               </PowerGaugeOverlay>
               {needsTapToStart && <TapToStartOverlay onClick={start}>Tap to start</TapToStartOverlay>}
+              {audioUnsupported && (
+                <UnsupportedAudioOverlay>
+                  This browser can't play this song's audio format. Try a different browser, like Chrome or Firefox.
+                </UnsupportedAudioOverlay>
+              )}
             </ThemeProvider>
           )}
         </Highway>
@@ -329,4 +335,18 @@ const TapToStartOverlay = styled.button`
   font-size: 1.4em;
   border: none;
   cursor: pointer;
+`;
+
+const UnsupportedAudioOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.85);
+  color: ${({ theme }) => theme.colors.white};
+  font-size: 1.1em;
 `;
