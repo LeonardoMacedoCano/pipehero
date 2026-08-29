@@ -47,6 +47,7 @@ const EMPTY_STAR_POWER_PHRASE_BROKEN: readonly boolean[] = [];
 const EMPTY_STAR_POWER_COLLECT_AT: ReadonlyMap<string, number> = new Map();
 
 const RAIL_MISS_FADE_SECONDS = 0.5;
+const MAX_SPARKED_NOTES_PER_FRAME = 5;
 
 function pipeHalfWidthAt(progress: number, config: RenderConfig): number {
   if (config.laneOrder.length < 2) return config.noteMaxRadius * 2.5;
@@ -810,6 +811,8 @@ export function drawFrame(
 
   const visible = getVisibleNotes(notes, currentTime, config);
 
+  let sparkedNoteBudget = MAX_SPARKED_NOTES_PER_FRAME;
+
   for (const note of visible) {
     if (note.fret !== 7 || note.sustainDrops.length === 0) continue;
     const baseColor = intenseDropColor(laneColors[note.fret] ?? palette.noteFallback, intense, graphicsSettings, palette.info);
@@ -911,8 +914,9 @@ export function drawFrame(
       const baseColor = intenseDropColor(laneColors[note.fret] ?? palette.noteFallback, intense, graphicsSettings, palette.info);
       const color = isMissed ? desaturate(baseColor, MISS_DESATURATION_AMOUNT) : baseColor;
       drawSustainTrail(ctx, note, config, currentTime, color, !isMissed && holdingKeys.has(key));
-      if (inActiveStarPowerPhrase && graphicsSettings.lightningEffectsEnabled) {
+      if (inActiveStarPowerPhrase && graphicsSettings.lightningEffectsEnabled && sparkedNoteBudget > 0) {
         drawStarPowerSparks(ctx, palette.info, note.x, sparkOriginY, note.radius, currentTime, note.time, graphicsSettings.boltCountMultiplier);
+        sparkedNoteBudget--;
       }
       continue;
     }
@@ -940,8 +944,9 @@ export function drawFrame(
         }
       }
     }
-    if (inActiveStarPowerPhrase && graphicsSettings.lightningEffectsEnabled) {
+    if (inActiveStarPowerPhrase && graphicsSettings.lightningEffectsEnabled && sparkedNoteBudget > 0) {
       drawStarPowerSparks(ctx, palette.info, note.x, sparkOriginY, note.radius, currentTime, note.time, graphicsSettings.boltCountMultiplier);
+      sparkedNoteBudget--;
     }
   }
 
