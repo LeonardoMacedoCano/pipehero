@@ -110,12 +110,32 @@ test("noteRenderKey: the same fret+time combination always generates the same ke
 
 test("getVisibleNotes: hides notes too far in the future or too far in the past", () => {
   const notes = [
-    note({ id: 0, time: 100 }),
-    note({ id: 1, time: 5.0 }),
     note({ id: 2, time: 0.0 }),
+    note({ id: 1, time: 5.0 }),
+    note({ id: 0, time: 100 }),
   ];
   const visible = getVisibleNotes(notes, 4.0);
   assert.deepEqual(visible.map((n) => n.id), [1]);
+});
+
+test("getVisibleNotes: a forward-moving currentTime keeps a long sustain whose head is already behind the window", () => {
+  const notes = [
+    note({ id: 0, time: 1.0 }),
+    note({ id: 1, time: 3.0, duration: 4.0 }),
+    note({ id: 2, time: 8.0 }),
+  ];
+  getVisibleNotes(notes, 0.5);
+  getVisibleNotes(notes, 4.0);
+  const visible = getVisibleNotes(notes, 6.0);
+  assert.ok(visible.some((n) => n.id === 1));
+  assert.ok(!visible.some((n) => n.id === 0));
+});
+
+test("getVisibleNotes: seeking backwards re-widens the window instead of staying advanced", () => {
+  const notes = [note({ id: 0, time: 1.0 }), note({ id: 1, time: 3.0 }), note({ id: 2, time: 5.0 })];
+  getVisibleNotes(notes, 5.2);
+  const afterRewind = getVisibleNotes(notes, 1.2);
+  assert.ok(afterRewind.some((n) => n.id === 0));
 });
 
 test("getVisibleNotes: a note with duration>0 gets a non-empty drop line (sustainDrops)", () => {
