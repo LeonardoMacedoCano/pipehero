@@ -7,6 +7,7 @@ import { useShop } from "../../hooks/useShop.js";
 import { LANDSCAPE_MEDIA_QUERY, MOBILE_LAYOUT_MEDIA_QUERY } from "../../responsive.js";
 import AvatarBadge from "./AvatarBadge.js";
 import AccountPopover from "./AccountPopover.js";
+import Emoji from "../Emoji.js";
 
 export default function PlayerStatusControl() {
   const { user, isLoading } = useAuth();
@@ -29,7 +30,7 @@ export default function PlayerStatusControl() {
 
   return (
     <Root ref={rootRef}>
-      <Trigger type="button" onClick={() => setOpen((current) => !current)} $active={open}>
+      <Trigger type="button" aria-label="Account" onClick={() => setOpen((current) => !current)} $active={open}>
         {user ? (
           <>
             <AvatarBadge
@@ -39,12 +40,12 @@ export default function PlayerStatusControl() {
             />
             <Name>{user.name}</Name>
             <Coins>
-              <span aria-hidden>🪙</span>
+              <Emoji glyph="🪙" />
               {coins}
             </Coins>
           </>
         ) : (
-          <span aria-hidden>👤</span>
+          <Emoji glyph="👤" />
         )}
       </Trigger>
       {open && (

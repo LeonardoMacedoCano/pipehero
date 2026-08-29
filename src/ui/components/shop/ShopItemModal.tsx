@@ -2,6 +2,7 @@ import { Modal, Button, OptionGridBadge } from "lcano-react-ui";
 import styled from "styled-components";
 import type { ShopItem } from "../../hooks/useShop.js";
 import { renderItemPreview } from "./shopItemPreview.js";
+import Emoji from "../Emoji.js";
 
 const ACTION_BUTTON_WIDTH = "140px";
 const ACTION_BUTTON_HEIGHT = "40px";
@@ -57,7 +58,7 @@ export default function ShopItemModal({
           {!item.owned && (
             <Button
               description={String(item.priceCoins)}
-              icon={<span aria-hidden>🪙</span>}
+              icon={<Emoji glyph="🪙" />}
               variant="quaternary"
               width={ACTION_BUTTON_WIDTH}
               height={ACTION_BUTTON_HEIGHT}

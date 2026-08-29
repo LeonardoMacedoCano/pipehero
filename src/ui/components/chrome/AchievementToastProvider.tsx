@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { ToastStack, ToastStackProvider, useToastStack, type ToastStackItem } from "lcano-react-ui";
+import Emoji from "../Emoji.js";
 
 export interface UnlockedAchievement {
   code: string;
@@ -16,7 +17,7 @@ export function useAchievementToast(): { notify: (achievements: UnlockedAchievem
     (achievements: UnlockedAchievement[]) =>
       notify(
         achievements.map((achievement) => ({
-          icon: achievement.icon,
+          icon: <Emoji glyph={achievement.icon} />,
           eyebrow: "Achievement Unlocked",
           title: achievement.name,
           description: achievement.description,

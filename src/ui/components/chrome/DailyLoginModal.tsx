@@ -2,6 +2,7 @@ import { Modal, HighlightBox } from "lcano-react-ui";
 import styled from "styled-components";
 import { useEconomy } from "../../hooks/useEconomy.js";
 import StreakExplainer from "./StreakExplainer.js";
+import Emoji from "../Emoji.js";
 
 export default function DailyLoginModal() {
   const { dailyLoginModal, dismissDailyLoginModal } = useEconomy();
@@ -11,7 +12,7 @@ export default function DailyLoginModal() {
       isOpen={dailyLoginModal !== null}
       onClose={dismissDailyLoginModal}
       title={dailyLoginModal ? `Day ${dailyLoginModal.currentStreak} Streak` : ""}
-      icon="🔥"
+      icon={<Emoji glyph="🔥" />}
       variant="quaternary"
       modalWidth="380px"
       content={
@@ -25,7 +26,9 @@ export default function DailyLoginModal() {
               <NoticeText>Your streak was about to break — your grace saved it.</NoticeText>
             )}
             {dailyLoginModal.milestoneHit !== null && (
-              <NoticeText>🎉 Milestone bonus for reaching day {dailyLoginModal.milestoneHit}!</NoticeText>
+              <NoticeText>
+                <Emoji glyph="🎉" /> Milestone bonus for reaching day {dailyLoginModal.milestoneHit}!
+              </NoticeText>
             )}
 
             <StreakExplainer

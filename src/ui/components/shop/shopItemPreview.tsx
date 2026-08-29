@@ -7,6 +7,7 @@ import { getAvatarOption } from "../../cosmetics/avatarCatalog.js";
 import { getBorderOption } from "../../cosmetics/borderCatalog.js";
 import { getBackgroundOption } from "../../cosmetics/backgroundCatalog.js";
 import { getAchievementFrameOption } from "../../cosmetics/achievementFrameCatalog.js";
+import Emoji from "../Emoji.js";
 
 export type PreviewSize = "sm" | "lg";
 
@@ -35,7 +36,7 @@ function avatarPreview(item: ShopItem, size: PreviewSize): ReactNode {
   if (!option) return null;
   return (
     <AvatarPreviewCircle $size={CIRCLE_PX[size]} style={{ backgroundColor: option.bgColor }}>
-      {option.emoji}
+      <Emoji glyph={option.emoji} />
     </AvatarPreviewCircle>
   );
 }
@@ -61,13 +62,21 @@ function achievementFramePreview(item: ShopItem, size: PreviewSize): ReactNode {
 function achievementEffectPreview(item: ShopItem, size: PreviewSize): ReactNode {
   const icon = ACHIEVEMENT_EFFECT_PREVIEW_ICON[item.refId];
   if (!icon) return null;
-  return <AvatarPreviewCircle $size={CIRCLE_PX[size]}>{icon}</AvatarPreviewCircle>;
+  return (
+    <AvatarPreviewCircle $size={CIRCLE_PX[size]}>
+      <Emoji glyph={icon} />
+    </AvatarPreviewCircle>
+  );
 }
 
 function vanityPreview(item: ShopItem, size: PreviewSize): ReactNode {
   const icon = VANITY_PREVIEW_ICON[item.refId];
   if (!icon) return null;
-  return <AvatarPreviewCircle $size={CIRCLE_PX[size]}>{icon}</AvatarPreviewCircle>;
+  return (
+    <AvatarPreviewCircle $size={CIRCLE_PX[size]}>
+      <Emoji glyph={icon} />
+    </AvatarPreviewCircle>
+  );
 }
 
 const PREVIEW_RENDERERS: Partial<Record<CosmeticSlot, (item: ShopItem, size: PreviewSize) => ReactNode>> = {

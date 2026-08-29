@@ -6,6 +6,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import { nextDailyResetMs, nextWeeklyResetMs } from "../../timeZone.js";
 import StreakExplainer from "../components/chrome/StreakExplainer.js";
 import GuestLoginBanner from "../components/chrome/GuestLoginBanner.js";
+import Emoji from "../components/Emoji.js";
 
 const DAILY_LOGIN_CODE = "daily_login";
 
@@ -41,7 +42,7 @@ function ResetCountdown({ timeZone, computeTargetMs }: { timeZone: string; compu
   const label = useCountdownTo(timeZone, computeTargetMs);
   return (
     <HighlightBox variant="quaternary" bordered width="auto" style={{ padding: "6px 18px" }}>
-      ⏳ Resets in {label}
+      <Emoji glyph="⏳" /> Resets in {label}
     </HighlightBox>
   );
 }
@@ -85,7 +86,7 @@ export default function MissionsPage() {
                 <Stack direction="column" gap="16px" style={{ padding: "12px 16px" }}>
                   <StreakRow>
                     <HighlightBox variant="quaternary" bordered width="auto" style={{ padding: "6px 18px" }}>
-                      🔥 Day {currentStreak} streak
+                      <Emoji glyph="🔥" /> Day {currentStreak} streak
                     </HighlightBox>
                     <StreakDetail>
                       Best streak: {longestStreak} · {streakGraceAvailable ? "grace available" : "grace already used"}
@@ -107,7 +108,9 @@ export default function MissionsPage() {
                           }
                         }}
                       >
-                        <MissionIcon aria-hidden>{mission.icon}</MissionIcon>
+                        <MissionIcon aria-hidden>
+                          <Emoji glyph={mission.icon} />
+                        </MissionIcon>
                         <MissionText>
                           <MissionName>{mission.name}</MissionName>
                           <MissionDescription>{mission.description}</MissionDescription>
@@ -159,7 +162,9 @@ export default function MissionsPage() {
                           }
                         }}
                       >
-                        <MissionIcon aria-hidden>{mission.icon}</MissionIcon>
+                        <MissionIcon aria-hidden>
+                          <Emoji glyph={mission.icon} />
+                        </MissionIcon>
                         <MissionText>
                           <MissionName>
                             {mission.name} <TierBadge $tier={mission.tier}>{mission.tier}</TierBadge>
@@ -199,7 +204,7 @@ export default function MissionsPage() {
         isOpen={selectedMission !== null}
         onClose={() => setSelectedMission(null)}
         title={selectedMission?.mission.name ?? ""}
-        icon={selectedMission?.mission.icon}
+        icon={selectedMission ? <Emoji glyph={selectedMission.mission.icon} /> : undefined}
         variant={selectedMission?.mission.completed ? "quaternary" : "secondary"}
         modalWidth="420px"
         content={

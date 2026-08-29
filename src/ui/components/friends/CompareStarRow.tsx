@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import type { CompareRow, CompareWinner } from "../../hooks/useFriendCompare.js";
+import Emoji from "../Emoji.js";
 
 const STAR_COUNT = 5;
 
@@ -18,7 +19,11 @@ function StarLine({ label, stars, highlighted }: { label: string; stars: number 
           ))}
         </Stars>
       )}
-      {highlighted && <Trophy>🏆</Trophy>}
+      {highlighted && (
+        <Trophy>
+          <Emoji glyph="🏆" />
+        </Trophy>
+      )}
     </Line>
   );
 }

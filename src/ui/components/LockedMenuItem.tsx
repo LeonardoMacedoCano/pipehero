@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { Button, useMessage } from "lcano-react-ui";
+import Emoji from "./Emoji.js";
 
 export const MENU_BUTTON_STYLE: CSSProperties = {
   justifyContent: "flex-start",
@@ -14,7 +15,9 @@ export default function LockedMenuItem({ label, hint }: { label: string; hint: s
 
   return (
     <Button
-      description={`${label}  🔒`}
+      description={label}
+      icon={<Emoji glyph="🔒" />}
+      aria-label={`${label} (locked)`}
       variant="secondary"
       width="100%"
       onClick={() => showInfo(hint)}

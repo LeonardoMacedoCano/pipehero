@@ -3,6 +3,7 @@ import { useMessage } from "lcano-react-ui";
 import styled from "styled-components";
 import { cylinderGradientHorizontal } from "../../pipeStyles.js";
 import { LANDSCAPE_MEDIA_QUERY } from "../../responsive.js";
+import Emoji from "../Emoji.js";
 
 export default function GameModeCard({
   title,
@@ -36,7 +37,9 @@ export default function GameModeCard({
         <Thumbnail>{thumbnail}</Thumbnail>
         {locked && (
           <LockOverlay>
-            <LockIcon>🔒</LockIcon>
+            <LockIcon>
+              <Emoji glyph="🔒" />
+            </LockIcon>
           </LockOverlay>
         )}
         <Beam />
