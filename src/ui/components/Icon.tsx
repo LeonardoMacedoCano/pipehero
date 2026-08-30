@@ -1,11 +1,12 @@
 import styled from "styled-components";
 import { ICONS, type IconName } from "./iconRegistry.js";
 
-export default function Icon({ name, className }: { name: string; className?: string }) {
-  const Glyph = ICONS[name as IconName];
-  if (!Glyph) return null;
+export default function Icon({ name, className, mono }: { name: string; className?: string; mono?: boolean }) {
+  const def = ICONS[name as IconName];
+  if (!def) return null;
+  const { Glyph, color } = def;
   return (
-    <Wrap className={className}>
+    <Wrap className={className} style={mono ? undefined : { color }}>
       <Glyph />
     </Wrap>
   );

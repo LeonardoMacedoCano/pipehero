@@ -29,13 +29,16 @@ export default function MenuLayout({
   current: MenuScreenName;
   onNavigate: (screen: MenuScreenName) => void;
 }) {
-  const items: RailTabsNavItem[] = NAV_SCREENS.map((entry) => ({
-    id: entry.screen,
-    icon: <Icon name={entry.icon} />,
-    label: entry.label,
-    active: current === entry.screen || (entry.screen === "menu" && current === "songs"),
-    onClick: () => onNavigate(entry.screen),
-  }));
+  const items: RailTabsNavItem[] = NAV_SCREENS.map((entry) => {
+    const active = current === entry.screen || (entry.screen === "menu" && current === "songs");
+    return {
+      id: entry.screen,
+      icon: <Icon name={entry.icon} mono={active} />,
+      label: entry.label,
+      active,
+      onClick: () => onNavigate(entry.screen),
+    };
+  });
 
   return (
     <Root>
