@@ -5,6 +5,7 @@ import { useAchievements } from "../hooks/useAchievements.js";
 import GameModeCard from "../components/chrome/GameModeCard.js";
 import { NoteLaneThumbnail, FriendsThumbnail } from "../components/chrome/thumbnails.js";
 import PipeBeam from "../components/chrome/PipeBeam.js";
+import Icon from "../components/Icon.js";
 
 export default function MainMenuPage({
   onPlaySingleplayer,
@@ -38,13 +39,13 @@ export default function MainMenuPage({
       {user && (
         <ProgressStrip>
           <ProgressChip type="button" onClick={onViewMissions} title="Streak">
-            🔥 {currentStreak} {currentStreak === 1 ? "day" : "days"}
+            <Icon name="fire" /> {currentStreak} {currentStreak === 1 ? "day" : "days"}
           </ProgressChip>
           <ProgressChip type="button" onClick={onViewMissions} title="Daily missions">
-            🎯 {completedMissions}/{missionsToday.length}
+            <Icon name="target" /> {completedMissions}/{missionsToday.length}
           </ProgressChip>
           <ProgressChip type="button" onClick={onViewAchievements} title="Achievements">
-            🏆 {unlockedAchievements}/{achievements?.length ?? 0}
+            <Icon name="trophy" /> {unlockedAchievements}/{achievements?.length ?? 0}
           </ProgressChip>
         </ProgressStrip>
       )}

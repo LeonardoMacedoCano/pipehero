@@ -2,6 +2,7 @@ import styled from "styled-components";
 import type { CosmeticSlot } from "../../hooks/useShop.js";
 import { SHOP_CATEGORIES, type ShopCategory } from "./shopCategories.js";
 import { MOBILE_LAYOUT_MEDIA_QUERY } from "../../responsive.js";
+import Icon from "../Icon.js";
 
 export default function ShopCategoryNav({
   active,
@@ -18,7 +19,9 @@ export default function ShopCategoryNav({
     <Nav aria-label="Shop categories">
       {categories.map((category) => (
         <CategoryButton key={category.id} type="button" $active={category.id === active} onClick={() => onChange(category.id)}>
-          <span aria-hidden>{category.icon}</span>
+          <span aria-hidden>
+            <Icon name={category.icon} />
+          </span>
           <Label>{category.label}</Label>
           <Count>{counts[category.id] ?? 0}</Count>
         </CategoryButton>

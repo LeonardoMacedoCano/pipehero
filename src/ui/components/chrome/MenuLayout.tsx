@@ -4,19 +4,20 @@ import { RailTabsNav, type RailTabsNavItem } from "lcano-react-ui";
 import type { MenuScreenName } from "./navigation.js";
 import AppFooter from "./AppFooter.js";
 import PlayerStatusControl from "./PlayerStatusControl.js";
+import Icon from "../Icon.js";
 import { DESKTOP_LAYOUT_MEDIA_QUERY, LANDSCAPE_MEDIA_QUERY, MOBILE_LAYOUT_MEDIA_QUERY } from "../../responsive.js";
 
 const RAIL_WIDTH = 76;
 const TAB_BAR_HEIGHT = 64;
 
 const NAV_SCREENS: { screen: MenuScreenName; icon: string; label: string }[] = [
-  { screen: "menu", icon: "🏠", label: "Home" },
-  { screen: "profile", icon: "🪪", label: "Profile" },
-  { screen: "achievements", icon: "🏆", label: "Achievements" },
-  { screen: "missions", icon: "🎯", label: "Missions" },
-  { screen: "shop", icon: "🛍️", label: "Shop" },
-  { screen: "friends", icon: "🤝", label: "Friends" },
-  { screen: "options", icon: "⚙️", label: "Options" },
+  { screen: "menu", icon: "home", label: "Home" },
+  { screen: "profile", icon: "profile", label: "Profile" },
+  { screen: "achievements", icon: "trophy", label: "Achievements" },
+  { screen: "missions", icon: "target", label: "Missions" },
+  { screen: "shop", icon: "bag", label: "Shop" },
+  { screen: "friends", icon: "handshake", label: "Friends" },
+  { screen: "options", icon: "gear", label: "Options" },
 ];
 
 export default function MenuLayout({
@@ -30,7 +31,7 @@ export default function MenuLayout({
 }) {
   const items: RailTabsNavItem[] = NAV_SCREENS.map((entry) => ({
     id: entry.screen,
-    icon: entry.icon,
+    icon: <Icon name={entry.icon} />,
     label: entry.label,
     active: current === entry.screen || (entry.screen === "menu" && current === "songs"),
     onClick: () => onNavigate(entry.screen),

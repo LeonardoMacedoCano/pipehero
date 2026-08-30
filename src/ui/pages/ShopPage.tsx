@@ -20,6 +20,7 @@ import ShopItemGrid from "../components/shop/ShopItemGrid.js";
 import ShopItemModal from "../components/shop/ShopItemModal.js";
 import ShopEffectPreviewLayer from "../components/shop/ShopEffectPreviewLayer.js";
 import GuestLoginBanner from "../components/chrome/GuestLoginBanner.js";
+import Icon from "../components/Icon.js";
 
 export default function ShopPage() {
   const { user, googleClientId, login } = useAuth();
@@ -103,7 +104,7 @@ export default function ShopPage() {
 
             <CoinsRow>
               <HighlightBox variant="quaternary" bordered width="auto" style={{ padding: "6px 18px" }}>
-                🪙 {coins} coins
+                <Icon name="coins" /> {coins} coins
               </HighlightBox>
             </CoinsRow>
 

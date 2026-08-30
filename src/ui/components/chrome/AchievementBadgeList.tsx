@@ -2,6 +2,7 @@ import { PaginatedGrid } from "lcano-react-ui";
 import styled from "styled-components";
 import type { AchievementStatus } from "../../hooks/useAchievements.js";
 import AchievementFrame from "./AchievementFrame.js";
+import Icon from "../Icon.js";
 
 export default function AchievementBadgeList({
   achievements,
@@ -22,7 +23,9 @@ export default function AchievementBadgeList({
       renderItem={(achievement) => (
         <AchievementFrame frameId={frameId} effectId={effectId}>
           <Card>
-            <CardIcon>{achievement.icon}</CardIcon>
+            <CardIcon>
+              <Icon name={achievement.icon} />
+            </CardIcon>
             <CardBody>
               <CardTitle>{achievement.name}</CardTitle>
               <CardDescription>{achievement.description}</CardDescription>

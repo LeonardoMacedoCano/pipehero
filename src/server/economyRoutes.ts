@@ -33,7 +33,7 @@ function emptyEconomySnapshot() {
     missionsToday: [
       {
         code: DAILY_LOGIN_CODE,
-        icon: "🔥",
+        icon: "fire",
         name: "Daily Login",
         description: "Log in to start (or keep) your streak.",
         rewardCoins: 5,
@@ -79,7 +79,7 @@ export async function handleEconomyRequest(req: IncomingMessage, res: ServerResp
 
     const loginMission = {
       code: DAILY_LOGIN_CODE,
-      icon: "🔥",
+      icon: "fire",
       name: "Daily Login",
       description: `Open the game today to keep your streak going (day ${streakResult.state.currentStreak}).`,
       rewardCoins: computeStreakCoinReward(streakResult.state.currentStreak).total,
