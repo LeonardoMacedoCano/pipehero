@@ -3,6 +3,7 @@ import { Button, OptionGridLabel, OptionGridBadge } from "lcano-react-ui";
 import styled from "styled-components";
 import type { ShopItem } from "../../hooks/useShop.js";
 import { renderItemPreview } from "./shopItemPreview.js";
+import Icon from "../Icon.js";
 
 export default function ShopItemCard({
   item,
@@ -47,7 +48,7 @@ export default function ShopItemCard({
         {!item.owned && (
           <Button
             description={String(item.priceCoins)}
-            icon={<span aria-hidden>🪙</span>}
+            icon={<Icon name="coins" />}
             variant="quaternary"
             width="100%"
             disabled={coins < item.priceCoins}

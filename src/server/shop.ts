@@ -164,7 +164,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "tag",
     refId: "rockstar",
     name: "Rockstar",
-    description: "🎸 For those who never stop shredding.",
+    description: "For those who never stop shredding.",
     priceCoins: 80,
   },
   {
@@ -172,7 +172,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "tag",
     refId: "perfectionist",
     name: "Perfectionist",
-    description: "💯 Perfect runs, perfectly flexed.",
+    description: "Perfect runs, perfectly flexed.",
     priceCoins: 80,
   },
   {
@@ -180,7 +180,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "tag",
     refId: "speedster",
     name: "Speed Demon",
-    description: "⚡ Built for speed, allergic to slow songs.",
+    description: "Built for speed, allergic to slow songs.",
     priceCoins: 80,
   },
   {
@@ -188,7 +188,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "tag",
     refId: "completionist",
     name: "Completionist",
-    description: "🏆 Every song, every difficulty, no exceptions.",
+    description: "Every song, every difficulty, no exceptions.",
     priceCoins: 80,
   },
   {
@@ -196,7 +196,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     slot: "tag",
     refId: "nightowl",
     name: "Night Owl",
-    description: "🌙 Peak performance after midnight.",
+    description: "Peak performance after midnight.",
     priceCoins: 80,
   },
   {

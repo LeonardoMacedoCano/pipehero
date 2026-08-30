@@ -7,6 +7,7 @@ import { getAvatarOption } from "../../cosmetics/avatarCatalog.js";
 import { getBorderOption } from "../../cosmetics/borderCatalog.js";
 import { getBackgroundOption } from "../../cosmetics/backgroundCatalog.js";
 import { getAchievementFrameOption } from "../../cosmetics/achievementFrameCatalog.js";
+import Icon from "../Icon.js";
 
 export type PreviewSize = "sm" | "lg";
 
@@ -15,8 +16,8 @@ const SWATCH_HEIGHT_PX: Record<PreviewSize, number> = { sm: 32, lg: 56 };
 const RECT_HEIGHT_PX: Record<PreviewSize, number> = { sm: 40, lg: 72 };
 
 const SWATCH_BY_REF_ID = new Map(THEME_OPTIONS.map((option) => [option.id, [...option.swatch]]));
-const ACHIEVEMENT_EFFECT_PREVIEW_ICON: Record<string, string> = { shimmer: "✨", pulse: "💫" };
-const VANITY_PREVIEW_ICON: Record<string, string> = { nepoBaby: "🤑" };
+export const ACHIEVEMENT_EFFECT_PREVIEW_ICON: Record<string, string> = { shimmer: "sparkles", pulse: "wand" };
+export const VANITY_PREVIEW_ICON: Record<string, string> = { nepoBaby: "sack-dollar" };
 
 function themePreview(item: ShopItem, size: PreviewSize): ReactNode {
   const swatch = SWATCH_BY_REF_ID.get(item.refId);
@@ -35,7 +36,7 @@ function avatarPreview(item: ShopItem, size: PreviewSize): ReactNode {
   if (!option) return null;
   return (
     <AvatarPreviewCircle $size={CIRCLE_PX[size]} style={{ backgroundColor: option.bgColor }}>
-      {option.emoji}
+      <Icon name={option.icon} />
     </AvatarPreviewCircle>
   );
 }
@@ -61,13 +62,21 @@ function achievementFramePreview(item: ShopItem, size: PreviewSize): ReactNode {
 function achievementEffectPreview(item: ShopItem, size: PreviewSize): ReactNode {
   const icon = ACHIEVEMENT_EFFECT_PREVIEW_ICON[item.refId];
   if (!icon) return null;
-  return <AvatarPreviewCircle $size={CIRCLE_PX[size]}>{icon}</AvatarPreviewCircle>;
+  return (
+    <AvatarPreviewCircle $size={CIRCLE_PX[size]}>
+      <Icon name={icon} />
+    </AvatarPreviewCircle>
+  );
 }
 
 function vanityPreview(item: ShopItem, size: PreviewSize): ReactNode {
   const icon = VANITY_PREVIEW_ICON[item.refId];
   if (!icon) return null;
-  return <AvatarPreviewCircle $size={CIRCLE_PX[size]}>{icon}</AvatarPreviewCircle>;
+  return (
+    <AvatarPreviewCircle $size={CIRCLE_PX[size]}>
+      <Icon name={icon} />
+    </AvatarPreviewCircle>
+  );
 }
 
 const PREVIEW_RENDERERS: Partial<Record<CosmeticSlot, (item: ShopItem, size: PreviewSize) => ReactNode>> = {

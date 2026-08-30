@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import { getBorderOption } from "../../cosmetics/borderCatalog.js";
-import { resolveAvatarSrc } from "../../cosmetics/resolveAvatar.js";
+import { resolveAvatarOption } from "../../cosmetics/resolveAvatar.js";
+import Icon from "../Icon.js";
 
 export default function AvatarBadge({
   equippedAvatarId,
@@ -11,12 +12,18 @@ export default function AvatarBadge({
   equippedBorderId?: string | null;
   size?: number;
 }) {
-  const src = resolveAvatarSrc(equippedAvatarId);
+  const avatar = resolveAvatarOption(equippedAvatarId);
   const borderCss = equippedBorderId ? getBorderOption(equippedBorderId)?.css : undefined;
 
   return (
     <Ring $size={size} $borderCss={borderCss}>
-      <Img src={src} alt="" />
+      {avatar ? (
+        <Face $size={size} style={{ backgroundColor: avatar.bgColor }}>
+          <Icon name={avatar.icon} />
+        </Face>
+      ) : (
+        <Img src="/pipehero-icon.png" alt="" />
+      )}
     </Ring>
   );
 }
@@ -29,6 +36,16 @@ const Ring = styled.div<{ $size: number; $borderCss?: string }>`
   flex-shrink: 0;
   border: 2px solid transparent;
   ${({ $borderCss }) => $borderCss ?? ""}
+`;
+
+const Face = styled.div<{ $size: number }>`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ theme }) => theme.colors.white};
+  font-size: ${({ $size }) => $size * 0.56}px;
 `;
 
 const Img = styled.img`

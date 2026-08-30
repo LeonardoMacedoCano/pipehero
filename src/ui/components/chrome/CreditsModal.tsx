@@ -23,6 +23,11 @@ export default function CreditsModal({ isOpen, onClose }: { isOpen: boolean; onC
             Built with <Link href="https://github.com/LeonardoMacedoCano/lcano-react-ui" target="_blank" rel="noreferrer">lcano-react-ui</Link>.
           </Line>
           <Line>
+            Icons from <Link href="https://fontawesome.com/" target="_blank" rel="noreferrer">Font Awesome Free</Link> and{" "}
+            <Link href="https://phosphoricons.com/" target="_blank" rel="noreferrer">Phosphor</Link>, licensed{" "}
+            <Link href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</Link> and MIT.
+          </Line>
+          <Line>
             Fan-made project, playable with Clone Hero-compatible charts. Not affiliated with or endorsed by Harmonix,
             Guitar Hero, or Clone Hero.
           </Line>

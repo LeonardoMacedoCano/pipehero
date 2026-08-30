@@ -16,34 +16,34 @@ export interface MissionDefinition {
 }
 
 export const DAILY_MISSION_POOL: MissionDefinition[] = [
-  { code: "play_any_song", icon: "🎵", name: "Warm Up", description: "Finish a song today without failing.", rewardCoins: 10 },
-  { code: "four_star_song", icon: "⭐", name: "Solid Performance", description: "Score at least 4 stars on a song today.", rewardCoins: 15 },
+  { code: "play_any_song", icon: "music", name: "Warm Up", description: "Finish a song today without failing.", rewardCoins: 10 },
+  { code: "four_star_song", icon: "star", name: "Solid Performance", description: "Score at least 4 stars on a song today.", rewardCoins: 15 },
   {
     code: "first_star_new_song",
-    icon: "🆕",
+    icon: "new-territory",
     name: "New Territory",
     description: "Star a song/difficulty you'd never starred before.",
     rewardCoins: 20,
   },
   {
     code: "hard_or_expert_clear",
-    icon: "🔥",
+    icon: "fire",
     name: "Step It Up",
     description: "Finish a song on Hard or Expert difficulty without failing.",
     rewardCoins: 20,
   },
   {
     code: "three_songs_today",
-    icon: "🎼",
+    icon: "music",
     name: "Triple Session",
     description: "Play 3 different songs today.",
     rewardCoins: 20,
     progress: { statKey: "distinctSongsPlayedToday", target: 3 },
   },
-  { code: "five_star_song", icon: "🌟", name: "Perfectionist", description: "Score a perfect 5 stars on a song today.", rewardCoins: 25 },
+  { code: "five_star_song", icon: "star", name: "Perfectionist", description: "Score a perfect 5 stars on a song today.", rewardCoins: 25 },
   {
     code: "full_combo_song",
-    icon: "💯",
+    icon: "flawless",
     name: "Flawless Run",
     description: "Full combo a song today without failing.",
     rewardCoins: 25,
@@ -236,7 +236,7 @@ export const WEEKLY_MISSIONS: WeeklyMissionDefinition[] = [
   {
     code: "weekly_play_2_days",
     tier: "small",
-    icon: "🗓️",
+    icon: "calendar-week",
     name: "Stopping By",
     description: "Play on 2 different days this week.",
     rewardCoins: 30,
@@ -245,7 +245,7 @@ export const WEEKLY_MISSIONS: WeeklyMissionDefinition[] = [
   {
     code: "weekly_full_combo_once",
     tier: "small",
-    icon: "💯",
+    icon: "flawless",
     name: "One Clean Take",
     description: "Full combo any song, at some point this week.",
     rewardCoins: 30,
@@ -253,7 +253,7 @@ export const WEEKLY_MISSIONS: WeeklyMissionDefinition[] = [
   {
     code: "weekly_play_4_days",
     tier: "medium",
-    icon: "📅",
+    icon: "calendar",
     name: "Regular Visitor",
     description: "Play on 4 different days this week.",
     rewardCoins: 60,
@@ -262,7 +262,7 @@ export const WEEKLY_MISSIONS: WeeklyMissionDefinition[] = [
   {
     code: "weekly_hard_expert_no_fail",
     tier: "medium",
-    icon: "🔥",
+    icon: "fire",
     name: "Raising The Bar",
     description: "Finish a song on Hard or Expert difficulty without failing, at some point this week.",
     rewardCoins: 60,
@@ -270,7 +270,7 @@ export const WEEKLY_MISSIONS: WeeklyMissionDefinition[] = [
   {
     code: "weekly_play_6_days",
     tier: "large",
-    icon: "🏅",
+    icon: "medal",
     name: "Weekly Dedication",
     description: "Play on 6 different days this week.",
     rewardCoins: 120,

@@ -6,6 +6,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import { useShop } from "../hooks/useShop.js";
 import AchievementFrame from "../components/chrome/AchievementFrame.js";
 import GuestLoginBanner from "../components/chrome/GuestLoginBanner.js";
+import Icon from "../components/Icon.js";
 
 type FilterTab = "unlocked" | "locked";
 
@@ -68,7 +69,7 @@ export default function AchievementsPage() {
                 effectId={achievement.unlocked ? equipped.achievementEffectId : null}
               >
                 <BadgeCard
-                  icon={achievement.unlocked ? achievement.icon : "🔒"}
+                  icon={<Icon name={achievement.unlocked ? achievement.icon : "lock"} />}
                   title={achievement.name}
                   description={achievement.description}
                   active={achievement.unlocked}
@@ -93,7 +94,7 @@ export default function AchievementsPage() {
         onClose={() => setSelected(null)}
         title={selected?.name ?? ""}
         variant={selected?.unlocked ? "quaternary" : "secondary"}
-        icon={selected ? (selected.unlocked ? selected.icon : "🔒") : undefined}
+        icon={selected ? <Icon name={selected.unlocked ? selected.icon : "lock"} /> : undefined}
         content={
           selected && (
             <Stack direction="column" gap="12px">

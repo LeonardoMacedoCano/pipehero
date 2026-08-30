@@ -133,6 +133,12 @@ function clickButtonWithText(document: Document, text: string): boolean {
   return !!button;
 }
 
+function clickButtonByAriaLabel(document: Document, label: string): boolean {
+  const button = document.querySelector(`#root button[aria-label="${label}"]`);
+  button?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  return !!button;
+}
+
 function clickRowWithText(document: Document, text: string): boolean {
   const row = [...document.querySelectorAll("#root tbody tr")].find((r) => r.textContent?.includes(text));
   row?.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
@@ -159,13 +165,13 @@ try {
     ok: ["Single Player", "Friends", "Achievements", "Options"].every((label) => root?.innerHTML.includes(label)),
   });
 
-  const clickedAccountIcon = clickButtonWithText(document, "👤");
+  const clickedAccountIcon = clickButtonByAriaLabel(document, "Account");
   await new Promise((r) => setTimeout(r, 100));
   checks.push({
     name: "clicking the account icon shows the 'Log in with Google' prompt (logged out, no DATABASE_URL in this test env)",
     ok: clickedAccountIcon && !!root?.innerHTML.includes("Log in with Google"),
   });
-  clickButtonWithText(document, "👤");
+  clickButtonByAriaLabel(document, "Account");
   await new Promise((r) => setTimeout(r, 100));
 
   const clickedFriends = clickButtonWithText(document, "Friends");
@@ -432,12 +438,12 @@ try {
   await new Promise((r) => setTimeout(r, 300));
   checks.push({
     name: "Account tab shows a locked 'Account' item when logged out (no DATABASE_URL in this test env)",
-    ok: !!root?.innerHTML.includes("Account  🔒"),
+    ok: !!root?.innerHTML.includes('aria-label="Account (locked)"'),
   });
 
   checks.push({
     name: "clicking the locked Account item shows the log-in hint",
-    ok: clickButtonWithText(document, "Account  🔒"),
+    ok: clickButtonByAriaLabel(document, "Account (locked)"),
   });
   await new Promise((r) => setTimeout(r, 100));
   checks.push({
